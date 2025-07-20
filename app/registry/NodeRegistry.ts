@@ -17,6 +17,9 @@ import {
   createVerticesNodeDefinition,
   createFacesNodeDefinition,
   mergeGeometryNodeDefinition,
+  parametricSurfaceNodeDefinition,
+  gesnerWaveNodeDefinition,
+  lighthouseNodeDefinition,
   makeVectorNodeDefinition,
   breakVectorNodeDefinition,
   makeTransformNodeDefinition,
@@ -56,6 +59,9 @@ export class NodeRegistry {
     this.register(createVerticesNodeDefinition);
     this.register(createFacesNodeDefinition);
     this.register(mergeGeometryNodeDefinition);
+    this.register(parametricSurfaceNodeDefinition);
+    this.register(gesnerWaveNodeDefinition);
+    this.register(lighthouseNodeDefinition);
     this.register(outputNodeDefinition);
     
     // Register Make/Break nodes for compound data structures
