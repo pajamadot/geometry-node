@@ -324,8 +324,8 @@ export default function GenericNode({
   return (
     <div 
       className={`bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg overflow-hidden backdrop-blur-sm ${
-        selected ? 'ring-2 ring-blue-400' : ''
-      } ${disabled ? 'opacity-50' : ''}`}
+        disabled ? 'opacity-50' : ''
+      }`}
       style={{
         minWidth: `${width}px`,
         minHeight: `${height}px`,

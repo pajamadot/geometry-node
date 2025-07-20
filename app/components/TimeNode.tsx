@@ -76,9 +76,7 @@ export default function TimeNode({ id, data, selected, onParameterChange }: Time
 
   return (
     <div 
-      className={`bg-gradient-to-br from-pink-800 to-pink-900 border border-pink-600/50 rounded-lg backdrop-blur-sm ${
-        selected ? 'ring-2 ring-pink-400' : ''
-      }`}
+      className="bg-gradient-to-br from-pink-800 to-pink-900 border border-pink-600/50 rounded-lg backdrop-blur-sm"
       style={{
         width: '240px',
         minHeight: '120px',

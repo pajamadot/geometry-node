@@ -118,6 +118,25 @@ input[type="number"] {
   background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--slider-value, 0%), #4b5563 var(--slider-value, 0%), #4b5563 100%);
 }
 
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
 /* ReactFlow edge interaction styles */
 .react-flow__edge {
   transition: all 0.2s ease;
