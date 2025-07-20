@@ -17,20 +17,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { GeometryNode, GeometryNodeData } from '../types/nodes';
-import PrimitiveNode from '../nodes/PrimitiveNode';
-import TransformNode from '../nodes/TransformNode';
-import OutputNode from '../nodes/OutputNode';
-import JoinNode from '../nodes/JoinNode';
-import ParametricSurfaceNode from '../nodes/ParametricSurfaceNode';
-import TimeNode from '../nodes/TimeNode';
-import DistributePointsNode from '../nodes/DistributePointsNode';
-import InstanceOnPointsNode from '../nodes/InstanceOnPointsNode';
-import SubdivideMeshNode from '../nodes/SubdivideMeshNode';
-import CreateVerticesNode from '../nodes/CreateVerticesNode';
-import CreateFacesNode from '../nodes/CreateFacesNode';
-import MergeGeometryNode from '../nodes/MergeGeometryNode';
-import MathNode from '../nodes/MathNode';
-import VectorMathNode from '../nodes/VectorMathNode';
+import { nodeRegistry } from '../registry/NodeRegistry';
+import GenericNode from './GenericNode';
 import { useGeometry } from './GeometryContext';
 import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';
@@ -39,23 +27,7 @@ import NodeContextMenu from './NodeContextMenu';
 import { areTypesCompatible, getSocketTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
 
-// Define node types outside component to avoid re-creation
-const nodeTypes = {
-  primitive: PrimitiveNode,
-  transform: TransformNode,
-  output: OutputNode,
-  join: JoinNode,
-  parametric: ParametricSurfaceNode,
-  time: TimeNode,
-  'distribute-points': DistributePointsNode,
-  'instance-on-points': InstanceOnPointsNode,
-  'subdivide-mesh': SubdivideMeshNode,
-  'create-vertices': CreateVerticesNode,
-  'create-faces': CreateFacesNode,
-  'merge-geometry': MergeGeometryNode,
-  math: MathNode,
-  'vector-math': VectorMathNode,
-};
+
 
 // Define default edge options outside component
 const defaultEdgeOptions = {
@@ -81,49 +53,51 @@ const backgroundProps = {
   color: "#1f2937",
 };
 
-// Initial nodes for testing
+// Initial nodes for testing - using new registry system
 const initialNodes: Node<GeometryNodeData>[] = [
   {
     id: '1',
-    type: 'primitive',
+    type: 'cube',
     position: { x: 100, y: 100 },
     data: {
       id: '1',
-      type: 'primitive',
+      type: 'cube',
       label: 'Cube',
-      primitiveType: 'cube',
-      parameters: {
-        width: 1,
-        height: 1,
-        depth: 1,
-      },
-    } as any,
+      parameters: { width: 1, height: 1, depth: 1 },
+      inputConnections: {},
+      liveParameterValues: {}
+    }
   },
   {
-    id: '2',
+    id: '2', 
     type: 'transform',
     position: { x: 400, y: 100 },
     data: {
       id: '2',
       type: 'transform',
       label: 'Transform',
-      transform: {
+      parameters: { 
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
+        scale: { x: 1, y: 1, z: 1 }
       },
-    } as any,
+      inputConnections: {},
+      liveParameterValues: {}
+    }
   },
   {
     id: '3',
-    type: 'output',
+    type: 'output', 
     position: { x: 700, y: 100 },
     data: {
       id: '3',
       type: 'output',
       label: 'Output',
-    } as any,
-  },
+      parameters: {},
+      inputConnections: {},
+      liveParameterValues: {}
+    }
+  }
 ];
 
 const initialEdges: Edge[] = [
@@ -430,6 +404,40 @@ export default function GeometryNodeEditor() {
     );
   }, [setNodes]);
 
+  // Enhanced nodeTypes with parameter updating capability
+  const nodeTypesWithContext = React.useMemo(() => {
+    const types: Record<string, any> = {};
+    
+    const definitions = nodeRegistry.getAllDefinitions();
+    
+    definitions.forEach(definition => {
+      types[definition.type] = ({ id, data, selected }: any) => {
+        // Use the definition directly since we know it exists
+        return (
+          <GenericNode
+            id={id}
+            definition={definition}
+            parameters={data.parameters || {}}
+            inputConnections={data.inputConnections || {}}
+            liveParameterValues={data.liveParameterValues || {}}
+            selected={selected}
+            disabled={data.disabled}
+            onParameterChange={(parameterId: string, value: any) => {
+              updateNodeData(id, { 
+                parameters: { 
+                  ...data.parameters, 
+                  [parameterId]: value 
+                } 
+              });
+            }}
+          />
+        );
+      };
+    });
+    
+    return types;
+  }, [updateNodeData]);
+
   // Handle right-click for context menu
   const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -537,7 +545,7 @@ export default function GeometryNodeEditor() {
     });
   }, []);
 
-  // Add new node
+  // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
     const newId = `${Date.now()}`;
     
@@ -547,181 +555,33 @@ export default function GeometryNodeEditor() {
       y: screenPosition.y,
     });
     
-    let newNodeData;
-
-    switch (type) {
-      case 'primitive':
-        const pType = primitiveType || 'cube';
-        let parameters;
-        
-        if (pType === 'cube') {
-          parameters = { width: 1, height: 1, depth: 1 };
-        } else if (pType === 'sphere') {
-          parameters = { radius: 1, widthSegments: 32, heightSegments: 16 };
-        } else if (pType === 'cylinder') {
-          parameters = { radiusTop: 1, radiusBottom: 1, height: 1, radialSegments: 32 };
-        } else {
-          parameters = { width: 1, height: 1, depth: 1 };
-        }
-
-        newNodeData = {
-          id: newId,
-          type: 'primitive',
-          label: pType.charAt(0).toUpperCase() + pType.slice(1),
-          primitiveType: pType,
-          parameters
-        };
-        break;
-      case 'transform':
-        newNodeData = {
-          id: newId,
-          type: 'transform',
-          label: 'Transform',
-          transform: {
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: 1, y: 1, z: 1 }
-          }
-        };
-        break;
-      case 'join':
-        newNodeData = {
-          id: newId,
-          type: 'join',
-          label: 'Join',
-          operation: 'merge'
-        };
-        break;
-      case 'output':
-        newNodeData = {
-          id: newId,
-          type: 'output',
-          label: 'Output'
-        };
-        break;
-      case 'parametric':
-        newNodeData = {
-          id: newId,
-          type: 'parametric',
-          label: 'Parametric Surface',
-          uFunction: 'Math.cos(u) * Math.sin(v)',
-          vFunction: 'Math.sin(u) * Math.sin(v)',
-          zFunction: 'Math.cos(v)',
-          uMin: 0,
-          uMax: Math.PI * 2,
-          vMin: 0,
-          vMax: Math.PI,
-          uSegments: 32,
-          vSegments: 16
-        };
-        break;
-      case 'time':
-        newNodeData = {
-          id: newId,
-          type: 'time',
-          label: 'Time',
-          timeMode: 'seconds',
-          outputType: 'raw',
-          frequency: 1,
-          amplitude: 1,
-          offset: 0,
-          phase: 0
-        };
-        break;
-      case 'distribute-points':
-        newNodeData = {
-          id: newId,
-          type: 'distribute-points',
-          label: 'Distribute Points',
-          distributeMethod: 'random',
-          density: 100,
-          seed: 0,
-          distanceMin: 0.1
-        };
-        break;
-      case 'instance-on-points':
-        newNodeData = {
-          id: newId,
-          type: 'instance-on-points',
-          label: 'Instance on Points',
-          pickInstance: false,
-          instanceIndex: 0,
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 1, y: 1, z: 1 }
-        };
-        break;
-      case 'subdivide-mesh':
-        newNodeData = {
-          id: newId,
-          type: 'subdivide-mesh',
-          label: 'Subdivide Mesh',
-          level: 1
-        };
-        break;
-      case 'create-vertices':
-        newNodeData = {
-          id: newId,
-          type: 'create-vertices',
-          label: 'Create Vertices',
-          vertices: [
-            { x: 0, y: 1, z: 0 },
-            { x: -1, y: -1, z: 0 },
-            { x: 1, y: -1, z: 0 }
-          ],
-          vertexCount: 3
-        };
-        break;
-      case 'create-faces':
-        newNodeData = {
-          id: newId,
-          type: 'create-faces',
-          label: 'Create Faces',
-          faces: [{ a: 0, b: 1, c: 2 }],
-          faceCount: 1
-        };
-        break;
-      case 'merge-geometry':
-        newNodeData = {
-          id: newId,
-          type: 'merge-geometry',
-          label: 'Merge Geometry',
-          computeNormals: true,
-          generateUVs: false
-        };
-        break;
-      case 'math':
-        newNodeData = {
-          id: newId,
-          type: 'math',
-          label: 'Math',
-          operation: 'add',
-          valueA: 0,
-          valueB: 0
-        };
-        break;
-      case 'vector-math':
-        newNodeData = {
-          id: newId,
-          type: 'vector-math',
-          label: 'Vector Math',
-          operation: 'add',
-          vectorA: { x: 0, y: 0, z: 0 },
-          vectorB: { x: 0, y: 0, z: 0 },
-          scale: 1
-        };
-        break;
-      default:
-        return;
+    try {
+      // Use registry to create node instance
+      const newNode = nodeRegistry.createNodeInstance(
+        type, 
+        newId, 
+        { x: flowPosition.x - 75, y: flowPosition.y - 25 }
+      );
+      
+      setNodes((nds) => [...nds, newNode as any]);
+    } catch (error) {
+      console.warn(`Failed to create node of type "${type}" using registry, creating fallback`, error);
+      
+      // Fallback for nodes not yet in registry
+      const fallbackNode: Node = {
+        id: newId,
+        type: type,
+        position: { x: flowPosition.x - 75, y: flowPosition.y - 25 },
+        data: {
+          type: type,
+          parameters: {},
+          inputConnections: {},
+          liveParameterValues: {}
+        } as any,
+      };
+      
+      setNodes((nds) => [...nds, fallbackNode]);
     }
-
-    const newNode: Node = {
-      id: newId,
-      type: type,
-      position: { x: flowPosition.x - 75, y: flowPosition.y - 25 }, // Small offset so node doesn't cover cursor
-      data: newNodeData as any,
-    };
-
-    setNodes((nds) => [...nds, newNode]);
   }, [setNodes, screenToFlowPosition]);
 
   // Track input connections for each node
@@ -985,7 +845,7 @@ export default function GeometryNodeEditor() {
           onPaneContextMenu={onPaneContextMenu}
           onNodeContextMenu={onNodeContextMenu}
           onSelectionChange={onSelectionChange}
-          nodeTypes={nodeTypes}
+          nodeTypes={nodeTypesWithContext}
           defaultEdgeOptions={defaultEdgeOptions}
           fitView
           attributionPosition="bottom-left"

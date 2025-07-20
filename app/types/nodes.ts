@@ -8,6 +8,7 @@ export interface BaseNodeData {
   label: string;
   inputConnections?: Record<string, any>; // Track which parameters have input connections
   liveParameterValues?: Record<string, any>; // Live values from connected inputs
+  parameters?: Record<string, any>; // Node parameters for registry-based nodes
 }
 
 // Node types in our geometry system  
@@ -33,7 +34,12 @@ export type NodeType =
   | 'create-faces'
   | 'merge-geometry'
   | 'get-vertex-data'
-  | 'set-vertex-attributes';
+  | 'set-vertex-attributes'
+  // Registry-based node types
+  | 'cube'
+  | 'sphere'
+  | 'cylinder'
+  | 'subdivide-mesh';
 
 // Input/Output port types
 export type PortType = 'geometry' | 'vector' | 'number' | 'integer' | 'material' | 'boolean' | 'string' | 'color' | 'time' | 'vertices' | 'faces' | 'attributes' | 'points' | 'instances';
@@ -175,6 +181,12 @@ export interface SetVertexAttributesNodeData extends BaseNodeData {
   attributeData: Array<{ x: number; y: number; z?: number; w?: number }>;
 }
 
+// Registry-based node data (for new data-driven system)
+export interface RegistryNodeData extends BaseNodeData {
+  type: 'cube' | 'sphere' | 'cylinder' | 'subdivide-mesh' | 'transform' | 'output' | 'math' | 'vector-math' | 'join' | 'distribute-points' | 'instance-on-points' | 'create-vertices' | 'create-faces' | 'merge-geometry' | 'time';
+  parameters: Record<string, any>;
+}
+
 // Import math node interfaces
 import { MathNodeData } from '../nodes/MathNode';
 import { VectorMathNodeData } from '../nodes/VectorMathNode';
@@ -201,7 +213,8 @@ export type GeometryNodeData =
   | CreateFacesNodeData
   | MergeGeometryNodeData
   | GetVertexDataNodeData
-  | SetVertexAttributesNodeData;
+  | SetVertexAttributesNodeData
+  | RegistryNodeData;
 
 // React Flow node with our data
 export type GeometryNode = Node<GeometryNodeData>;

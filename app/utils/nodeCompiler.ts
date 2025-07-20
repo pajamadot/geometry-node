@@ -12,6 +12,7 @@ import {
   GraphCompilationResult
 } from '../types/nodes';
 import { GeometryData, CompiledGeometry, PrimitiveParams } from '../types/geometry';
+import { nodeRegistry } from '../registry/NodeRegistry';
 
 // Create Three.js parametric surface
 function createParametricSurface(data: ParametricSurfaceNodeData): THREE.BufferGeometry {
@@ -376,7 +377,7 @@ function createGeometryFromVerticesAndFaces(
   return geometry;
 }
 
-// Execute a single node
+// Execute a single node using the registry system
 function executeNode(
   node: Node<GeometryNodeData>,
   inputs: Record<string, any>,
@@ -400,6 +401,80 @@ function executeNode(
         }
         return cachedResult;
       }
+    }
+
+    // Try registry-based execution first (new system)
+    const definition = nodeRegistry.getDefinition(data.type);
+    if (definition) {
+      if (addLog) {
+        addLog('debug', `Executing node via registry: ${definition.name}`, { 
+          nodeId: node.id,
+          nodeType: data.type 
+        }, 'registry-execution');
+      } else {
+        console.log(`Executing node via registry: ${definition.name}`, { 
+          nodeId: node.id,
+          nodeType: data.type 
+        });
+      }
+
+      // Prepare parameters - combine default values with current values
+      const parameters: Record<string, any> = {};
+      
+      // Start with default values from definition
+      definition.parameters.forEach(param => {
+        parameters[param.id] = param.defaultValue;
+      });
+      
+      // Override with stored parameters from node data
+      if ('parameters' in data && data.parameters) {
+        Object.assign(parameters, data.parameters);
+      }
+      
+      // Override with connected parameter values
+      if (inputs.parameters) {
+        Object.assign(parameters, inputs.parameters);
+      }
+
+      // Execute using registry
+      const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
+      
+      console.log(`Registry execution raw outputs for ${definition.name}:`, outputs);
+      
+      if (addLog) {
+        addLog('success', `Registry execution successful: ${definition.name}`, {
+          nodeId: node.id,
+          nodeType: data.type,
+          outputKeys: Object.keys(outputs)
+        }, 'registry-execution');
+      } else {
+        console.log(`Registry execution successful: ${definition.name}`, {
+          nodeId: node.id,
+          nodeType: data.type,
+          outputKeys: Object.keys(outputs)
+        });
+      }
+
+      // Convert outputs to the expected format
+      const formattedOutputs: Record<string, any> = {};
+      Object.entries(outputs).forEach(([key, value]) => {
+        formattedOutputs[`${key}-out`] = value;
+      });
+      
+      console.log(`Registry execution formatted outputs for ${definition.name}:`, formattedOutputs);
+
+      return {
+        success: true,
+        outputs: formattedOutputs
+      };
+    }
+
+    // Fallback to legacy system for nodes not yet converted
+    if (addLog) {
+      addLog('warning', `Falling back to legacy execution for: ${data.type}`, { 
+        nodeId: node.id,
+        nodeType: data.type 
+      }, 'legacy-execution');
     }
     
     switch (data.type) {
@@ -589,19 +664,51 @@ function executeNode(
           };
         }
 
-        // For now, just merge geometries by combining their vertices
-        // In a more sophisticated system, this would handle different join operations
+        // Implement proper geometry merging
         let joinedGeometry: THREE.BufferGeometry;
         
         if (geometries.length === 1) {
           joinedGeometry = geometries[0].clone();
         } else {
-          // Simple merge - just use the first geometry for now
-          // TODO: Implement proper geometry merging based on operation type
-          joinedGeometry = geometries[0].clone();
+          // Merge multiple geometries by combining vertices and indices
+          const mergedGeometry = new THREE.BufferGeometry();
+          let vertexOffset = 0;
+          const allPositions: number[] = [];
+          const allIndices: number[] = [];
           
-          // For multiple geometries, we'd need more sophisticated merging
-          // This is a simplified implementation
+          geometries.forEach(geometry => {
+            const positions = geometry.attributes.position;
+            const indices = geometry.index;
+            
+            if (positions) {
+              for (let i = 0; i < positions.count; i++) {
+                allPositions.push(
+                  positions.getX(i),
+                  positions.getY(i),
+                  positions.getZ(i)
+                );
+              }
+            }
+            
+            if (indices) {
+              for (let i = 0; i < indices.count; i++) {
+                allIndices.push(indices.getX(i) + vertexOffset);
+              }
+            }
+            
+            vertexOffset += positions ? positions.count : 0;
+          });
+          
+          if (allPositions.length > 0) {
+            mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(allPositions, 3));
+          }
+          
+          if (allIndices.length > 0) {
+            mergedGeometry.setIndex(allIndices);
+          }
+          
+          mergedGeometry.computeVertexNormals();
+          joinedGeometry = mergedGeometry;
         }
 
         return {
@@ -679,28 +786,51 @@ function executeNode(
         };
 
       case 'create-vertices':
-        const vertexData = data as any; // CreateVerticesNodeData
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Create Vertices node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
         
-        // Output the vertex array for use by other nodes
+        const vertexData = data as any; // CreateVerticesNodeData
         return {
           success: true,
           outputs: {
-            'vertices-out': vertexData.vertices
+            'vertices-out': vertexData.vertices || []
           }
         };
 
       case 'create-faces':
-        const faceData = data as any; // CreateFacesNodeData
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Create Faces node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
         
-        // Output the face array for use by other nodes
+        const faceData = data as any; // CreateFacesNodeData
         return {
           success: true,
           outputs: {
-            'faces-out': faceData.faces
+            'faces-out': faceData.faces || []
           }
         };
 
       case 'merge-geometry':
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Merge Geometry node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
+        
         const mergeData = data as any; // MergeGeometryNodeData
         const verticesInput = inputs['vertices-in'];
         const facesInput = inputs['faces-in'];
@@ -1125,13 +1255,19 @@ export function compileNodeGraph(
     }
     
     const outputResult = nodeOutputs.get(outputNode.id);
-    const finalGeometry = outputResult?.result as THREE.BufferGeometry;
+    console.log('Output node result:', outputResult);
+    
+    // Look for geometry in various possible output keys
+    const finalGeometry = outputResult?.['result'] || 
+                         outputResult?.['result-out'] ||
+                         outputResult?.['geometry-out'] || 
+                         outputResult?.['geometry'] as THREE.BufferGeometry;
     
     if (!finalGeometry) {
       temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
-        error: 'No geometry produced by output node',
+        error: `No geometry produced by output node. Available outputs: ${Object.keys(outputResult || {}).join(', ')}`,
         liveParameterValues: {}
       };
     }

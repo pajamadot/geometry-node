@@ -2,142 +2,43 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { NodeType } from '../types/nodes';
+import { nodeRegistry } from '../registry/NodeRegistry';
+import { CATEGORY_METADATA } from '../types/nodeSystem';
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
   onClose: () => void;
-  onAddNode: (type: NodeType, position: { x: number; y: number }, primitiveType?: string) => void;
+  onAddNode: (type: string, position: { x: number; y: number }, primitiveType?: string) => void;
 }
 
 interface NodeMenuItem {
-  type: NodeType;
+  type: string;
   label: string;
   description: string;
   category: string;
   color: string;
+  icon?: string;
 }
 
-const nodeMenuItems: NodeMenuItem[] = [
-  {
-    type: 'primitive',
-    label: 'Cube',
-    description: 'Basic cube geometry',
-    category: 'Primitives',
-    color: 'bg-blue-600'
-  },
-  {
-    type: 'primitive', 
-    label: 'Sphere',
-    description: 'Basic sphere geometry',
-    category: 'Primitives',
-    color: 'bg-blue-600'
-  },
-  {
-    type: 'primitive',
-    label: 'Cylinder', 
-    description: 'Basic cylinder geometry',
-    category: 'Primitives',
-    color: 'bg-blue-600'
-  },
-  {
-    type: 'parametric',
-    label: 'Parametric Surface',
-    description: 'Mathematical surface from equations',
-    category: 'Generators',
-    color: 'bg-purple-600'
-  },
-  {
-    type: 'time',
-    label: 'Time',
-    description: 'Time-based animation values',
-    category: 'Animation',
-    color: 'bg-pink-600'
-  },
-  {
-    type: 'transform',
-    label: 'Transform',
-    description: 'Apply position, rotation, scale',
-    category: 'Transforms',
-    color: 'bg-green-600'
-  },
-  {
-    type: 'join',
-    label: 'Join',
-    description: 'Combine multiple geometries',
-    category: 'Operations',
-    color: 'bg-orange-600'
-  },
-  {
-    type: 'output',
-    label: 'Output',
-    description: 'Final geometry output',
-    category: 'Output',
-    color: 'bg-purple-600'
-  },
-  // Blender-inspired Geometry Nodes
-  {
-    type: 'distribute-points',
-    label: 'Distribute Points',
-    description: 'Generate points on geometry surface',
-    category: 'Point',
-    color: 'bg-cyan-600'
-  },
-  {
-    type: 'instance-on-points',
-    label: 'Instance on Points',
-    description: 'Place geometry instances at points',
-    category: 'Instances',
-    color: 'bg-emerald-600'
-  },
-  {
-    type: 'subdivide-mesh',
-    label: 'Subdivide Mesh',
-    description: 'Add geometry detail by subdivision',
-    category: 'Mesh',
-    color: 'bg-violet-600'
-  },
-  // Raw Vertex/Face Construction
-  {
-    type: 'create-vertices',
-    label: 'Create Vertices',
-    description: 'Define raw vertex positions',
-    category: 'Vertex/Face',
-    color: 'bg-red-600'
-  },
-  {
-    type: 'create-faces',
-    label: 'Create Faces',
-    description: 'Define face topology from vertices',
-    category: 'Vertex/Face',
-    color: 'bg-indigo-600'
-  },
-  {
-    type: 'merge-geometry',
-    label: 'Merge Geometry',
-    description: 'Combine vertices and faces into geometry',
-    category: 'Vertex/Face',
-    color: 'bg-amber-600'
-  },
-  
-  // Math Operations
-  {
-    type: 'math',
-    label: 'Math',
-    description: 'Mathematical operations on numbers',
-    category: 'Math',
-    color: 'bg-green-600'
-  },
-  {
-    type: 'vector-math',
-    label: 'Vector Math',
-    description: 'Mathematical operations on vectors',
-    category: 'Math',
-    color: 'bg-blue-600'
-  }
-];
+
 
 export default function ContextMenu({ position, onClose, onAddNode }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Generate menu items from registry
+  const nodeMenuItems: NodeMenuItem[] = React.useMemo(() => {
+    return nodeRegistry.getAllDefinitions().map(definition => {
+      const categoryMeta = CATEGORY_METADATA[definition.category];
+      return {
+        type: definition.type,
+        label: definition.name,
+        description: definition.description,
+        category: categoryMeta?.description || definition.category,
+        color: `bg-${categoryMeta?.color || 'gray'}-600`,
+        icon: definition.ui?.icon || categoryMeta?.icon
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -169,12 +70,7 @@ export default function ContextMenu({ position, onClose, onAddNode }: ContextMen
   if (!position) return null;
 
   const handleAddNode = (item: NodeMenuItem) => {
-    if (item.type === 'primitive') {
-      const primitiveType = item.label.toLowerCase();
-      onAddNode(item.type, position, primitiveType);
-    } else {
-      onAddNode(item.type, position);
-    }
+    onAddNode(item.type, position);
     onClose();
   };
 
