@@ -22,6 +22,8 @@ import {
   lighthouseNodeDefinition,
   seagullNodeDefinition,
   lowPolyRockNodeDefinition,
+  spiralStairNodeDefinition,
+  meshBooleanNodeDefinition,
   makeVectorNodeDefinition,
   breakVectorNodeDefinition,
   makeTransformNodeDefinition,
@@ -66,6 +68,8 @@ export class NodeRegistry {
     this.register(lighthouseNodeDefinition);
     this.register(seagullNodeDefinition);
     this.register(lowPolyRockNodeDefinition);
+    this.register(spiralStairNodeDefinition);
+    this.register(meshBooleanNodeDefinition);
     this.register(outputNodeDefinition);
     
     // Register Make/Break nodes for compound data structures

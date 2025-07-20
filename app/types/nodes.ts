@@ -40,7 +40,9 @@ export type NodeType =
   | 'sphere'
   | 'cylinder'
   | 'subdivide-mesh'
-  | 'lowPolyRock';
+  | 'lowPolyRock'
+  | 'spiralStair'
+  | 'meshBoolean';
 
 // Input/Output port types
 export type PortType = 'geometry' | 'vector' | 'number' | 'integer' | 'material' | 'boolean' | 'string' | 'color' | 'time' | 'vertices' | 'faces' | 'attributes' | 'points' | 'instances';
@@ -184,7 +186,7 @@ export interface SetVertexAttributesNodeData extends BaseNodeData {
 
 // Registry-based node data (for new data-driven system)
 export interface RegistryNodeData extends BaseNodeData {
-  type: 'cube' | 'sphere' | 'cylinder' | 'subdivide-mesh' | 'transform' | 'output' | 'math' | 'vector-math' | 'join' | 'distribute-points' | 'instance-on-points' | 'create-vertices' | 'create-faces' | 'merge-geometry' | 'time' | 'lowPolyRock';
+  type: 'cube' | 'sphere' | 'cylinder' | 'subdivide-mesh' | 'transform' | 'output' | 'math' | 'vector-math' | 'join' | 'distribute-points' | 'instance-on-points' | 'create-vertices' | 'create-faces' | 'merge-geometry' | 'time' | 'lowPolyRock' | 'spiralStair' | 'meshBoolean';
   parameters: Record<string, any>;
 }
 

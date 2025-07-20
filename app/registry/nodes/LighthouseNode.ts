@@ -253,11 +253,11 @@ function createLighthouseGeometry(params: {
 
   let vertexIndex = 0;
 
-  // Helper function to add cylinder
-  const addCylinder = (height: number, radius: number, yOffset: number = 0) => {
+  // Helper function to add cylinder with proper caps
+  const addCylinder = (height: number, radius: number, yOffset: number = 0, addCaps: boolean = true) => {
     const startIndex = vertexIndex;
     
-    // Create vertices for cylinder
+    // Create vertices for cylinder sides
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2;
       const x = Math.cos(angle) * radius;
@@ -286,13 +286,41 @@ function createLighthouseGeometry(params: {
     }
     
     vertexIndex += (segments + 1) * 2;
+    
+    if (addCaps) {
+      // Add bottom cap
+      const bottomCenterIndex = vertexIndex;
+      vertices.push(0, yOffset, 0);
+      uvs.push(0.5, 0.5);
+      normals.push(0, -1, 0);
+      vertexIndex++;
+      
+      for (let i = 0; i < segments; i++) {
+        const a = startIndex + i * 2;
+        const b = startIndex + ((i + 1) % (segments + 1)) * 2;
+        indices.push(bottomCenterIndex, b, a);
+      }
+      
+      // Add top cap
+      const topCenterIndex = vertexIndex;
+      vertices.push(0, yOffset + height, 0);
+      uvs.push(0.5, 0.5);
+      normals.push(0, 1, 0);
+      vertexIndex++;
+      
+      for (let i = 0; i < segments; i++) {
+        const a = startIndex + i * 2 + 1;
+        const b = startIndex + ((i + 1) % (segments + 1)) * 2 + 1;
+        indices.push(topCenterIndex, a, b);
+      }
+    }
   };
 
-  // Helper function to add cone
+  // Helper function to add cone with base cap
   const addCone = (height: number, radius: number, yOffset: number = 0) => {
     const startIndex = vertexIndex;
     
-    // Create vertices for cone
+    // Create vertices for cone base ring
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2;
       const x = Math.cos(angle) * radius;
@@ -319,6 +347,20 @@ function createLighthouseGeometry(params: {
     }
     
     vertexIndex += segments + 2;
+    
+    // Add base cap
+    const baseCenterIndex = vertexIndex;
+    vertices.push(0, yOffset, 0);
+    uvs.push(0.5, 0.5);
+    normals.push(0, -1, 0);
+    vertexIndex++;
+    
+    // Create base cap triangles
+    for (let i = 0; i < segments; i++) {
+      const a = startIndex + i;
+      const b = startIndex + ((i + 1) % (segments + 1));
+      indices.push(baseCenterIndex, b, a);
+    }
   };
 
   // Helper function to add ring (for balcony)
@@ -398,11 +440,11 @@ function createLighthouseGeometry(params: {
 
   // Build lighthouse from bottom to top
   
-  // 1. Base foundation
-  addCylinder(baseHeight, baseRadius, 0);
+  // 1. Base foundation (sealed cylinder)
+  addCylinder(baseHeight, baseRadius, 0, true);
   
-  // 2. Main tower
-  addCylinder(towerHeight, towerRadius, baseHeight);
+  // 2. Main tower (sealed cylinder)
+  addCylinder(towerHeight, towerRadius, baseHeight, true);
   
   // 3. Add windows
   if (windowCount > 0) {
@@ -413,14 +455,14 @@ function createLighthouseGeometry(params: {
     }
   }
   
-  // 4. Balcony
+  // 4. Balcony (open ring - no caps)
   const balconyY = baseHeight + towerHeight - 0.5;
   addRing(balconyRadius, balconyHeight, balconyY);
   
-  // 5. Lantern room
-  addCylinder(lanternHeight, lanternRadius, baseHeight + towerHeight);
+  // 5. Lantern room (sealed cylinder)
+  addCylinder(lanternHeight, lanternRadius, baseHeight + towerHeight, true);
   
-  // 6. Roof
+  // 6. Roof (cone with sealed base)
   addCone(roofHeight, roofRadius, baseHeight + towerHeight + lanternHeight);
 
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));

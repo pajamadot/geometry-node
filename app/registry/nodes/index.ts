@@ -19,6 +19,8 @@ export { gesnerWaveNodeDefinition } from './GesnerWaveNode';
 export { lighthouseNodeDefinition } from './LighthouseNode';
 export { seagullNodeDefinition } from './SeagullNode';
 export { lowPolyRockNodeDefinition } from './LowPolyRockNode';
+export { spiralStairNodeDefinition } from './SpiralStairNode';
+export { meshBooleanNodeDefinition } from './MeshBooleanNode';
 
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';
