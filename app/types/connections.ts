@@ -165,6 +165,8 @@ export function getSocketTypeFromHandle(handleId: string): SocketType {
   if (handleId.includes('instances')) return 'instances';
   if (handleId.includes('material')) return 'material';
   if (handleId.includes('color')) return 'color';
+  // Check for individual vector components first (position-x-in, scale-y-in, etc.)
+  if (handleId.match(/-(x|y|z)-in$/)) return 'number';
   if (handleId.includes('position') || handleId.includes('rotation') || handleId.includes('scale')) return 'vector';
   if (handleId.includes('boolean') || handleId.includes('enabled') || handleId.includes('visible')) return 'boolean';
   if (handleId.includes('string') || handleId.includes('text') || handleId.includes('name')) return 'string';
@@ -194,6 +196,9 @@ export function convertValue(value: any, fromType: SocketType, toType: SocketTyp
   }
   if (fromType === 'color' && toType === 'vector') {
     return { x: value.r, y: value.g, z: value.b };
+  }
+  if (fromType === 'time' && toType === 'number') {
+    return value;
   }
   
   // If no conversion available, return default value
