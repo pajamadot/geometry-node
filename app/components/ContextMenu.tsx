@@ -17,7 +17,7 @@ interface NodeMenuItem {
   description: string;
   category: string;
   color: string;
-  icon?: string;
+  icon?: string | React.ComponentType<any>;
 }
 
 

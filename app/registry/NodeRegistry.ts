@@ -16,7 +16,7 @@ import {
   createVerticesNodeDefinition,
   createFacesNodeDefinition,
   mergeGeometryNodeDefinition
-} from './nodeDefinitions';
+} from './nodes';
 
 export class NodeRegistry {
   private static instance: NodeRegistry;

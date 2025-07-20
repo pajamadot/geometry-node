@@ -187,9 +187,21 @@ export interface RegistryNodeData extends BaseNodeData {
   parameters: Record<string, any>;
 }
 
-// Import math node interfaces
-import { MathNodeData } from '../nodes/MathNode';
-import { VectorMathNodeData } from '../nodes/VectorMathNode';
+// Math node data interfaces (moved from legacy components)
+export interface MathNodeData extends BaseNodeData {
+  type: 'math';
+  operation: 'add' | 'subtract' | 'multiply' | 'divide' | 'power' | 'sin' | 'cos' | 'sqrt' | 'abs';
+  valueA?: number;
+  valueB?: number;
+}
+
+export interface VectorMathNodeData extends BaseNodeData {
+  type: 'vector-math';
+  operation: 'add' | 'subtract' | 'multiply' | 'divide' | 'cross' | 'dot' | 'normalize' | 'length';
+  vectorA?: { x: number; y: number; z: number };
+  vectorB?: { x: number; y: number; z: number };
+  scale?: number;
+}
 
 // Union type for all node data
 export type GeometryNodeData = 

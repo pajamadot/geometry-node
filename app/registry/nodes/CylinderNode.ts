@@ -1,0 +1,74 @@
+import { NodeDefinition } from '../../types/nodeSystem';
+import { Cylinder } from 'lucide-react';
+import * as THREE from 'three';
+
+// CYLINDER NODE - was 150+ lines, now 25 lines of data
+export const cylinderNodeDefinition: NodeDefinition = {
+  type: 'cylinder',
+  name: 'Cylinder',
+  description: 'Creates a cylinder geometry',
+  category: 'geometry',
+  color: {
+    primary: '#ea580c',
+    secondary: '#c2410c'
+  },
+  inputs: [],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Generated cylinder geometry'
+    }
+  ],
+  parameters: [
+    {
+      id: 'radiusTop',
+      name: 'Top Radius',
+      type: 'number',
+      defaultValue: 1,
+      min: 0,
+      step: 0.1,
+      description: 'Top radius'
+    },
+    {
+      id: 'radiusBottom',
+      name: 'Bottom Radius',
+      type: 'number',
+      defaultValue: 1,
+      min: 0,
+      step: 0.1,
+      description: 'Bottom radius'
+    },
+    {
+      id: 'height',
+      name: 'Height',
+      type: 'number',
+      defaultValue: 1,
+      min: 0.1,
+      step: 0.1,
+      description: 'Cylinder height'
+    },
+    {
+      id: 'radialSegments',
+      name: 'Radial Segments',
+      type: 'integer',
+      defaultValue: 32,
+      min: 3,
+      max: 128,
+      step: 1,
+      description: 'Radial segments',
+      category: 'advanced'
+    }
+  ],
+  ui: {
+    width: 180,
+    icon: Cylinder,
+    advanced: ['radialSegments']
+  },
+  execute: (inputs, parameters) => {
+    const { radiusTop, radiusBottom, height, radialSegments } = parameters;
+    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
+    return { geometry };
+  }
+}; 
