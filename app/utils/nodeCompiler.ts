@@ -648,8 +648,14 @@ function executeNode(
         const joinData = data as JoinNodeData;
         const geometries: THREE.BufferGeometry[] = [];
         
-        // Collect all geometry inputs
-        ['geometry-in-1', 'geometry-in-2', 'geometry-in-3'].forEach(inputId => {
+        // Collect all geometry inputs - handle both legacy and registry naming conventions
+        const geometryInputs = [
+          'geometry-in-1', 'geometry-in-2', 'geometry-in-3',  // Legacy naming
+          'geometryA', 'geometryB', 'geometryC',               // Registry naming
+          'geometry-in'                                         // Single geometry input
+        ];
+        
+        geometryInputs.forEach(inputId => {
           const geom = inputs[inputId] as THREE.BufferGeometry;
           if (geom) geometries.push(geom);
         });
@@ -816,6 +822,27 @@ function executeNode(
           success: true,
           outputs: {
             'faces-out': faceData.faces || []
+          }
+        };
+
+      case 'lowPolyRock':
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Low Poly Rock node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
+        
+        // Create a simple low poly rock geometry for legacy compatibility
+        const rockGeometry = new THREE.IcosahedronGeometry(1, 1);
+        rockGeometry.computeVertexNormals();
+        
+        return {
+          success: true,
+          outputs: {
+            'geometry-out': rockGeometry
           }
         };
 

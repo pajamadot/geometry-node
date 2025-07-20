@@ -121,7 +121,16 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
 export function useGeometry() {
   const context = useContext(GeometryContext);
   if (!context) {
-    throw new Error('useGeometry must be used within a GeometryProvider');
+    console.error('useGeometry called outside of GeometryProvider');
+    // Return a default context instead of throwing
+    return {
+      compiledGeometry: null,
+      material: createDefaultMaterial(),
+      compileNodes: () => {},
+      isCompiling: false,
+      error: 'Geometry context not available',
+      liveParameterValues: {}
+    };
   }
   return context;
 } 

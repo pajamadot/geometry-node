@@ -51,7 +51,8 @@ export const joinNodeDefinition: NodeDefinition = {
   },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
-    const geometryA = inputs.geometryA;
+    // Handle both naming conventions: geometryA/geometryB and geometry
+    const geometryA = inputs.geometryA || inputs.geometry;
     const geometryB = inputs.geometryB;
     const operation = inputs.operation || 'merge';
     

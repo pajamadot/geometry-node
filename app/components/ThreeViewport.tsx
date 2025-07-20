@@ -20,7 +20,8 @@ function Loading() {
 
 // Compiled geometry display
 function CompiledGeometry() {
-  const { compiledGeometry, material, error, isCompiling } = useGeometry();
+  const geometryContext = useGeometry();
+  const { compiledGeometry, material, error, isCompiling } = geometryContext;
   const [geometryKey, setGeometryKey] = React.useState(0);
 
   // Force remount when geometry changes to ensure proper updates
@@ -102,7 +103,8 @@ export default function ThreeViewport() {
   const [webglSupported, setWebglSupported] = useState(true);
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const { isCompiling } = useGeometry();
+  const geometryContext = useGeometry();
+  const { isCompiling } = geometryContext;
   const { isPlaying } = useTime();
   const recoveryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastRecoveryTime = React.useRef<number>(0);
