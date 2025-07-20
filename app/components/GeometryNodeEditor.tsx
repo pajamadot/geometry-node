@@ -158,12 +158,23 @@ export default function GeometryNodeEditor() {
   } | null>(null);
   const [disabledNodes, setDisabledNodes] = useState<Set<string>>(new Set());
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  
+  // Track connection drag state for Blender-style disconnect
+  const [connectionDragState, setConnectionDragState] = useState<{
+    nodeId: string;
+    handleId: string;
+    handleType: 'source' | 'target';
+  } | null>(null);
+  const [connectionWasMade, setConnectionWasMade] = useState(false);
 
-  // Connection validation with type checking
+  // Connection validation with type checking (Blender-style)
   const isValidConnection = useCallback((connection: Connection) => {
     const { source, target, sourceHandle, targetHandle } = connection;
     
     if (!source || !target || !sourceHandle || !targetHandle) return false;
+    
+    // Prevent self-connections
+    if (source === target) return false;
     
     const sourceNode = nodes.find(n => n.id === source);
     const targetNode = nodes.find(n => n.id === target);
@@ -179,63 +190,107 @@ export default function GeometryNodeEditor() {
       return false;
     }
 
-    // Check if target already has a connection on this handle
-    const existingConnection = edges.find(e => 
-      e.target === target && e.targetHandle === targetHandle
-    );
-
-    // Only allow multiple connections to join nodes and some specific input types
-    if (existingConnection && targetNode.data.type !== 'join') {
-      return false;
+    // BLENDER BEHAVIOR: Allow connections to occupied inputs (they'll be auto-replaced)
+    // Only join nodes can have multiple connections to the same input type
+    if (targetNode.data.type === 'join') {
+      // Join nodes can accept multiple geometry inputs
+      return true;
     }
 
-    // Transform nodes can only accept one geometry input
-    if (targetNode.data.type === 'transform' && targetHandle === 'geometry-in') {
-      const existingGeometryConnection = edges.find(e => 
-        e.target === target && e.targetHandle === 'geometry-in'
-      );
-      return !existingGeometryConnection;
-    }
-
+    // All other connections are valid (existing ones will be replaced automatically)
     return true;
-  }, [nodes, edges]);
+  }, [nodes]);
 
   const onConnect = useCallback(
     (params: Connection) => {
       if (isValidConnection(params)) {
-        // Determine connection type based on handle IDs (Blender-inspired)
-        let connectionType = 'geometry';
-        if (params.sourceHandle?.includes('time') || params.targetHandle?.includes('time')) {
-          connectionType = 'time';
-        } else if (params.sourceHandle?.includes('points') || params.targetHandle?.includes('points')) {
-          connectionType = 'points';
-        } else if (params.sourceHandle?.includes('instances') || params.targetHandle?.includes('instances')) {
-          connectionType = 'instances';
-        } else if (params.sourceHandle?.includes('vertices') || params.targetHandle?.includes('vertices')) {
-          connectionType = 'vertices';
-        } else if (params.sourceHandle?.includes('faces') || params.targetHandle?.includes('faces')) {
-          connectionType = 'faces';
-        } else if (params.sourceHandle?.includes('number') || params.targetHandle?.includes('number')) {
-          connectionType = 'number';
-        }
+        // Mark that a connection was successfully made
+        setConnectionWasMade(true);
         
-        const newEdge = {
-          ...params,
-          animated: true,
-          data: { connectionType },
-          style: getEdgeStyle(connectionType),
-          // Add data attributes for CSS styling
-          className: `connection-${connectionType}`,
-          'data-connection-type': connectionType,
-          'data-target-handle': params.targetHandle,
-          'data-source-handle': params.sourceHandle
-        };
-        
-        setEdges((eds) => addEdge(newEdge, eds));
+        // BLENDER BEHAVIOR: Auto-replace existing connection on target input
+        setEdges((eds) => {
+          // Remove existing connection to the same target handle (Blender-style auto-replace)
+          const filteredEdges = eds.filter(edge => 
+            !(edge.target === params.target && edge.targetHandle === params.targetHandle)
+          );
+          
+          // Determine connection type based on handle IDs (Blender-inspired)
+          let connectionType = 'geometry';
+          if (params.sourceHandle?.includes('time') || params.targetHandle?.includes('time')) {
+            connectionType = 'time';
+          } else if (params.sourceHandle?.includes('points') || params.targetHandle?.includes('points')) {
+            connectionType = 'points';
+          } else if (params.sourceHandle?.includes('instances') || params.targetHandle?.includes('instances')) {
+            connectionType = 'instances';
+          } else if (params.sourceHandle?.includes('vertices') || params.targetHandle?.includes('vertices')) {
+            connectionType = 'vertices';
+          } else if (params.sourceHandle?.includes('faces') || params.targetHandle?.includes('faces')) {
+            connectionType = 'faces';
+          } else if (params.sourceHandle?.includes('number') || params.targetHandle?.includes('number')) {
+            connectionType = 'number';
+          }
+          
+          const newEdge = {
+            ...params,
+            animated: true,
+            data: { connectionType },
+            style: getEdgeStyle(connectionType),
+            // Add data attributes for CSS styling
+            className: `connection-${connectionType}`,
+            'data-connection-type': connectionType,
+            'data-target-handle': params.targetHandle,
+            'data-source-handle': params.sourceHandle
+          };
+          
+          return addEdge(newEdge, filteredEdges);
+        });
       }
     },
     [setEdges, isValidConnection]
   );
+
+  // BLENDER BEHAVIOR: Track connection drag start for disconnect functionality
+  const onConnectStart = useCallback((event: any, { nodeId, handleId, handleType }: any) => {
+    // Reset connection flag at start of each drag
+    setConnectionWasMade(false);
+    
+    // Only track TARGET handles (inputs) for drag-to-disconnect
+    // SOURCE handles (outputs) can connect to multiple targets, so don't track them
+    if (handleType === 'target') {
+      const isConnected = edges.some(edge => 
+        edge.target === nodeId && edge.targetHandle === handleId
+      );
+      
+      if (isConnected) {
+        setConnectionDragState({ nodeId, handleId, handleType });
+      } else {
+        setConnectionDragState(null);
+      }
+    } else {
+      // For source handles, clear any drag state
+      setConnectionDragState(null);
+    }
+  }, [edges]);
+
+  // BLENDER BEHAVIOR: Handle drag-to-disconnect
+  const onConnectEnd = useCallback((event: any) => {
+    // If we were dragging from a connected handle and didn't make a new connection, disconnect
+    if (connectionDragState && !connectionWasMade) {
+      const { nodeId, handleId, handleType } = connectionDragState;
+      
+      // Remove the connection from this handle
+      setEdges((eds) => eds.filter(edge => {
+        if (handleType === 'source') {
+          return !(edge.source === nodeId && edge.sourceHandle === handleId);
+        } else {
+          return !(edge.target === nodeId && edge.targetHandle === handleId);
+        }
+      }));
+    }
+    
+    setConnectionDragState(null);
+    setConnectionWasMade(false);
+  }, [connectionDragState, connectionWasMade, setEdges]);
 
   // Function to get edge style based on connection type (Blender-inspired)
   const getEdgeStyle = (connectionType: string) => {
@@ -301,6 +356,46 @@ export default function GeometryNodeEditor() {
       event.stopPropagation();
       setEdges((eds) => eds.filter((e) => e.id !== edge.id));
     }
+  }, [setEdges]);
+
+  // BLENDER BEHAVIOR: Right-click context menu for edges
+  const onEdgeContextMenu = useCallback((event: React.MouseEvent, edge: any) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Create a simple context menu for edge deletion
+    const deleteEdge = () => {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    };
+    
+    // Show a simple context menu
+    const contextMenuElement = document.createElement('div');
+    contextMenuElement.className = 'fixed bg-gray-800 border border-gray-600 rounded shadow-lg p-1 z-50';
+    contextMenuElement.style.left = `${event.clientX}px`;
+    contextMenuElement.style.top = `${event.clientY}px`;
+    
+    const deleteOption = document.createElement('div');
+    deleteOption.className = 'px-3 py-1 text-sm text-white hover:bg-gray-700 cursor-pointer rounded';
+    deleteOption.textContent = 'Delete Connection';
+    deleteOption.onclick = () => {
+      deleteEdge();
+      document.body.removeChild(contextMenuElement);
+    };
+    
+    contextMenuElement.appendChild(deleteOption);
+    document.body.appendChild(contextMenuElement);
+    
+    // Remove context menu when clicking elsewhere
+    const removeContextMenu = (e: MouseEvent) => {
+      if (!contextMenuElement.contains(e.target as HTMLElement)) {
+        document.body.removeChild(contextMenuElement);
+        document.removeEventListener('click', removeContextMenu);
+      }
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('click', removeContextMenu);
+    }, 0);
   }, [setEdges]);
 
   // Handle edge mouse enter/leave for visual feedback
@@ -679,6 +774,52 @@ export default function GeometryNodeEditor() {
     return `${nodeDataHash}::${edgeHash}`;
   }, [nodeDataForCompilation, edges, disabledNodes]);
 
+  // BLENDER BEHAVIOR: Listen for Alt+click handle disconnect events
+  React.useEffect(() => {
+    const handleRemoveConnection = (event: any) => {
+      const { nodeId, handleId, handleType } = event.detail;
+      
+      setEdges((eds) => eds.filter(edge => {
+        if (handleType === 'target') {
+          return !(edge.target === nodeId && edge.targetHandle === handleId);
+        } else if (handleType === 'source') {
+          return !(edge.source === nodeId && edge.sourceHandle === handleId);
+        }
+        return true;
+      }));
+    };
+
+    window.addEventListener('removeHandleConnection', handleRemoveConnection);
+    
+    return () => {
+      window.removeEventListener('removeHandleConnection', handleRemoveConnection);
+    };
+  }, [setEdges]);
+
+  // BLENDER BEHAVIOR: Alt key detection for visual feedback
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey) {
+        document.body.setAttribute('data-alt-pressed', 'true');
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!event.altKey) {
+        document.body.removeAttribute('data-alt-pressed');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      document.body.removeAttribute('data-alt-pressed');
+    };
+  }, []);
+
   // Compile when graph structure changes
   React.useEffect(() => {
     compileNodes(activeNodes, edges, currentTime, frameRate, false);
@@ -835,7 +976,10 @@ export default function GeometryNodeEditor() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
           onEdgeClick={onEdgeClick}
+          onEdgeContextMenu={onEdgeContextMenu}
           onEdgeMouseEnter={onEdgeMouseEnter}
           onEdgeMouseLeave={onEdgeMouseLeave}
           onPaneContextMenu={onPaneContextMenu}

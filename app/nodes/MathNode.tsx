@@ -224,6 +224,20 @@ export default function MathNode({ data, id }: MathNodeProps) {
     return data.inputConnections && data.inputConnections[paramKey];
   };
 
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = (event: React.MouseEvent) => {
+    if (event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId: id, handleId: 'result-out', handleType: 'source' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
+
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'Arithmetic': return 'from-green-600 to-green-500';
@@ -369,6 +383,7 @@ export default function MathNode({ data, id }: MathNodeProps) {
         position={Position.Right}
         id="result-out"
         className={getSocketClassName('number')}
+        onClick={handleOutputClick}
       />
     </div>
   );

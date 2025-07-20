@@ -6,6 +6,7 @@ import { InstanceOnPointsNodeData } from '../types/nodes';
 import { useNodeContext } from '../components/NodeContext';
 import ParameterInput from '../components/ParameterInput';
 import VectorInput from '../components/VectorInput';
+import { createOutputHandleClickHandler } from '../utils/handleUtils';
 
 interface InstanceOnPointsNodeProps extends NodeProps {
   data: InstanceOnPointsNodeData;
@@ -36,6 +37,9 @@ export default function InstanceOnPointsNode({ data, id }: InstanceOnPointsNodeP
     y: hasInputConnection(`${type}-y`),
     z: hasInputConnection(`${type}-z`)
   });
+
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = createOutputHandleClickHandler(id, 'instances-out');
 
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg min-w-[220px] overflow-hidden backdrop-blur-sm"
@@ -124,6 +128,7 @@ export default function InstanceOnPointsNode({ data, id }: InstanceOnPointsNodeP
         position={Position.Right}
         id="instances-out"
         className="instances-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

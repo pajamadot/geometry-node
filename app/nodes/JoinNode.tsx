@@ -17,6 +17,20 @@ export default function JoinNode({ data, id }: JoinNodeProps) {
     updateNodeData(id, { operation: newOperation });
   };
 
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = (event: React.MouseEvent) => {
+    if (event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId: id, handleId: 'geometry-out', handleType: 'source' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg min-w-[160px] overflow-hidden backdrop-blur-sm"
          style={{
@@ -74,6 +88,7 @@ export default function JoinNode({ data, id }: JoinNodeProps) {
         position={Position.Right}
         id="geometry-out"
         className="geometry-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

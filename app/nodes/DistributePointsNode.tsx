@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { DistributePointsNodeData } from '../types/nodes';
 import { useNodeContext } from '../components/NodeContext';
 import ParameterInput from '../components/ParameterInput';
+import { createOutputHandleClickHandler } from '../utils/handleUtils';
 
 interface DistributePointsNodeProps extends NodeProps {
   data: DistributePointsNodeData;
@@ -26,6 +27,9 @@ export default function DistributePointsNode({ data, id }: DistributePointsNodeP
   const hasInputConnection = (paramKey: string) => {
     return data.inputConnections && data.inputConnections[paramKey];
   };
+
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = createOutputHandleClickHandler(id, 'points-out');
 
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg min-w-[200px] overflow-hidden backdrop-blur-sm"
@@ -113,6 +117,7 @@ export default function DistributePointsNode({ data, id }: DistributePointsNodeP
         position={Position.Right}
         id="points-out"
         className="points-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

@@ -38,6 +38,20 @@ export default function TimeNode({ data, id }: TimeNodeProps) {
     updateNodeData(id, { [key]: value });
   };
 
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = (event: React.MouseEvent) => {
+    if (event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId: id, handleId: 'time-out', handleType: 'source' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
+
   // Calculate current output value
   const getCurrentValue = () => {
     const timeValue = timeMode === 'frames' ? currentTime * frameRate : currentTime;
@@ -234,6 +248,7 @@ export default function TimeNode({ data, id }: TimeNodeProps) {
         position={Position.Right}
         id="time-out"
         className="time-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

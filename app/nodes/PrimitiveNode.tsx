@@ -25,6 +25,20 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
     return data.inputConnections && data.inputConnections[paramKey];
   };
 
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = (event: React.MouseEvent) => {
+    if (event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId: id, handleId: 'geometry-out', handleType: 'source' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
+
   const renderParameters = () => {
     switch (primitiveType) {
       case 'cube':
@@ -149,6 +163,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
         position={Position.Right}
         id="geometry-out"
         className="geometry-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

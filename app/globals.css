@@ -457,6 +457,33 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
   }
 }
 
+/* BLENDER BEHAVIOR: Connected handles styling - visual feedback for drag-to-disconnect */
+.react-flow__handle.connected {
+  border: 2px solid var(--handle-color, #6b7280) !important;
+  background: var(--handle-color, #6b7280) !important;
+  box-shadow: 0 0 4px rgba(107, 114, 128, 0.5);
+}
+
+.react-flow__handle.connected:hover {
+  cursor: pointer !important; /* Different cursor for connected handles */
+  border: 3px solid var(--handle-color, #6b7280) !important;
+  background: var(--handle-color, #6b7280) !important;
+  box-shadow: 0 0 8px rgba(107, 114, 128, 0.8);
+  transform: scale(1.2);
+}
+
+/* Alt key pressed - show disconnect cursor on all handles */
+body[data-alt-pressed="true"] .react-flow__handle {
+  cursor: crosshair !important;
+}
+
+body[data-alt-pressed="true"] .react-flow__handle:hover {
+  cursor: crosshair !important;
+  border-color: #ef4444 !important;
+  background: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8) !important;
+}
+
 /* Color-coded handles based on connection type */
 .react-flow__handle.geometry-handle {
   --handle-color: #eab308;

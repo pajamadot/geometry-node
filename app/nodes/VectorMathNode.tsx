@@ -308,6 +308,20 @@ export default function VectorMathNode({ data, id }: VectorMathNodeProps) {
     return data.inputConnections && data.inputConnections[paramKey];
   };
 
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = (event: React.MouseEvent) => {
+    if (event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId: id, handleId: 'result-out', handleType: 'source' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
+
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'Arithmetic': return 'from-blue-600 to-blue-500';
@@ -462,6 +476,7 @@ export default function VectorMathNode({ data, id }: VectorMathNodeProps) {
         position={Position.Right}
         id="result-out"
         className={getSocketClassName(operationInfo.outputType)}
+        onClick={handleOutputClick}
       />
     </div>
   );

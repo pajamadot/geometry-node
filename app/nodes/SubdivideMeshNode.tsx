@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { SubdivideMeshNodeData } from '../types/nodes';
 import { useNodeContext } from '../components/NodeContext';
 import ParameterInput from '../components/ParameterInput';
+import { createOutputHandleClickHandler } from '../utils/handleUtils';
 
 interface SubdivideMeshNodeProps extends NodeProps {
   data: SubdivideMeshNodeData;
@@ -22,6 +23,9 @@ export default function SubdivideMeshNode({ data, id }: SubdivideMeshNodeProps) 
   const hasInputConnection = (paramKey: string) => {
     return data.inputConnections && data.inputConnections[paramKey];
   };
+
+  // BLENDER BEHAVIOR: Alt+click on output handle to disconnect
+  const handleOutputClick = createOutputHandleClickHandler(id, 'geometry-out');
 
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg min-w-[180px] overflow-hidden backdrop-blur-sm"
@@ -75,6 +79,7 @@ export default function SubdivideMeshNode({ data, id }: SubdivideMeshNodeProps) 
         position={Position.Right}
         id="geometry-out"
         className="geometry-handle rounded-full"
+        onClick={handleOutputClick}
       />
     </div>
   );

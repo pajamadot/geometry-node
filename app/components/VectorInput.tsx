@@ -27,6 +27,21 @@ export default function VectorInput({
   step = 0.1,
   className = ""
 }: VectorInputProps) {
+  // BLENDER BEHAVIOR: Alt+click on handle to disconnect
+  const handleClick = (component: 'x' | 'y' | 'z') => (event: React.MouseEvent) => {
+    if (event.altKey && hasConnections[component]) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const handleId = `${baseName}-${component}-in`;
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId, handleId, handleType: 'target' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
   const handleComponentChange = (component: 'x' | 'y' | 'z', newValue: number) => {
     onChange({
       ...value,
@@ -45,7 +60,7 @@ export default function VectorInput({
           type="target"
           position={Position.Left}
           id={handleId}
-          className={`number-handle rounded-full`}
+          className={`number-handle rounded-full ${hasConnection ? 'connected' : ''}`}
           style={{ 
             left: '-8px',
             zIndex: hasConnection ? 1 : -1,
@@ -53,6 +68,7 @@ export default function VectorInput({
             top: '50%',
             transform: 'translateY(-50%)'
           }}
+          onClick={handleClick(component)}
         />
         
         <label className="text-xs text-gray-400 flex-shrink-0 w-3 ml-4">{label}</label>

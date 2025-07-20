@@ -33,6 +33,19 @@ export default function ParameterInput({
   className = "",
   style
 }: ParameterInputProps) {
+  // BLENDER BEHAVIOR: Alt+click on handle to disconnect
+  const handleClick = (event: React.MouseEvent) => {
+    if (event.altKey && hasConnection) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Dispatch custom event to remove connections from this handle
+      const removeConnectionEvent = new CustomEvent('removeHandleConnection', {
+        detail: { nodeId, handleId, handleType: 'target' }
+      });
+      window.dispatchEvent(removeConnectionEvent);
+    }
+  };
   return (
     <div className="flex items-center justify-between relative" style={style}>
       {/* Input Handle */}
@@ -40,12 +53,13 @@ export default function ParameterInput({
         type="target"
         position={Position.Left}
         id={handleId}
-        className="number-handle rounded-full"
+        className={`number-handle rounded-full ${hasConnection ? 'connected' : ''}`}
         style={{ 
           left: '-8px',
           zIndex: hasConnection ? 1 : -1,
           opacity: hasConnection ? 1 : 0
         }}
+        onClick={handleClick}
       />
       
       <label className="text-xs text-gray-300 flex-shrink-0 ml-4">{label}</label>
