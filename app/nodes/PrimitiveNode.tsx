@@ -38,6 +38,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
               handleId="width-in"
               nodeId={id}
               hasConnection={hasInputConnection('width')}
+              liveValue={data.liveParameterValues?.width}
               step={0.1}
               min={0.1}
             />
@@ -48,6 +49,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
               handleId="height-in"
               nodeId={id}
               hasConnection={hasInputConnection('height')}
+              liveValue={data.liveParameterValues?.height}
               step={0.1}
               min={0.1}
             />
@@ -58,6 +60,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
               handleId="depth-in"
               nodeId={id}
               hasConnection={hasInputConnection('depth')}
+              liveValue={data.liveParameterValues?.depth}
               step={0.1}
               min={0.1}
             />
@@ -75,6 +78,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
               handleId="radius-in"
               nodeId={id}
               hasConnection={hasInputConnection('radius')}
+              liveValue={data.liveParameterValues?.radius}
               step={0.1}
               min={0.1}
             />
@@ -85,6 +89,7 @@ export default function PrimitiveNode({ data, id }: PrimitiveNodeProps) {
               handleId="segments-in"
               nodeId={id}
               hasConnection={hasInputConnection('widthSegments')}
+              liveValue={data.liveParameterValues?.widthSegments}
               step={1}
               min={3}
               max={128}

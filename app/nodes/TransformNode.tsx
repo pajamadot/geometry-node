@@ -67,6 +67,11 @@ export default function TransformNode({ data, id }: TransformNodeProps) {
           nodeId={id}
           baseName="position"
           hasConnections={getConnections('position')}
+          liveValues={{
+            x: data.liveParameterValues?.['position-x'],
+            y: data.liveParameterValues?.['position-y'],
+            z: data.liveParameterValues?.['position-z']
+          }}
           step={0.1}
         />
         <VectorInput
@@ -76,6 +81,11 @@ export default function TransformNode({ data, id }: TransformNodeProps) {
           nodeId={id}
           baseName="rotation"
           hasConnections={getConnections('rotation')}
+          liveValues={{
+            x: data.liveParameterValues?.['rotation-x'],
+            y: data.liveParameterValues?.['rotation-y'],
+            z: data.liveParameterValues?.['rotation-z']
+          }}
           step={0.1}
         />
         <VectorInput
@@ -85,6 +95,11 @@ export default function TransformNode({ data, id }: TransformNodeProps) {
           nodeId={id}
           baseName="scale"
           hasConnections={getConnections('scale')}
+          liveValues={{
+            x: data.liveParameterValues?.['scale-x'],
+            y: data.liveParameterValues?.['scale-y'],
+            z: data.liveParameterValues?.['scale-z']
+          }}
           step={0.1}
         />
       </div>

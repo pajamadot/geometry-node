@@ -146,7 +146,7 @@ const initialEdges: Edge[] = [
 export default function GeometryNodeEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { compileNodes, isCompiling, error } = useGeometry();
+  const { compileNodes, isCompiling, error, liveParameterValues } = useGeometry();
   const { currentTime, frameRate } = useTime();
   const { screenToFlowPosition } = useReactFlow();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -646,16 +646,17 @@ export default function GeometryNodeEditor() {
     return connections;
   }, [edges]);
 
-  // Update nodes with input connection information
+  // Update nodes with input connection information and live parameter values
   const nodesWithConnections = React.useMemo(() => {
     return nodes.map(node => ({
       ...node,
       data: {
         ...node.data,
-        inputConnections: getInputConnections[node.id] || {}
+        inputConnections: getInputConnections[node.id] || {},
+        liveParameterValues: liveParameterValues[node.id] || {}
       }
     }));
-  }, [nodes, getInputConnections]);
+  }, [nodes, getInputConnections, liveParameterValues]);
 
   // Memoize active nodes to prevent unnecessary recompilation
   const activeNodes = React.useMemo(() => {

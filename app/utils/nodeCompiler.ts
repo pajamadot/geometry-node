@@ -979,7 +979,8 @@ function getExecutionOrder(nodes: Node<GeometryNodeData>[], edges: Edge[]): Node
 function getNodeInputs(
   nodeId: string,
   edges: Edge[],
-  nodeOutputs: Map<string, Record<string, any>>
+  nodeOutputs: Map<string, Record<string, any>>,
+  liveParameterTracker?: Map<string, Record<string, any>>
 ): Record<string, any> {
   const inputs: Record<string, any> = {};
   const parameterInputs: Record<string, any> = {};
@@ -997,6 +998,15 @@ function getNodeInputs(
         if (isParameterInput) {
           const paramName = edge.targetHandle.replace('-in', '');
           parameterInputs[paramName] = outputValue;
+          
+          // Track live parameter values for UI display
+          if (liveParameterTracker) {
+            if (!liveParameterTracker.has(nodeId)) {
+              liveParameterTracker.set(nodeId, {});
+            }
+            const nodeParams = liveParameterTracker.get(nodeId)!;
+            nodeParams[paramName] = outputValue;
+          }
         } else {
           // Direct inputs like 'geometry-in', 'points-in', 'instance-in', 'vertices-in', 'faces-in', 'time-in', etc.
           inputs[edge.targetHandle] = outputValue;
@@ -1043,8 +1053,9 @@ export function compileNodeGraph(
   currentTime: number = 0,
   frameRate: number = 30,
   addLog?: (level: 'error' | 'warning' | 'info' | 'debug' | 'success', message: string, details?: any, category?: string) => void
-): GraphCompilationResult {
+): GraphCompilationResult & { liveParameterValues?: Record<string, any> } {
   const temporaryGeometries: THREE.BufferGeometry[] = [];
+  const liveParameterTracker = new Map<string, Record<string, any>>();
   
   if (addLog) {
     addLog('info', 'Starting node graph compilation', {
@@ -1071,7 +1082,7 @@ export function compileNodeGraph(
         }, 'compilation');
       }
       
-      const inputs = getNodeInputs(node.id, edges, nodeOutputs);
+      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker);
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {
@@ -1080,7 +1091,8 @@ export function compileNodeGraph(
         
         return {
           success: false,
-          error: `Node ${node.id} (${node.data.label}): ${result.error}`
+          error: `Node ${node.id} (${node.data.label}): ${result.error}`,
+          liveParameterValues: {}
         };
       }
       
@@ -1107,7 +1119,8 @@ export function compileNodeGraph(
       temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
-        error: 'No output node found in graph'
+        error: 'No output node found in graph',
+        liveParameterValues: {}
       };
     }
     
@@ -1118,7 +1131,8 @@ export function compileNodeGraph(
       temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
-        error: 'No geometry produced by output node'
+        error: 'No geometry produced by output node',
+        liveParameterValues: {}
       };
     }
     
@@ -1139,6 +1153,12 @@ export function compileNodeGraph(
     // Clean up cache if needed
     cleanupCache();
     
+    // Convert live parameter tracker to plain object
+    const liveParameterValues: Record<string, any> = {};
+    liveParameterTracker.forEach((params, nodeId) => {
+      liveParameterValues[nodeId] = params;
+    });
+
     return {
       success: true,
       geometry: {
@@ -1156,8 +1176,9 @@ export function compileNodeGraph(
         faceCount: finalGeometry.index ? finalGeometry.index.count / 3 : 0
       },
       // Return the Three.js geometry for direct use
-      compiledGeometry: finalGeometry
-    } as GraphCompilationResult & { compiledGeometry: THREE.BufferGeometry };
+      compiledGeometry: finalGeometry,
+      liveParameterValues
+    } as GraphCompilationResult & { compiledGeometry: THREE.BufferGeometry; liveParameterValues: Record<string, any> };
     
   } catch (error) {
     // Clean up any temporary geometries on error
@@ -1165,7 +1186,8 @@ export function compileNodeGraph(
     
     return {
       success: false,
-      error: `Compilation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Compilation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      liveParameterValues: {}
     };
   }
 }

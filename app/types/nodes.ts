@@ -7,6 +7,7 @@ export interface BaseNodeData {
   type: NodeType;
   label: string;
   inputConnections?: Record<string, any>; // Track which parameters have input connections
+  liveParameterValues?: Record<string, any>; // Live values from connected inputs
 }
 
 // Node types in our geometry system  

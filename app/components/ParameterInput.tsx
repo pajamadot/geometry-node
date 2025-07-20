@@ -11,6 +11,7 @@ interface ParameterInputProps {
   handleId: string;
   nodeId: string;
   hasConnection: boolean;
+  liveValue?: number;
   step?: number;
   min?: number;
   max?: number;
@@ -25,6 +26,7 @@ export default function ParameterInput({
   handleId,
   nodeId,
   hasConnection,
+  liveValue,
   step = 0.1,
   min,
   max,
@@ -60,7 +62,7 @@ export default function ParameterInput({
         />
       ) : (
         <div className="w-16 px-1 py-1 text-xs bg-cyan-600/20 border border-cyan-500 rounded text-cyan-300 text-center">
-          {value.toFixed(2)}
+          {(liveValue !== undefined ? liveValue : value).toFixed(2)}
         </div>
       )}
     </div>

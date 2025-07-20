@@ -11,6 +11,7 @@ interface VectorInputProps {
   nodeId: string;
   baseName: string; // e.g., "position", "rotation", "scale"
   hasConnections: { x: boolean; y: boolean; z: boolean };
+  liveValues?: { x?: number; y?: number; z?: number };
   step?: number;
   className?: string;
 }
@@ -22,6 +23,7 @@ export default function VectorInput({
   nodeId,
   baseName,
   hasConnections,
+  liveValues,
   step = 0.1,
   className = ""
 }: VectorInputProps) {
@@ -65,7 +67,7 @@ export default function VectorInput({
           />
         ) : (
           <div className="w-12 px-1 py-1 text-xs bg-cyan-600/20 border border-cyan-500 rounded text-cyan-300 text-center">
-            {value[component].toFixed(2)}
+            {(liveValues?.[component] !== undefined ? liveValues[component] : value[component]).toFixed(2)}
           </div>
         )}
       </div>

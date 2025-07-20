@@ -14,6 +14,7 @@ interface GeometryContextValue {
   compileNodes: (nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number, isTimeUpdate?: boolean) => void;
   isCompiling: boolean;
   error: string | null;
+  liveParameterValues: Record<string, Record<string, any>>;
 }
 
 const GeometryContext = createContext<GeometryContextValue | null>(null);
@@ -27,6 +28,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
   const [material] = useState<THREE.Material>(() => createDefaultMaterial());
   const [isCompiling, setIsCompiling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [liveParameterValues, setLiveParameterValues] = useState<Record<string, Record<string, any>>>({});
   const { addLog } = useLogging();
   
   // Track previous geometry for disposal
@@ -59,6 +61,11 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
         if (result.success) {
           // Get the compiled geometry from the result
           const geometry = (result as any).compiledGeometry as THREE.BufferGeometry;
+          const liveValues = (result as any).liveParameterValues || {};
+          
+          // Update live parameter values
+          setLiveParameterValues(liveValues);
+          
           if (geometry) {
             addLog('success', 'Geometry compilation successful', {
               vertices: geometry.attributes.position?.count || 0,
@@ -117,6 +124,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
     compileNodes,
     isCompiling,
     error,
+    liveParameterValues,
   };
 
   return (
