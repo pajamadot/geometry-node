@@ -29,7 +29,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
   const [isCompiling, setIsCompiling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveParameterValues, setLiveParameterValues] = useState<Record<string, Record<string, any>>>({});
-  const { addLog } = useLogging();
+
   
   // Track previous geometry for disposal
   const prevGeometryRef = React.useRef<THREE.BufferGeometry | null>(null);
@@ -38,9 +38,6 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
   const compilationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const compileNodes = useCallback((nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number, isTimeUpdate = false) => {
-    addLog('info', `Starting compilation with ${nodes.length} nodes and ${edges.length} edges`, 
-      { nodeCount: nodes.length, edgeCount: edges.length }, 'compilation');
-    
     // Clear any pending compilation
     if (compilationTimeoutRef.current) {
       clearTimeout(compilationTimeoutRef.current);
@@ -51,12 +48,11 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
     const hasTimeNodes = nodes.some(node => node.data.type === 'time');
     const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50; // 8ms for time with time nodes, 50ms otherwise
     compilationTimeoutRef.current = setTimeout(() => {
-      addLog('debug', 'Beginning node graph compilation...', null, 'compilation');
       setIsCompiling(true);
       setError(null);
 
       try {
-        const result = compileNodeGraph(nodes, edges, currentTime || 0, frameRate || 30, addLog);
+        const result = compileNodeGraph(nodes, edges, currentTime || 0, frameRate || 30, undefined);
         
         if (result.success) {
           // Get the compiled geometry from the result
@@ -67,12 +63,6 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
           setLiveParameterValues(liveValues);
           
           if (geometry) {
-            addLog('success', 'Geometry compilation successful', {
-              vertices: geometry.attributes.position?.count || 0,
-              faces: geometry.index ? geometry.index.count / 3 : 0,
-              type: geometry.type
-            }, 'compilation');
-            
             // Dispose previous geometry to prevent memory leaks
             if (prevGeometryRef.current && prevGeometryRef.current !== geometry) {
               prevGeometryRef.current.dispose();
@@ -83,27 +73,21 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
             setError(null);
           } else {
             const errorMsg = 'No geometry was produced by compilation';
-            addLog('warning', errorMsg, null, 'compilation');
             setError(errorMsg);
           }
         } else {
-          addLog('error', 'Compilation failed', { error: result.error }, 'compilation');
           setError(result.error || 'Unknown compilation error');
           setCompiledGeometry(null);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown compilation error';
-        addLog('error', 'Compilation exception', { 
-          error: errorMsg, 
-          stack: err instanceof Error ? err.stack : undefined 
-        }, 'compilation');
         setError(errorMsg);
         setCompiledGeometry(null);
       } finally {
         setIsCompiling(false);
       }
     }, debounceTime);
-  }, [addLog]);
+      }, []);
   
   // Cleanup on unmount
   React.useEffect(() => {

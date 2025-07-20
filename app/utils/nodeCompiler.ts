@@ -452,21 +452,7 @@ function executeNode(
       // Execute using registry
       const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
       
-      console.log(`Registry execution raw outputs for ${definition.name}:`, outputs);
-      
-      if (addLog) {
-        addLog('success', `Registry execution successful: ${definition.name}`, {
-          nodeId: node.id,
-          nodeType: data.type,
-          outputKeys: Object.keys(outputs)
-        }, 'registry-execution');
-      } else {
-        console.log(`Registry execution successful: ${definition.name}`, {
-          nodeId: node.id,
-          nodeType: data.type,
-          outputKeys: Object.keys(outputs)
-        });
-      }
+
 
       // Convert outputs to the expected format
       const formattedOutputs: Record<string, any> = {};
@@ -474,8 +460,6 @@ function executeNode(
         // All nodes use -out suffix for consistency
         formattedOutputs[`${key}-out`] = value;
       });
-      
-      console.log(`Registry execution formatted outputs for ${definition.name}:`, formattedOutputs);
 
       return {
         success: true,
@@ -513,7 +497,7 @@ function executeNode(
           parameters: finalParameters
         };
         
-        console.log('🔧 Creating primitive geometry with parameters:', finalParameters);
+
         
         // Create geometry fresh every time to ensure updates are reflected
         // Caching can be added later if performance becomes an issue
@@ -1223,14 +1207,7 @@ export function compileNodeGraph(
   const temporaryGeometries: THREE.BufferGeometry[] = [];
   const liveParameterTracker = new Map<string, Record<string, any>>();
   
-  if (addLog) {
-    addLog('info', 'Starting node graph compilation', {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      nodes: nodes.map(n => ({ id: n.id, type: n.data.type, label: n.data.label })),
-      edges: edges.map(e => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle }))
-    }, 'compilation');
-  }
+
   
   try {
     // Get execution order
@@ -1241,13 +1218,6 @@ export function compileNodeGraph(
     const cache = new Map<string, any>();
     
     for (const node of executionOrder) {
-      if (addLog) {
-        addLog('debug', `Executing node: ${node.data.label || node.data.type}`, { 
-          nodeId: node.id, 
-          nodeType: node.data.type 
-        }, 'compilation');
-      }
-      
       const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
@@ -1270,13 +1240,6 @@ export function compileNodeGraph(
       });
       
       nodeOutputs.set(node.id, result.outputs);
-      
-      if (addLog) {
-        addLog('debug', `Node execution completed`, {
-          nodeId: node.id,
-          outputKeys: Object.keys(result.outputs)
-        }, 'compilation');
-      }
     }
     
     // Find output node and get final geometry
@@ -1366,8 +1329,9 @@ export function compileNodeGraph(
 // Helper function to create a default material
 export function createDefaultMaterial(): THREE.Material {
   return new THREE.MeshStandardMaterial({
-    color: 0xff6b35,
-    roughness: 0.4,
-    metalness: 0.1
+    color: 0xffffff, // White diffuse
+    roughness: 0.5,
+    metalness: 0.0,
+    envMapIntensity: 1.0
   });
 } 
