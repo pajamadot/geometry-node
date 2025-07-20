@@ -54,7 +54,9 @@ export function LoggingProvider({ children }: LoggingProviderProps) {
       return updatedLogs.slice(0, 100);
     });
 
-    // Also log to console for development
+    // Console logging disabled for clean output
+    // Uncomment the following lines for development debugging:
+    /*
     const consoleMessage = category ? `[${category}] ${message}` : message;
     switch (level) {
       case 'error':
@@ -72,6 +74,7 @@ export function LoggingProvider({ children }: LoggingProviderProps) {
       default:
         console.log(consoleMessage, details);
     }
+    */
   }, []);
 
   const clearLogs = useCallback(() => {

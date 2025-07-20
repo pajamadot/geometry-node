@@ -49,54 +49,48 @@ export default function VectorInput({
     });
   };
 
-  const renderComponent = (component: 'x' | 'y' | 'z', label: string, color: string) => {
-    const hasConnection = hasConnections[component];
-    const handleId = `${baseName}-${component}-in`;
-    
-    return (
-      <div key={component} className="flex items-center justify-between relative">
-        {/* Input Handle */}
-        <Handle
-          type="target"
-          position={Position.Left}
-          id={handleId}
-          className={`number-handle rounded-full ${hasConnection ? 'connected' : ''}`}
-          style={{ 
-            left: '-8px',
-            zIndex: hasConnection ? 1 : -1,
-            opacity: hasConnection ? 1 : 0,
-            top: '50%',
-            transform: 'translateY(-50%)'
-          }}
-          onClick={handleClick(component)}
-        />
-        
-        <label className="text-xs text-gray-400 flex-shrink-0 w-3 ml-4">{label}</label>
-        
-        {/* Show input only when not connected */}
-        {!hasConnection ? (
-          <NumberInput
-            value={value[component]}
-            onChange={(newValue) => handleComponentChange(component, newValue)}
-            className={`w-12 px-1 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none ${className}`}
-            step={step}
-          />
-        ) : (
-          <div className="w-12 px-1 py-1 text-xs bg-cyan-600/20 border border-cyan-500 rounded text-cyan-300 text-center">
-            {(liveValues?.[component] !== undefined ? liveValues[component] : value[component]).toFixed(2)}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const hasAnyConnection = hasConnections.x || hasConnections.y || hasConnections.z;
+  const handleId = `${baseName}-in`;
 
   return (
-    <div className="space-y-1">
-      <div className="text-xs text-gray-300 font-medium">{label}</div>
-      <div className="space-y-1 pl-2">
-        {renderComponent('x', 'X', 'bg-red-500 border-red-600')}
-        {renderComponent('y', 'Y', 'bg-green-500 border-green-600')}
-        {renderComponent('z', 'Z', 'bg-blue-500 border-blue-600')}
+    <div className="flex items-center gap-2">
+      {/* Single Input Pin */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id={handleId}
+        className="vector-handle rounded-full"
+        style={{
+          width: '14px',
+          height: '14px',
+          zIndex: hasAnyConnection ? 1 : -1,
+          opacity: hasAnyConnection ? 1 : 0
+        }}
+      />
+      
+      {/* Space */}
+      <div className="w-2" />
+      
+      {/* X Y Z Input Boxes */}
+      <div className="flex-1">
+        {hasAnyConnection ? (
+          <div className="w-full px-2 py-1 text-xs bg-cyan-600/20 border border-cyan-500 rounded text-cyan-300 text-center">
+            {`(${value.x.toFixed(2)}, ${value.y.toFixed(2)}, ${value.z.toFixed(2)})`}
+          </div>
+        ) : (
+          <div className="flex gap-1">
+            {(['x', 'y', 'z'] as const).map(component => (
+              <div key={component} className="flex-1">
+                <NumberInput
+                  value={value[component]}
+                  onChange={(newValue) => handleComponentChange(component, newValue)}
+                  className={`w-full px-1 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none ${className}`}
+                  step={step}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

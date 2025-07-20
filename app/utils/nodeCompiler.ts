@@ -12,6 +12,7 @@ import {
   GraphCompilationResult
 } from '../types/nodes';
 import { GeometryData, CompiledGeometry, PrimitiveParams } from '../types/geometry';
+import { nodeRegistry } from '../registry/NodeRegistry';
 
 // Create Three.js parametric surface
 function createParametricSurface(data: ParametricSurfaceNodeData): THREE.BufferGeometry {
@@ -376,7 +377,7 @@ function createGeometryFromVerticesAndFaces(
   return geometry;
 }
 
-// Execute a single node
+// Execute a single node using the registry system
 function executeNode(
   node: Node<GeometryNodeData>,
   inputs: Record<string, any>,
@@ -388,8 +389,8 @@ function executeNode(
   try {
     const { data } = node;
     
-    // Check cache first (skip for time-dependent nodes)
-    if (data.type !== 'time') {
+    // Check cache first (skip for time-dependent nodes and nodes with parameters)
+    if (data.type !== 'time' && !('parameters' in data && data.parameters && Object.keys(data.parameters).length > 0)) {
       const cachedResult = getCachedNodeResult(node.id, inputs, data);
       if (cachedResult) {
         if (addLog) {
@@ -400,6 +401,78 @@ function executeNode(
         }
         return cachedResult;
       }
+    }
+
+    // Try registry-based execution first (new system)
+    const definition = nodeRegistry.getDefinition(data.type);
+    if (definition) {
+      if (addLog) {
+        addLog('debug', `Executing node via registry: ${definition.name}`, { 
+          nodeId: node.id,
+          nodeType: data.type 
+        }, 'registry-execution');
+      } else {
+        console.log(`Executing node via registry: ${definition.name}`, { 
+          nodeId: node.id,
+          nodeType: data.type 
+        });
+      }
+
+      // Prepare parameters - combine default values with current values
+      const parameters: Record<string, any> = {};
+      
+      // Start with default values from definition
+      definition.parameters.forEach(param => {
+        parameters[param.id] = param.defaultValue;
+      });
+      
+      // Override with stored parameters from node data
+      if ('parameters' in data && data.parameters) {
+        Object.assign(parameters, data.parameters);
+      }
+      
+      // Override with connected parameter values
+      if (inputs.parameters) {
+        Object.assign(parameters, inputs.parameters);
+      }
+
+      // console.log(`Parameter preparation for ${definition.name}:`, {
+      //   defaultValues: definition.parameters.map(p => ({ id: p.id, defaultValue: p.defaultValue })),
+      //   nodeDataParameters: data.parameters,
+      //   inputParameters: inputs.parameters,
+      //   finalParameters: parameters
+      // });
+
+      // Inject currentTime for time nodes
+      if (data.type === 'time') {
+        inputs.currentTime = currentTime;
+        inputs.frameRate = frameRate;
+      }
+      
+      // Execute using registry
+      const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
+      
+
+
+      // Convert outputs to the expected format
+      const formattedOutputs: Record<string, any> = {};
+      Object.entries(outputs).forEach(([key, value]) => {
+        // All nodes use -out suffix for consistency
+        formattedOutputs[`${key}-out`] = value;
+      });
+
+      return {
+        success: true,
+        outputs: formattedOutputs
+      };
+    }
+
+    // Fallback to legacy system for nodes not yet converted
+    if (addLog) {
+      addLog('warning', `Falling back to legacy execution for: ${data.type}`, { 
+        nodeId: node.id,
+        nodeType: data.type 
+      }, 'legacy-execution');
     }
     
     switch (data.type) {
@@ -424,7 +497,7 @@ function executeNode(
           parameters: finalParameters
         };
         
-        console.log('🔧 Creating primitive geometry with parameters:', finalParameters);
+
         
         // Create geometry fresh every time to ensure updates are reflected
         // Caching can be added later if performance becomes an issue
@@ -474,7 +547,7 @@ function executeNode(
         return {
           success: true,
           outputs: {
-            'time-out': timeValue
+            'time': timeValue
           }
         };
 
@@ -575,8 +648,14 @@ function executeNode(
         const joinData = data as JoinNodeData;
         const geometries: THREE.BufferGeometry[] = [];
         
-        // Collect all geometry inputs
-        ['geometry-in-1', 'geometry-in-2', 'geometry-in-3'].forEach(inputId => {
+        // Collect all geometry inputs - handle both legacy and registry naming conventions
+        const geometryInputs = [
+          'geometry-in-1', 'geometry-in-2', 'geometry-in-3',  // Legacy naming
+          'geometryA', 'geometryB', 'geometryC',               // Registry naming
+          'geometry-in'                                         // Single geometry input
+        ];
+        
+        geometryInputs.forEach(inputId => {
           const geom = inputs[inputId] as THREE.BufferGeometry;
           if (geom) geometries.push(geom);
         });
@@ -589,19 +668,51 @@ function executeNode(
           };
         }
 
-        // For now, just merge geometries by combining their vertices
-        // In a more sophisticated system, this would handle different join operations
+        // Implement proper geometry merging
         let joinedGeometry: THREE.BufferGeometry;
         
         if (geometries.length === 1) {
           joinedGeometry = geometries[0].clone();
         } else {
-          // Simple merge - just use the first geometry for now
-          // TODO: Implement proper geometry merging based on operation type
-          joinedGeometry = geometries[0].clone();
+          // Merge multiple geometries by combining vertices and indices
+          const mergedGeometry = new THREE.BufferGeometry();
+          let vertexOffset = 0;
+          const allPositions: number[] = [];
+          const allIndices: number[] = [];
           
-          // For multiple geometries, we'd need more sophisticated merging
-          // This is a simplified implementation
+          geometries.forEach(geometry => {
+            const positions = geometry.attributes.position;
+            const indices = geometry.index;
+            
+            if (positions) {
+              for (let i = 0; i < positions.count; i++) {
+                allPositions.push(
+                  positions.getX(i),
+                  positions.getY(i),
+                  positions.getZ(i)
+                );
+              }
+            }
+            
+            if (indices) {
+              for (let i = 0; i < indices.count; i++) {
+                allIndices.push(indices.getX(i) + vertexOffset);
+              }
+            }
+            
+            vertexOffset += positions ? positions.count : 0;
+          });
+          
+          if (allPositions.length > 0) {
+            mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(allPositions, 3));
+          }
+          
+          if (allIndices.length > 0) {
+            mergedGeometry.setIndex(allIndices);
+          }
+          
+          mergedGeometry.computeVertexNormals();
+          joinedGeometry = mergedGeometry;
         }
 
         return {
@@ -679,28 +790,72 @@ function executeNode(
         };
 
       case 'create-vertices':
-        const vertexData = data as any; // CreateVerticesNodeData
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Create Vertices node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
         
-        // Output the vertex array for use by other nodes
+        const vertexData = data as any; // CreateVerticesNodeData
         return {
           success: true,
           outputs: {
-            'vertices-out': vertexData.vertices
+            'vertices-out': vertexData.vertices || []
           }
         };
 
       case 'create-faces':
-        const faceData = data as any; // CreateFacesNodeData
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Create Faces node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
         
-        // Output the face array for use by other nodes
+        const faceData = data as any; // CreateFacesNodeData
         return {
           success: true,
           outputs: {
-            'faces-out': faceData.faces
+            'faces-out': faceData.faces || []
+          }
+        };
+
+      case 'lowPolyRock':
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Low Poly Rock node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
+        
+        // Create a simple low poly rock geometry for legacy compatibility
+        const rockGeometry = new THREE.IcosahedronGeometry(1, 1);
+        rockGeometry.computeVertexNormals();
+        
+        return {
+          success: true,
+          outputs: {
+            'geometry-out': rockGeometry
           }
         };
 
       case 'merge-geometry':
+        // This node is now handled by the registry system
+        // The legacy case is kept for backward compatibility
+        if (addLog) {
+          addLog('warning', 'Merge Geometry node using legacy execution', { 
+            nodeId: node.id,
+            nodeType: data.type 
+          }, 'legacy-execution');
+        }
+        
         const mergeData = data as any; // MergeGeometryNodeData
         const verticesInput = inputs['vertices-in'];
         const facesInput = inputs['faces-in'];
@@ -732,7 +887,8 @@ function executeNode(
         return {
           success: true,
           outputs: {
-            result: outputGeometry
+            result: outputGeometry,
+            geometry: outputGeometry
           }
         };
 
@@ -763,8 +919,8 @@ function executeNodeWithCaching(
 ): NodeExecutionResult {
   const result = executeNode(node, inputs, cache, currentTime, frameRate, addLog);
   
-  // Cache successful results (skip time-dependent nodes)
-  if (result.success && node.data.type !== 'time') {
+  // Cache successful results (skip time-dependent nodes and nodes with parameters)
+  if (result.success && node.data.type !== 'time' && !('parameters' in node.data && node.data.parameters && Object.keys(node.data.parameters).length > 0)) {
     cacheNodeResult(node.id, inputs, node.data, result.outputs);
     if (addLog) {
       addLog('debug', `Cached result for node: ${node.data.label || node.data.type}`, { 
@@ -980,10 +1136,14 @@ function getNodeInputs(
   nodeId: string,
   edges: Edge[],
   nodeOutputs: Map<string, Record<string, any>>,
-  liveParameterTracker?: Map<string, Record<string, any>>
+  liveParameterTracker?: Map<string, Record<string, any>>,
+  nodeData?: any,
+  allNodes?: Node<GeometryNodeData>[]
 ): Record<string, any> {
   const inputs: Record<string, any> = {};
-  const parameterInputs: Record<string, any> = {};
+  
+  // Track which inputs are connected
+  const connectedInputs = new Set<string>();
   
   edges.forEach(edge => {
     if (edge.target === nodeId) {
@@ -991,33 +1151,50 @@ function getNodeInputs(
       
       if (sourceOutputs && edge.sourceHandle && edge.targetHandle) {
         const outputValue = sourceOutputs[edge.sourceHandle];
+        connectedInputs.add(edge.targetHandle);
         
-        // Check if this is a parameter input (specific patterns, not just ending with '-in')
-        const isParameterInput = edge.targetHandle.match(/^(width|height|depth|radius|segments|position-[xyz]|rotation-[xyz]|scale-[xyz]|radiusTop|radiusBottom|radialSegments|heightSegments|widthSegments|depthSegments|tubularSegments|tube|density|seed|distanceMin|level|instanceIndex|vertexCount|faceCount)-in$/);
+        // Extract socket names from handle IDs
+        const targetSocketName = edge.targetHandle.replace('-in', '');
+        const sourceSocketName = edge.sourceHandle?.replace('-out', '');
         
-        if (isParameterInput) {
-          const paramName = edge.targetHandle.replace('-in', '');
-          parameterInputs[paramName] = outputValue;
+        // Get node definitions to check types
+        const targetNode = allNodes?.find(n => n.id === nodeId);
+        const sourceNode = allNodes?.find(n => n.id === edge.source);
+        
+        if (targetNode && sourceNode) {
+          const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+          const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
           
-          // Track live parameter values for UI display
-          if (liveParameterTracker) {
-            if (!liveParameterTracker.has(nodeId)) {
-              liveParameterTracker.set(nodeId, {});
+          if (targetDef && sourceDef) {
+            const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+            const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+            
+            if (targetSocket && sourceSocket) {
+              // Unified input system - all inputs go directly to inputs object
+              inputs[targetSocketName] = outputValue;
+              
+              // Track live parameter values for UI display
+              if (liveParameterTracker) {
+                if (!liveParameterTracker.has(nodeId)) {
+                  liveParameterTracker.set(nodeId, {});
+                }
+                const nodeParams = liveParameterTracker.get(nodeId)!;
+                nodeParams[targetSocketName] = outputValue;
+              }
             }
-            const nodeParams = liveParameterTracker.get(nodeId)!;
-            nodeParams[paramName] = outputValue;
           }
-        } else {
-          // Direct inputs like 'geometry-in', 'points-in', 'instance-in', 'vertices-in', 'faces-in', 'time-in', etc.
-          inputs[edge.targetHandle] = outputValue;
         }
       }
     }
   });
   
-  // Add parameter inputs to the inputs object
-  if (Object.keys(parameterInputs).length > 0) {
-    inputs.parameters = parameterInputs;
+  // Add default values for unconnected inputs from node parameters
+  if (nodeData?.parameters) {
+    Object.entries(nodeData.parameters).forEach(([paramId, value]) => {
+      if (!connectedInputs.has(`${paramId}-in`)) {
+        inputs[paramId] = value;
+      }
+    });
   }
   
   return inputs;
@@ -1057,14 +1234,7 @@ export function compileNodeGraph(
   const temporaryGeometries: THREE.BufferGeometry[] = [];
   const liveParameterTracker = new Map<string, Record<string, any>>();
   
-  if (addLog) {
-    addLog('info', 'Starting node graph compilation', {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      nodes: nodes.map(n => ({ id: n.id, type: n.data.type, label: n.data.label })),
-      edges: edges.map(e => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle }))
-    }, 'compilation');
-  }
+
   
   try {
     // Get execution order
@@ -1075,14 +1245,7 @@ export function compileNodeGraph(
     const cache = new Map<string, any>();
     
     for (const node of executionOrder) {
-      if (addLog) {
-        addLog('debug', `Executing node: ${node.data.label || node.data.type}`, { 
-          nodeId: node.id, 
-          nodeType: node.data.type 
-        }, 'compilation');
-      }
-      
-      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker);
+      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {
@@ -1104,13 +1267,6 @@ export function compileNodeGraph(
       });
       
       nodeOutputs.set(node.id, result.outputs);
-      
-      if (addLog) {
-        addLog('debug', `Node execution completed`, {
-          nodeId: node.id,
-          outputKeys: Object.keys(result.outputs)
-        }, 'compilation');
-      }
     }
     
     // Find output node and get final geometry
@@ -1125,13 +1281,18 @@ export function compileNodeGraph(
     }
     
     const outputResult = nodeOutputs.get(outputNode.id);
-    const finalGeometry = outputResult?.result as THREE.BufferGeometry;
+    
+    // Look for geometry in various possible output keys
+    const finalGeometry = outputResult?.['result'] || 
+                         outputResult?.['result-out'] ||
+                         outputResult?.['geometry-out'] || 
+                         outputResult?.['geometry'] as THREE.BufferGeometry;
     
     if (!finalGeometry) {
       temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
-        error: 'No geometry produced by output node',
+        error: `No geometry produced by output node. Available outputs: ${Object.keys(outputResult || {}).join(', ')}`,
         liveParameterValues: {}
       };
     }
@@ -1195,8 +1356,10 @@ export function compileNodeGraph(
 // Helper function to create a default material
 export function createDefaultMaterial(): THREE.Material {
   return new THREE.MeshStandardMaterial({
-    color: 0xff6b35,
-    roughness: 0.4,
-    metalness: 0.1
+    color: 0xffffff, // White diffuse
+    roughness: 0.5,
+    metalness: 0.0,
+    envMapIntensity: 1.0,
+    side: THREE.DoubleSide // Make all materials double-sided
   });
 } 

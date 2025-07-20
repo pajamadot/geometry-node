@@ -25,6 +25,118 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Radix UI Enhanced Styles */
+[data-radix-slider-track] {
+  background-color: #4b5563 !important;
+  border-radius: 4px !important;
+  height: 4px !important;
+}
+
+[data-radix-slider-range] {
+  background-color: #3b82f6 !important;
+  border-radius: 4px !important;
+  height: 4px !important;
+}
+
+[data-radix-slider-thumb] {
+  background-color: #3b82f6 !important;
+  border: 2px solid #1d4ed8 !important;
+  border-radius: 50% !important;
+  width: 12px !important;
+  height: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-radix-slider-thumb]:hover {
+  background-color: #60a5fa !important;
+  transform: scale(1.1) !important;
+}
+
+[data-radix-slider-thumb]:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+}
+
+[data-radix-label] {
+  color: #9ca3af !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  user-select: none !important;
+}
+
+/* Enhanced Numeric Input Styles */
+.numeric-input-enhanced {
+  transition: all 0.2s ease !important;
+}
+
+.numeric-input-enhanced:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.numeric-input-enhanced:hover {
+  border-color: #60a5fa !important;
+}
+
+/* Hide default browser number input arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Custom arrow button styles */
+.numeric-arrow-button {
+  transition: all 0.15s ease;
+}
+
+.numeric-arrow-button:hover:not(:disabled) {
+  background-color: #4b5563 !important;
+  color: white !important;
+}
+
+.numeric-arrow-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Slider container styles */
+.slider-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Custom slider track gradient */
+.slider-track-gradient {
+  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--slider-value, 0%), #4b5563 var(--slider-value, 0%), #4b5563 100%);
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.8);
+}
+
 /* ReactFlow edge interaction styles */
 .react-flow__edge {
   transition: all 0.2s ease;
@@ -59,7 +171,6 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 /* Enhanced shadow on hover */
 .react-flow__node:hover {
   filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.4)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
-  transform: translateY(-2px);
 }
 
 /* Subtle pulsing animation for active connections */
@@ -224,8 +335,8 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 
 /* Enhanced handle styling for better connection visibility */
 .react-flow__handle {
-  width: 12px !important;
-  height: 12px !important;
+  width: 18px !important;
+  height: 18px !important;
   border-width: 2px !important;
   transition: all 0.2s ease !important;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3) !important;
@@ -233,10 +344,19 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 
 /* Smaller handles for parameter inputs inside nodes */
 .react-flow__handle[style*="width: 8px"] {
-  width: 8px !important;
-  height: 8px !important;
+  width: 12px !important;
+  height: 12px !important;
   border-width: 1px !important;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Position smaller parameter handles outside node boundary */
+.react-flow__handle[style*="width: 8px"].react-flow__handle-left {
+  left: -6px !important; /* Half the handle width (12px/2) */
+}
+
+.react-flow__handle[style*="width: 8px"].react-flow__handle-right {
+  right: -6px !important; /* Half the handle width (12px/2) */
 }
 
 /* Parameter input handles when connected */
@@ -246,8 +366,8 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 
 /* Handle hover effects */
 .react-flow__handle:hover {
-  transform: scale(1.2) !important;
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 255, 255, 0.3) !important;
+  filter: brightness(1.2) !important;
 }
 
 /* Connection indicator when dragging */
@@ -266,13 +386,38 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4), 0 0 10px rgba(239, 68, 68, 0.6) !important;
 }
 
-/* Better handle positioning */
+/* Better handle positioning - handles render outside node boundary */
 .react-flow__handle-left {
-  left: -6px !important;
+  left: -9px !important; /* Half the handle width (18px/2) to center it on the edge */
+  top: 50% !important;
+  transform: translateY(-50%) !important;
 }
 
 .react-flow__handle-right {
-  right: -6px !important;
+  right: -9px !important; /* Half the handle width (18px/2) to center it on the edge */
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Ensure vertical centering is preserved during hover */
+.react-flow__handle-left:hover,
+.react-flow__handle-right:hover {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Ensure vertical centering is preserved during connecting state */
+.react-flow__handle-left.connecting,
+.react-flow__handle-right.connecting {
+  top: 50% !important;
+  transform: translateY(-50%) scale(1.3) !important;
+}
+
+/* Ensure vertical centering is preserved during connected state */
+.react-flow__handle-left.connected,
+.react-flow__handle-right.connected {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
 }
 
 /* Edge connection improvements */
@@ -419,41 +564,38 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 
 /* Make connection handles thicker and more prominent */
 .react-flow__handle {
-  width: 12px !important;
-  height: 12px !important;
+  width: 18px !important;
+  height: 18px !important;
   border: 3px solid #1f2937 !important;
   background: var(--handle-color, #6b7280) !important;
   opacity: 1 !important;
   transition: all 0.2s ease-in-out;
 }
 
-/* Handle hover effect */
+/* Handle hover effect - preserve vertical centering */
 .react-flow__handle:hover {
-  width: 14px !important;
-  height: 14px !important;
   border: 3px solid #06b6d4 !important;
   background: #06b6d4 !important;
-  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.6) !important;
 }
 
 /* Handle when connected */
 .react-flow__handle.react-flow__handle-connecting {
-  width: 16px !important;
-  height: 16px !important;
   border: 3px solid #22c55e !important;
   background: #22c55e !important;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6) !important;
   animation: pulse 1s infinite;
 }
 
-/* Pulse animation for connecting handles */
+/* Pulse animation for connecting handles - highlight only */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
-    transform: scale(1);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
   }
   50% {
     opacity: 0.8;
-    transform: scale(1.2);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
   }
 }
 
@@ -468,8 +610,7 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
   cursor: pointer !important; /* Different cursor for connected handles */
   border: 3px solid var(--handle-color, #6b7280) !important;
   background: var(--handle-color, #6b7280) !important;
-  box-shadow: 0 0 8px rgba(107, 114, 128, 0.8);
-  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(107, 114, 128, 0.8) !important;
 }
 
 /* Alt key pressed - show disconnect cursor on all handles */
@@ -535,4 +676,122 @@ body[data-alt-pressed="true"] .react-flow__handle:hover {
 
 .react-flow__handle.material-handle {
   --handle-color: #78716c;
+}
+
+/* Dragging connection line - matches real connection style with transparency */
+.react-flow__edge.dragging .react-flow__edge-path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* General dragging connection line styling */
+.react-flow__connection-line,
+.react-flow__connection-line .react-flow__edge-path,
+.react-flow__edge.connection-line,
+.react-flow__edge.connection-line .react-flow__edge-path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* Alternative selectors for dragging connection */
+.react-flow__edge.connecting .react-flow__edge-path,
+.react-flow__edge.connection-line .react-flow__edge-path,
+.react-flow__edge[data-connection-line="true"] .react-flow__edge-path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* Dragging connection line for geometry type */
+.react-flow__edge.dragging[data-connection-type="geometry"] .react-flow__edge-path,
+.react-flow__edge.connecting[data-connection-type="geometry"] .react-flow__edge-path {
+  stroke-width: 3px !important;
+  stroke: #eab308 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.2)) !important;
+}
+
+/* Dragging connection line for time type */
+.react-flow__edge.dragging[data-connection-type="time"] .react-flow__edge-path,
+.react-flow__edge.connecting[data-connection-type="time"] .react-flow__edge-path {
+  stroke-width: 2px !important;
+  stroke: #ec4899 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(236, 72, 153, 0.2)) !important;
+}
+
+/* Dragging connection line for number type */
+.react-flow__edge.dragging[data-connection-type="number"] .react-flow__edge-path,
+.react-flow__edge.connecting[data-connection-type="number"] .react-flow__edge-path {
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* Dragging connection line for parameter inputs */
+.react-flow__edge.dragging[data-target-handle$="-in"] .react-flow__edge-path,
+.react-flow__edge.connecting[data-target-handle$="-in"] .react-flow__edge-path {
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 3, 2 !important;
+  opacity: 0.4 !important;
+}
+
+/* Comprehensive dragging connection line styling */
+.react-flow__connection-line,
+.react-flow__connection-line .react-flow__edge-path,
+.react-flow__edge.connection-line,
+.react-flow__edge.connection-line .react-flow__edge-path,
+.react-flow__edge.dragging .react-flow__edge-path,
+.react-flow__edge.connecting .react-flow__edge-path,
+.react-flow__edge[data-connection-line="true"] .react-flow__edge-path,
+.react-flow__connection-line path,
+.react-flow__edge.connection-line path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* ReactFlow default connection line styling */
+.react-flow__connection-line {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* Target the SVG path inside connection line */
+.react-flow__connection-line path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
+}
+
+/* Alternative: target any path that might be the connection line */
+.react-flow svg path:not(.react-flow__edge-path) {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  opacity: 0.5 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
 }

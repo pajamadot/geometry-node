@@ -3,7 +3,7 @@
 // ===========================
 // Blender-inspired type system for node graph connections
 
-export type SocketType = 
+export type ParameterType = 
   | 'geometry'    // 3D geometry data
   | 'number'      // Single numeric value
   | 'integer'     // Integer values only
@@ -18,7 +18,7 @@ export type SocketType =
   | 'instances'   // Instance data
   | 'material';   // Material properties
 
-export interface SocketTypeInfo {
+export interface ParameterTypeInfo {
   name: string;
   color: string;
   description: string;
@@ -26,7 +26,7 @@ export interface SocketTypeInfo {
   validator?: (value: any) => boolean;
 }
 
-export const SOCKET_TYPES: Record<SocketType, SocketTypeInfo> = {
+export const SOCKET_TYPES: Record<ParameterType, ParameterTypeInfo> = {
   geometry: {
     name: 'Geometry',
     color: '#eab308', // Yellow
@@ -115,7 +115,7 @@ export const SOCKET_TYPES: Record<SocketType, SocketTypeInfo> = {
 };
 
 // Type conversion rules - which types can be converted to others
-export const TYPE_CONVERSIONS: Record<SocketType, SocketType[]> = {
+export const TYPE_CONVERSIONS: Record<ParameterType, ParameterType[]> = {
   number: ['integer', 'time'], // Numbers can become integers or time
   integer: ['number', 'time'], // Integers can become numbers or time
   time: ['number'], // Time can become a number
@@ -134,7 +134,7 @@ export const TYPE_CONVERSIONS: Record<SocketType, SocketType[]> = {
 /**
  * Check if two socket types are compatible for connection
  */
-export function areTypesCompatible(sourceType: SocketType, targetType: SocketType): boolean {
+export function areTypesCompatible(sourceType: ParameterType, targetType: ParameterType): boolean {
   // Exact match
   if (sourceType === targetType) {
     return true;
@@ -148,14 +148,14 @@ export function areTypesCompatible(sourceType: SocketType, targetType: SocketTyp
 /**
  * Get the CSS class name for a socket type
  */
-export function getSocketClassName(type: SocketType): string {
+export function getSocketClassName(type: ParameterType): string {
   return `${type}-handle`;
 }
 
 /**
  * Get socket type from handle ID
  */
-export function getSocketTypeFromHandle(handleId: string): SocketType {
+export function getParameterTypeFromHandle(handleId: string): ParameterType {
   // Extract type from handle ID patterns like "position-x-in", "width-in", etc.
   if (handleId.includes('geometry')) return 'geometry';
   if (handleId.includes('time')) return 'time';
@@ -178,7 +178,7 @@ export function getSocketTypeFromHandle(handleId: string): SocketType {
 /**
  * Convert value from one type to another
  */
-export function convertValue(value: any, fromType: SocketType, toType: SocketType): any {
+export function convertValue(value: any, fromType: ParameterType, toType: ParameterType): any {
   if (fromType === toType) return value;
   
   // Number conversions

@@ -147,7 +147,13 @@ export default function NumberInput({
   }, []);
 
   // Use local value when focused, external value when not focused
-  const displayValue = isFocused ? localValue : value.toString();
+  const formatDisplayValue = (val: number) => {
+    // Show only 3 significant digits, remove trailing zeros
+    const formatted = val.toFixed(3).replace(/\.?0+$/, '');
+    return formatted === '' ? '0' : formatted;
+  };
+  
+  const displayValue = isFocused ? localValue : formatDisplayValue(value);
 
   return (
     <div className="flex items-center justify-between relative group">

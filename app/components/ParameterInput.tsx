@@ -55,7 +55,7 @@ export default function ParameterInput({
         id={handleId}
         className={`number-handle rounded-full ${hasConnection ? 'connected' : ''}`}
         style={{ 
-          left: '-8px',
+          left: '-18px',
           zIndex: hasConnection ? 1 : -1,
           opacity: hasConnection ? 1 : 0
         }}

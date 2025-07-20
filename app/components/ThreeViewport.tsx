@@ -20,16 +20,17 @@ function Loading() {
 
 // Compiled geometry display
 function CompiledGeometry() {
-  const { compiledGeometry, material, error, isCompiling } = useGeometry();
+  const geometryContext = useGeometry();
+  const { compiledGeometry, material, error, isCompiling } = geometryContext;
   const [geometryKey, setGeometryKey] = React.useState(0);
 
   // Force remount when geometry changes to ensure proper updates
   React.useEffect(() => {
-    console.log('🎭 CompiledGeometry received new geometry:', compiledGeometry);
+    // console.log('🎭 CompiledGeometry received new geometry:', compiledGeometry);
     if (compiledGeometry) {
       setGeometryKey(prev => {
         const newKey = prev + 1;
-        console.log('🔑 Geometry key updated to:', newKey);
+        // console.log('🔑 Geometry key updated to:', newKey);
         return newKey;
       });
     }
@@ -64,13 +65,21 @@ function CompiledGeometry() {
   );
 }
 
-// Minimal scene setup to prevent context loss
+// Scene setup with ambient cube map environment
 function Scene() {
   return (
     <>
-      {/* Basic lighting only */}
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 10, 5]} intensity={0.8} />
+      {/* Enhanced lighting setup */}
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[10, 10, 5]} intensity={0.6} />
+      <directionalLight position={[-5, 5, -5]} intensity={0.3} />
+      
+      {/* Environment with ambient cube map */}
+      <Environment 
+        preset="sunset" // Nice warm ambient lighting
+        background={false}
+        blur={0.1}
+      />
       
       {/* Simple grid - no fancy effects */}
       <Grid 
@@ -94,7 +103,8 @@ export default function ThreeViewport() {
   const [webglSupported, setWebglSupported] = useState(true);
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const { isCompiling } = useGeometry();
+  const geometryContext = useGeometry();
+  const { isCompiling } = geometryContext;
   const { isPlaying } = useTime();
   const recoveryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastRecoveryTime = React.useRef<number>(0);
@@ -250,13 +260,14 @@ export default function ThreeViewport() {
               dpr={1} // Fixed DPR for stability
               shadows={false} // Disable shadows to reduce memory pressure
               gl={{ 
-                // Ultra-conservative settings to prevent context loss
-                antialias: false,
+                // Enhanced settings for better environment rendering
+                antialias: true,
                 alpha: false,
                 powerPreference: "default",
                 stencil: false,
                 preserveDrawingBuffer: false,
                 failIfMajorPerformanceCaveat: false,
+                toneMapping: THREE.ACESFilmicToneMapping
               }}
               onCreated={onCanvasCreated}
               onError={(error) => {
@@ -264,7 +275,6 @@ export default function ThreeViewport() {
                 setContextLost(true);
               }}
               frameloop={(isCompiling || isPlaying) ? "always" : "demand"}
-              flat // Disable tone mapping for stability
             >
               <Scene />
               <OrbitControls 
