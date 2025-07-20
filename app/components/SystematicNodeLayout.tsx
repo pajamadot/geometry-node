@@ -197,42 +197,7 @@ export default function SystematicNodeLayout({
 
   // Get dynamic inputs based on node type and parameters
   const getDynamicInputs = (): InputComponent[] => {
-    if (definition.type === 'math') {
-      const operation = parameters.operation || 'add';
-      const inputs: InputComponent[] = [];
-      
-      // Add inputs based on operation
-      if (['add', 'subtract', 'multiply', 'divide', 'power'].includes(operation)) {
-        inputs.push(
-          {
-            id: 'valueA',
-            name: 'X',
-            type: 'numeric',
-            defaultValue: 0,
-            description: 'First operand'
-          },
-          {
-            id: 'valueB',
-            name: 'Y',
-            type: 'numeric',
-            defaultValue: 0,
-            description: 'Second operand'
-          }
-        );
-      } else if (['sin', 'cos', 'sqrt', 'abs'].includes(operation)) {
-        inputs.push({
-          id: 'valueA',
-          name: 'X',
-          type: 'numeric',
-          defaultValue: 0,
-          description: 'Input value'
-        });
-      }
-      
-      return inputs;
-    }
-    
-    // For other nodes, get all inputs from the definition
+    // For all nodes, get all inputs from the definition (unified system)
     return definition.inputs.map(input => ({
       id: input.id,
       name: input.name,

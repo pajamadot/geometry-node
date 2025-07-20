@@ -7,7 +7,7 @@ const getMathInputs = (operation: string): SocketDefinition[] => {
     {
       id: 'valueA',
       name: 'X',
-      type: 'numeric',
+      type: 'number',
       defaultValue: 0,
       description: 'First operand'
     }
@@ -20,7 +20,7 @@ const getMathInputs = (operation: string): SocketDefinition[] => {
     baseInputs.push({
       id: 'valueB',
       name: 'Y',
-      type: 'numeric',
+      type: 'number',
       defaultValue: 0,
       description: 'Second operand'
     });
@@ -44,14 +44,14 @@ export const mathNodeDefinition: NodeDefinition = {
     {
       id: 'valueA',
       name: 'X',
-      type: 'numeric',
+      type: 'number',
       defaultValue: 0,
       description: 'First operand'
     },
     {
       id: 'valueB',
       name: 'Y',
-      type: 'numeric',
+      type: 'number',
       defaultValue: 0,
       description: 'Second operand'
     },
