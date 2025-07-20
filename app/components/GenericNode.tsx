@@ -135,13 +135,21 @@ export default function GenericNode({
           background: `linear-gradient(to right, ${definition.color.primary}, ${definition.color.secondary})`
         }}
       >
-        <h3 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
-          {definition.ui?.icon && <span>{definition.ui.icon}</span>}
-          {categoryMeta.icon} {definition.name}
+        <h3 
+          className="text-sm font-semibold text-white tracking-wide flex items-center gap-2 cursor-help"
+          title={definition.description}
+        >
+          {definition.ui?.icon && (
+            <span className="flex items-center">
+              {typeof definition.ui.icon === 'string' ? (
+                <span>{definition.ui.icon}</span>
+              ) : (
+                <definition.ui.icon size={16} />
+              )}
+            </span>
+          )}
+          {definition.name}
         </h3>
-        {definition.description && (
-          <div className="text-xs text-white/70 mt-1">{definition.description}</div>
-        )}
       </div>
       
       {/* Parameters */}

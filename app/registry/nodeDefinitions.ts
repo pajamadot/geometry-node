@@ -1,6 +1,23 @@
 // Example node definitions - see how simple they become!
 import { NodeDefinition } from '../types/nodeSystem';
 import * as THREE from 'three';
+import { 
+  Clock, 
+  Box, 
+  Calculator, 
+  Move3d, 
+  Download, 
+  Globe, 
+  Cylinder, 
+  GitBranch, 
+  Scissors, 
+  MapPin, 
+  Copy, 
+  Square, 
+  Triangle, 
+  Circle,
+  Merge
+} from 'lucide-react';
 
 // Helper function for subdivision
 function subdivideGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
@@ -135,7 +152,7 @@ export const timeNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 200,
-    icon: 'TIME',
+    icon: Clock,
     advanced: ['frequency', 'amplitude', 'offset', 'phase']
   },
   execute: (inputs, parameters) => {
@@ -224,7 +241,7 @@ export const cubeNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 180,
-    icon: 'CUBE'
+    icon: Box
   },
   execute: (inputs, parameters) => {
     const { width, height, depth } = parameters;
@@ -281,7 +298,7 @@ export const mathNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 160,
-    icon: 'MATH'
+    icon: Calculator
   },
   execute: (inputs, parameters) => {
     const { valueA = 0, valueB = 0 } = inputs;
@@ -360,7 +377,7 @@ export const transformNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 220,
-    icon: 'TRANSFORM'
+    icon: Move3d
   },
   execute: (inputs, parameters) => {
     const geometry = inputs.geometry || inputs['geometry-in'];
@@ -411,7 +428,7 @@ export const outputNodeDefinition: NodeDefinition = {
   parameters: [],
   ui: {
     width: 140,
-    icon: 'OUTPUT'
+    icon: Download
   },
   execute: (inputs, parameters) => {
     // Output node just passes through the geometry
@@ -476,7 +493,7 @@ export const sphereNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 180,
-    icon: 'SPHERE',
+    icon: Globe,
     advanced: ['heightSegments']
   },
   execute: (inputs, parameters) => {
@@ -547,7 +564,7 @@ export const cylinderNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 180,
-    icon: 'CYLINDER',
+    icon: Cylinder,
     advanced: ['radialSegments']
   },
   execute: (inputs, parameters) => {
@@ -616,7 +633,7 @@ export const vectorMathNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 200,
-    icon: 'VECTOR'
+    icon: GitBranch
   },
   execute: (inputs, parameters) => {
     const { vectorA = { x: 0, y: 0, z: 0 }, vectorB = { x: 0, y: 0, z: 0 }, scale = 1 } = inputs;
@@ -716,7 +733,7 @@ export const joinNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 160,
-    icon: 'MERGE'
+    icon: Merge
   },
   execute: (inputs, parameters) => {
     const { geometry1, geometry2, geometry3 } = inputs;
@@ -775,7 +792,7 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 180,
-    icon: 'SUBDIVIDE'
+    icon: Scissors
   },
   execute: (inputs, parameters) => {
     const { geometry } = inputs;
@@ -863,7 +880,7 @@ export const distributePointsNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 200,
-    icon: 'DISTRIBUTE',
+    icon: MapPin,
     advanced: ['seed', 'distanceMin']
   },
   execute: (inputs, parameters) => {
@@ -958,7 +975,7 @@ export const instanceOnPointsNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 220,
-    icon: 'INSTANCE'
+    icon: Copy
   },
   execute: (inputs, parameters) => {
     const { points, instance } = inputs;
@@ -1024,7 +1041,7 @@ export const createVerticesNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 250,
-    icon: 'VERTICES',
+    icon: Square,
     advanced: ['vertices']
   },
   execute: (inputs, parameters) => {
@@ -1129,7 +1146,7 @@ export const createFacesNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 250,
-    icon: 'FACES',
+    icon: Triangle,
     advanced: ['faces']
   },
   execute: (inputs, parameters) => {
@@ -1259,7 +1276,7 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
   ],
   ui: {
     width: 200,
-    icon: 'JOIN'
+    icon: Merge
   },
   execute: (inputs, parameters) => {
     const { 'geometry-1': geom1, 'geometry-2': geom2, 'geometry-3': geom3 } = inputs;

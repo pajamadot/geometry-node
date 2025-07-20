@@ -62,7 +62,7 @@ export interface NodeDefinition {
   ui?: {
     width?: number;
     height?: number;
-    icon?: string;
+    icon?: string | React.ComponentType<any>;
     advanced?: string[]; // parameter IDs that go in advanced section
   };
 }
@@ -158,47 +158,47 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
 }> = {
   geometry: {
     color: 'orange',
-    icon: '🧊',
+    icon: '',
     description: 'Basic geometry creation and manipulation'
   },
   math: {
     color: 'green',
-    icon: '🧮',
+    icon: '',
     description: 'Mathematical operations and functions'
   },
   vector: {
     color: 'blue',
-    icon: '📐',
+    icon: '',
     description: 'Vector mathematics and transformations'
   },
   utilities: {
     color: 'gray',
-    icon: '🔧',
+    icon: '',
     description: 'Utility nodes and helpers'
   },
   input: {
     color: 'cyan',
-    icon: '📥',
+    icon: '',
     description: 'Input and data sources'
   },
   output: {
     color: 'yellow',
-    icon: '📤',
+    icon: '',
     description: 'Output and visualization'
   },
   modifiers: {
     color: 'purple',
-    icon: '🎛️',
+    icon: '',
     description: 'Geometry modifiers and effects'
   },
   instances: {
     color: 'emerald',
-    icon: '🔢',
+    icon: '',
     description: 'Instancing and duplication'
   },
   animation: {
     color: 'pink',
-    icon: '⏰',
+    icon: '',
     description: 'Time and animation'
   }
 }; 
