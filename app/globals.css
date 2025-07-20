@@ -24,3 +24,488 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ReactFlow edge interaction styles */
+.react-flow__edge {
+  transition: all 0.2s ease;
+}
+
+.react-flow__edge:hover {
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8)) !important;
+}
+
+.react-flow__edge-path {
+  cursor: pointer;
+}
+
+/* Alt key cursor indication */
+body[data-alt-pressed="true"] .react-flow__edge-path {
+  cursor: crosshair !important;
+}
+
+/* ReactFlow node overrides - remove default white backgrounds and shadows */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Remove all box-shadows from node content */
+.react-flow__node > div {
+  box-shadow: none !important;
+}
+
+/* Enhanced shadow on hover */
+.react-flow__node:hover {
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.4)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+  transform: translateY(-2px);
+}
+
+/* Subtle pulsing animation for active connections */
+.react-flow__node:has(.react-flow__handle.connecting) {
+  animation: node-pulse 1s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 12px 24px rgba(6, 182, 212, 0.3)) drop-shadow(0 6px 12px rgba(6, 182, 212, 0.2));
+  }
+}
+
+/* Even more dramatic shadow when dragging */
+.react-flow__node.dragging {
+  filter: drop-shadow(0 32px 64px rgba(0, 0, 0, 0.5)) drop-shadow(0 16px 32px rgba(0, 0, 0, 0.4));
+  transform: translateY(-4px) scale(1.02);
+}
+
+.react-flow__node-output {
+  background: transparent !important;
+  border: none !important;
+}
+
+.react-flow__node-primitive {
+  background: transparent !important;
+  border: none !important;
+}
+
+.react-flow__node-transform {
+  background: transparent !important;
+  border: none !important;
+}
+
+.react-flow__node-join {
+  background: transparent !important;
+  border: none !important;
+}
+
+.react-flow__node-parametric {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Custom selected node styling - exact outline */
+.react-flow__node.selected {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.react-flow__node.selected > div {
+  position: relative;
+}
+
+.react-flow__node.selected > div::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #06b6d4;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.2), 0 0 8px rgba(6, 182, 212, 0.3);
+  animation: selection-pulse 2s ease-in-out infinite;
+  /* Ensure the border perfectly matches the node's shape */
+  box-sizing: border-box;
+}
+
+/* Subtle pulsing animation for selected nodes */
+@keyframes selection-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.2), 0 0 8px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.3), 0 0 12px rgba(6, 182, 212, 0.4);
+  }
+}
+
+/* Remove ReactFlow's default node selection styles */
+.react-flow__node:focus {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove any box-shadow or other default styles */
+.react-flow__node:hover {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure no default styles interfere with our custom node designs */
+.react-flow__node > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Disabled node styling */
+.react-flow__node.node-disabled {
+  opacity: 0.6 !important;
+  filter: grayscale(0.7) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)) !important;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+  transform: none !important;
+}
+
+.react-flow__node.node-disabled > div {
+  position: relative;
+}
+
+.react-flow__node.node-disabled > * {
+  pointer-events: none;
+}
+
+/* Disabled node border indicator - exact outline */
+.react-flow__node.node-disabled > div::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px dashed #fbbf24;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 99;
+  opacity: 0.8;
+  /* Ensure the border perfectly matches the node's shape */
+  box-sizing: border-box;
+}
+
+/* When node is both selected and disabled, show selection border on top */
+.react-flow__node.selected.node-disabled > div::after {
+  z-index: 101;
+}
+
+/* Ensure hover states don't interfere with selection */
+.react-flow__node.selected:hover > div::after {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 1px rgba(8, 145, 178, 0.3), 0 0 12px rgba(8, 145, 178, 0.4);
+}
+
+/* Enhanced selection border when dragging */
+.react-flow__node.selected.dragging > div::after {
+  border-color: #0891b2;
+  border-width: 3px;
+  animation: none;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.4), 0 0 16px rgba(8, 145, 178, 0.6);
+}
+
+/* Smooth transitions for all border effects */
+.react-flow__node > div::after,
+.react-flow__node > div::before {
+  transition: border-color 0.2s ease, border-width 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Enhanced handle styling for better connection visibility */
+.react-flow__handle {
+  width: 12px !important;
+  height: 12px !important;
+  border-width: 2px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Smaller handles for parameter inputs inside nodes */
+.react-flow__handle[style*="width: 8px"] {
+  width: 8px !important;
+  height: 8px !important;
+  border-width: 1px !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Parameter input handles when connected */
+.react-flow__handle[style*="opacity: 1"][style*="width: 8px"] {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4), 0 0 6px rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Handle hover effects */
+.react-flow__handle:hover {
+  transform: scale(1.2) !important;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Connection indicator when dragging */
+.react-flow__handle.connecting {
+  transform: scale(1.3) !important;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.3), 0 0 12px rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Valid connection target */
+.react-flow__handle.valid {
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4), 0 0 10px rgba(34, 197, 94, 0.6) !important;
+}
+
+/* Invalid connection target */
+.react-flow__handle.invalid {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4), 0 0 10px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* Better handle positioning */
+.react-flow__handle-left {
+  left: -6px !important;
+}
+
+.react-flow__handle-right {
+  right: -6px !important;
+}
+
+/* Edge connection improvements */
+.react-flow__edge-path {
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Connection line thickness based on connection type */
+.react-flow__edge[data-connection-type="geometry"] .react-flow__edge-path {
+  stroke-width: 3px !important;
+  stroke: #eab308 !important;
+  filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.4)) !important;
+}
+
+.react-flow__edge[data-connection-type="time"] .react-flow__edge-path {
+  stroke-width: 2px !important;
+  stroke: #ec4899 !important;
+  filter: drop-shadow(0 0 4px rgba(236, 72, 153, 0.4)) !important;
+}
+
+.react-flow__edge[data-connection-type="number"] .react-flow__edge-path {
+  stroke-width: 2px !important;
+  stroke: #06b6d4 !important;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.4)) !important;
+}
+
+/* Parameter input connections - thinner lines */
+.react-flow__edge[data-target-handle$="-in"] .react-flow__edge-path {
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 3, 2 !important;
+  opacity: 0.8 !important;
+}
+
+/* Edge animation for active connections */
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5, 5;
+  animation: edge-flow 1s linear infinite;
+}
+
+@keyframes edge-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 10;
+  }
+}
+
+/* Enhanced lighting effects for node headers */
+.react-flow__node div[class*="from-orange"] {
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #ea580c 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-flow__node div[class*="from-blue"] {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-flow__node div[class*="from-purple"] {
+  background: linear-gradient(135deg, #9333ea 0%, #a855f7 50%, #9333ea 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-flow__node div[class*="from-pink"] {
+  background: linear-gradient(135deg, #db2777 0%, #ec4899 50%, #db2777 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-flow__node div[class*="from-yellow"] {
+  background: linear-gradient(135deg, #ca8a04 0%, #eab308 50%, #ca8a04 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Subtle background pattern for enhanced depth */
+.react-flow__node > div[class*="from-slate"] {
+  background: linear-gradient(135deg, #334155 0%, #475569 25%, #334155 50%, #475569 75%, #334155 100%) !important;
+  background-size: 20px 20px;
+  position: relative;
+}
+
+.react-flow__node > div[class*="from-slate"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(255, 255, 255, 0.02) 25%, 
+    rgba(0, 0, 0, 0.05) 50%, 
+    rgba(255, 255, 255, 0.02) 75%, 
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ===========================
+   NODE SELECTION STYLING
+   ========================== */
+
+/* Default node styling - all nodes have this base style */
+.react-flow__node {
+  border: 2px solid transparent !important;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Selected node styling - thicker border without shadows */
+.react-flow__node.selected {
+  border: 3px solid #06b6d4 !important;
+  transform: scale(1.02);
+  z-index: 1000;
+}
+
+/* Hover effect for unselected nodes */
+.react-flow__node:not(.selected):hover {
+  border: 2px solid rgba(6, 182, 212, 0.5) !important;
+  transform: scale(1.01);
+}
+
+/* Disabled node styling */
+.react-flow__node.node-disabled {
+  opacity: 0.5;
+  border: 2px solid #6b7280 !important;
+}
+
+/* Multiple selection styling */
+.react-flow__node.selected.multi-select {
+  border: 3px solid #f59e0b !important;
+}
+
+/* Selection box styling */
+.react-flow__selection {
+  background: rgba(6, 182, 212, 0.1) !important;
+  border: 2px dashed #06b6d4 !important;
+}
+
+/* ===========================
+   CONNECTION PIN STYLING
+   ========================== */
+
+/* Make connection handles thicker and more prominent */
+.react-flow__handle {
+  width: 12px !important;
+  height: 12px !important;
+  border: 3px solid #1f2937 !important;
+  background: var(--handle-color, #6b7280) !important;
+  opacity: 1 !important;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Handle hover effect */
+.react-flow__handle:hover {
+  width: 14px !important;
+  height: 14px !important;
+  border: 3px solid #06b6d4 !important;
+  background: #06b6d4 !important;
+  transform: scale(1.1);
+}
+
+/* Handle when connected */
+.react-flow__handle.react-flow__handle-connecting {
+  width: 16px !important;
+  height: 16px !important;
+  border: 3px solid #22c55e !important;
+  background: #22c55e !important;
+  animation: pulse 1s infinite;
+}
+
+/* Pulse animation for connecting handles */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+  }
+}
+
+/* Color-coded handles based on connection type */
+.react-flow__handle.geometry-handle {
+  --handle-color: #eab308;
+}
+
+.react-flow__handle.number-handle {
+  --handle-color: #22c55e;
+}
+
+.react-flow__handle.integer-handle {
+  --handle-color: #16a34a;
+}
+
+.react-flow__handle.vector-handle {
+  --handle-color: #3b82f6;
+}
+
+.react-flow__handle.boolean-handle {
+  --handle-color: #8b5cf6;
+}
+
+.react-flow__handle.string-handle {
+  --handle-color: #f59e0b;
+}
+
+.react-flow__handle.color-handle {
+  --handle-color: #ec4899;
+}
+
+.react-flow__handle.time-handle {
+  --handle-color: #ec4899;
+}
+
+.react-flow__handle.points-handle {
+  --handle-color: #06b6d4;
+}
+
+.react-flow__handle.vertices-handle {
+  --handle-color: #ef4444;
+}
+
+.react-flow__handle.faces-handle {
+  --handle-color: #6366f1;
+}
+
+.react-flow__handle.instances-handle {
+  --handle-color: #10b981;
+}
+
+.react-flow__handle.material-handle {
+  --handle-color: #78716c;
+}
