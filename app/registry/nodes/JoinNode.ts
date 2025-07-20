@@ -56,10 +56,19 @@ export const joinNodeDefinition: NodeDefinition = {
     const geometryB = inputs.geometryB;
     const operation = inputs.operation || 'merge';
     
+    console.log('Join node inputs:', {
+      geometryA: geometryA?.type || 'undefined',
+      geometryB: geometryB?.type || 'undefined',
+      geometryAVertices: geometryA?.attributes?.position?.count || 0,
+      geometryBVertices: geometryB?.attributes?.position?.count || 0,
+      geometryAIndexed: !!geometryA?.index,
+      geometryBIndexed: !!geometryB?.index
+    });
+    
     const geometries = [geometryA, geometryB].filter(Boolean);
     
-    if (geometries.length === 0) return { result: null };
-    if (geometries.length === 1) return { result: geometries[0] };
+    if (geometries.length === 0) return { geometry: null };
+    if (geometries.length === 1) return { geometry: geometries[0] };
     
     // Implement proper geometry merging
     const mergedGeometry = new THREE.BufferGeometry();
@@ -68,8 +77,17 @@ export const joinNodeDefinition: NodeDefinition = {
     const allPositions: number[] = [];
     const allIndices: number[] = [];
     
-    geometries.forEach(geometry => {
+    geometries.forEach((geometry, geomIndex) => {
       if (!geometry) return;
+      
+      console.log(`Processing geometry ${geomIndex}:`, {
+        type: geometry.type,
+        hasPosition: !!geometry.attributes.position,
+        positionCount: geometry.attributes.position?.count || 0,
+        hasIndex: !!geometry.index,
+        indexCount: geometry.index?.count || 0,
+        isBufferGeometry: geometry.isBufferGeometry
+      });
       
       const positions = geometry.attributes.position;
       const indices = geometry.index;
@@ -85,8 +103,21 @@ export const joinNodeDefinition: NodeDefinition = {
       }
       
       if (indices) {
-        for (let i = 0; i < indices.count; i++) {
-          allIndices.push(indices.getX(i) + vertexOffset);
+        // Handle both BufferAttribute and TypedArray indices
+        if (indices.isBufferAttribute) {
+          for (let i = 0; i < indices.count; i++) {
+            allIndices.push(indices.getX(i) + vertexOffset);
+          }
+        } else if (indices.array) {
+          for (let i = 0; i < indices.array.length; i++) {
+            allIndices.push(indices.array[i] + vertexOffset);
+          }
+        }
+      } else {
+        // Non-indexed geometry - create indices for triangulation
+        const vertexCount = positions ? positions.count : 0;
+        for (let i = 0; i < vertexCount; i++) {
+          allIndices.push(i + vertexOffset);
         }
       }
       
@@ -102,6 +133,14 @@ export const joinNodeDefinition: NodeDefinition = {
     }
     
     mergedGeometry.computeVertexNormals();
+    
+    console.log('Join result:', {
+      totalPositions: allPositions.length / 3,
+      totalIndices: allIndices.length,
+      hasPosition: !!mergedGeometry.attributes.position,
+      hasIndex: !!mergedGeometry.index,
+      finalVertexCount: mergedGeometry.attributes.position?.count || 0
+    });
     
     return { geometry: mergedGeometry };
   }

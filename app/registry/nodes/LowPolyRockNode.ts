@@ -80,16 +80,25 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
       }
     })(seed);
 
-    // Apply noise deformation to each vertex
+    // Apply noise deformation to each vertex while maintaining connectivity
     for (let i = 0; i < positions.count; i++) {
       tmp.set(positions.getX(i), positions.getY(i), positions.getZ(i));
       normal.copy(tmp).normalize();
       
-      // Generate noise based on vertex position
-      const noiseValue = (random.random() - 0.5) * 2 * noise;
+      // Generate coherent noise based on vertex position for consistent deformation
+      // Use position-based seeded noise to ensure adjacent vertices get similar displacement
+      const posHash = Math.floor(tmp.x * 100) ^ Math.floor(tmp.y * 100) ^ Math.floor(tmp.z * 100);
+      const positionSeed = seed + posHash;
+      const posRandom = Math.sin(positionSeed) * 43758.5453;
+      const noiseValue = (posRandom - Math.floor(posRandom) - 0.5) * noise;
+      
+      // Ensure minimum displacement to keep surface coherent (prevent inward collapse)
+      const minDisplacement = -radius * 0.2; // Don't go more than 20% inward
+      const maxDisplacement = radius * 0.5;  // Don't go more than 50% outward
+      const clampedNoise = Math.max(minDisplacement, Math.min(maxDisplacement, noiseValue));
       
       // Apply radial displacement along the normal
-      tmp.addScaledVector(normal, noiseValue);
+      tmp.addScaledVector(normal, clampedNoise);
       
       // Update vertex position
       positions.setXYZ(i, tmp.x, tmp.y, tmp.z);
@@ -98,8 +107,12 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
     // Mark position attribute as needing update
     positions.needsUpdate = true;
     
-    // Recompute normals after deformation
+    // Recompute normals after deformation to ensure proper lighting
     geometry.computeVertexNormals();
+    
+    // Compute bounding box and sphere to ensure geometry is properly formed
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
     
     // Create material
     const material = new THREE.MeshStandardMaterial({
@@ -111,6 +124,18 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
 
     // Attach material to geometry for rendering
     (geometry as any).material = material;
+
+    // Debug geometry structure
+    console.log('Low poly rock geometry:', {
+      type: geometry.type,
+      hasPosition: !!geometry.attributes.position,
+      positionCount: geometry.attributes.position?.count || 0,
+      hasIndex: !!geometry.index,
+      indexCount: geometry.index?.count || 0,
+      isBufferGeometry: geometry.isBufferGeometry,
+      boundingBox: geometry.boundingBox,
+      hasNormals: !!geometry.attributes.normal
+    });
 
     return { geometry };
   }
