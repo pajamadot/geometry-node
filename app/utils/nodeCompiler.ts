@@ -1332,6 +1332,7 @@ export function createDefaultMaterial(): THREE.Material {
     color: 0xffffff, // White diffuse
     roughness: 0.5,
     metalness: 0.0,
-    envMapIntensity: 1.0
+    envMapIntensity: 1.0,
+    side: THREE.DoubleSide // Make all materials double-sided
   });
 } 

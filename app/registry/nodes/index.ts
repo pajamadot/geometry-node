@@ -17,6 +17,7 @@ export { mergeGeometryNodeDefinition } from './MergeGeometryNode';
 export { parametricSurfaceNodeDefinition } from './ParametricSurfaceNode';
 export { gesnerWaveNodeDefinition } from './GesnerWaveNode';
 export { lighthouseNodeDefinition } from './LighthouseNode';
+export { seagullNodeDefinition } from './SeagullNode';
 
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';
