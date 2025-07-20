@@ -380,7 +380,7 @@ body[data-alt-pressed="true"] .react-flow__edge-path {
 /* Default node styling - all nodes have this base style */
 .react-flow__node {
   border: 2px solid transparent !important;
-  transition: all 0.2s ease-in-out;
+  transition: border 0.2s ease-in-out, box-shadow 0.2s ease-in-out, opacity 0.2s ease-in-out;
 }
 
 /* Selected node styling - thicker border without shadows */

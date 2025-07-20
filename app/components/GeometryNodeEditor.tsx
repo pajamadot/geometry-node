@@ -662,19 +662,26 @@ export default function GeometryNodeEditor() {
     return nodesWithConnections.filter(node => !disabledNodes.has(node.id));
   }, [nodesWithConnections, disabledNodes]);
 
-  // Debounced compilation - only compile when graph structure changes, not on every render
-  const stableGraphHash = React.useMemo(() => {
-    // Create a stable hash of the graph structure
-    const nodeHash = activeNodes.map(n => `${n.id}:${JSON.stringify(n.data)}`).join('|');
+  // Create stable node data for compilation (excluding positions)
+  const nodeDataForCompilation = React.useMemo(() => {
+    return nodes.map(n => ({ id: n.id, data: n.data }));
+  }, [nodes.map(n => `${n.id}:${JSON.stringify(n.data)}`).join('|')]);
+
+  // Create compilation hash that only depends on actual node data, not positions
+  const compilationHash = React.useMemo(() => {
+    // Only include data that affects compilation, not position
+    const nodeDataHash = nodeDataForCompilation
+      .filter(node => !disabledNodes.has(node.id))
+      .map(n => `${n.id}:${JSON.stringify(n.data)}`)
+      .join('|');
     const edgeHash = edges.map(e => `${e.source}-${e.target}:${e.sourceHandle}-${e.targetHandle}`).join('|');
-    const hash = `${nodeHash}::${edgeHash}`;
-    return hash;
-  }, [activeNodes, edges]);
+    return `${nodeDataHash}::${edgeHash}`;
+  }, [nodeDataForCompilation, edges, disabledNodes]);
 
   // Only compile when graph structure or time changes significantly
   React.useEffect(() => {
     compileNodes(activeNodes, edges, currentTime, frameRate);
-  }, [stableGraphHash, currentTime, frameRate, compileNodes]);
+  }, [compilationHash, currentTime, frameRate, compileNodes, activeNodes, edges]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -792,30 +799,32 @@ export default function GeometryNodeEditor() {
       <NodeProvider updateNodeData={updateNodeData}>
         <ReactFlow
           key="geometry-flow"
-          nodes={nodesWithConnections.map(node => {
-            const isSelected = selectedNodes.has(node.id);
-            const isDisabled = disabledNodes.has(node.id);
-            const isMultiSelect = selectedNodes.size > 1;
-            
-            let className = '';
-            if (isSelected) {
-              className = isMultiSelect ? 'selected multi-select' : 'selected';
-            }
-            if (isDisabled) {
-              className += ' node-disabled';
-            }
-            
-            return {
-              ...node,
-              className: className.trim(),
-              selected: isSelected,
-              data: {
-                ...node.data,
-                disabled: isDisabled,
-                selected: isSelected
+          nodes={React.useMemo(() => 
+            nodesWithConnections.map(node => {
+              const isSelected = selectedNodes.has(node.id);
+              const isDisabled = disabledNodes.has(node.id);
+              const isMultiSelect = selectedNodes.size > 1;
+              
+              let className = '';
+              if (isSelected) {
+                className = isMultiSelect ? 'selected multi-select' : 'selected';
               }
-            };
-          })}
+              if (isDisabled) {
+                className += ' node-disabled';
+              }
+              
+              return {
+                ...node,
+                className: className.trim(),
+                selected: isSelected,
+                data: {
+                  ...node.data,
+                  disabled: isDisabled,
+                  selected: isSelected
+                }
+              };
+            }), [nodesWithConnections, selectedNodes, disabledNodes]
+          )}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
