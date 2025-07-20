@@ -389,8 +389,8 @@ function executeNode(
   try {
     const { data } = node;
     
-    // Check cache first (skip for time-dependent nodes)
-    if (data.type !== 'time') {
+    // Check cache first (skip for time-dependent nodes and nodes with parameters)
+    if (data.type !== 'time' && !('parameters' in data && data.parameters && Object.keys(data.parameters).length > 0)) {
       const cachedResult = getCachedNodeResult(node.id, inputs, data);
       if (cachedResult) {
         if (addLog) {
@@ -435,6 +435,13 @@ function executeNode(
       if (inputs.parameters) {
         Object.assign(parameters, inputs.parameters);
       }
+
+      // console.log(`Parameter preparation for ${definition.name}:`, {
+      //   defaultValues: definition.parameters.map(p => ({ id: p.id, defaultValue: p.defaultValue })),
+      //   nodeDataParameters: data.parameters,
+      //   inputParameters: inputs.parameters,
+      //   finalParameters: parameters
+      // });
 
       // Execute using registry
       const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
@@ -862,7 +869,8 @@ function executeNode(
         return {
           success: true,
           outputs: {
-            result: outputGeometry
+            result: outputGeometry,
+            geometry: outputGeometry
           }
         };
 
@@ -893,8 +901,8 @@ function executeNodeWithCaching(
 ): NodeExecutionResult {
   const result = executeNode(node, inputs, cache, currentTime, frameRate, addLog);
   
-  // Cache successful results (skip time-dependent nodes)
-  if (result.success && node.data.type !== 'time') {
+  // Cache successful results (skip time-dependent nodes and nodes with parameters)
+  if (result.success && node.data.type !== 'time' && !('parameters' in node.data && node.data.parameters && Object.keys(node.data.parameters).length > 0)) {
     cacheNodeResult(node.id, inputs, node.data, result.outputs);
     if (addLog) {
       addLog('debug', `Cached result for node: ${node.data.label || node.data.type}`, { 
@@ -1270,7 +1278,6 @@ export function compileNodeGraph(
     }
     
     const outputResult = nodeOutputs.get(outputNode.id);
-    console.log('Output node result:', outputResult);
     
     // Look for geometry in various possible output keys
     const finalGeometry = outputResult?.['result'] || 

@@ -27,7 +27,6 @@ export const TypeRenderer: React.FC<TypeRendererComponentProps> = (props) => {
   const renderWidget = () => {
     if (!isInput) return null; // No widgets for outputs
 
-    console.log('TypeRenderer: Rendering widget for type:', type, 'widgetType:', widgetType);
 
     switch (widgetType) {
       case 'numeric':

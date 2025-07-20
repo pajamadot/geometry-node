@@ -25,11 +25,11 @@ function CompiledGeometry() {
 
   // Force remount when geometry changes to ensure proper updates
   React.useEffect(() => {
-    console.log('🎭 CompiledGeometry received new geometry:', compiledGeometry);
+    // console.log('🎭 CompiledGeometry received new geometry:', compiledGeometry);
     if (compiledGeometry) {
       setGeometryKey(prev => {
         const newKey = prev + 1;
-        console.log('🔑 Geometry key updated to:', newKey);
+        // console.log('🔑 Geometry key updated to:', newKey);
         return newKey;
       });
     }

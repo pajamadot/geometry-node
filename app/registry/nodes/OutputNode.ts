@@ -31,9 +31,9 @@ export const outputNodeDefinition: NodeDefinition = {
   execute: (inputs, parameters) => {
     // Output node just passes through the geometry
     // Handle both 'geometry' and 'geometry-in' input keys
-    console.log('Output node inputs:', inputs);
     const geometry = inputs.geometry || inputs['geometry-in'] || inputs['geometry-out'];
-    console.log('Output node geometry:', geometry);
-    return { geometry: geometry };
+    return { 
+      result: geometry
+    };
   }
 }; 

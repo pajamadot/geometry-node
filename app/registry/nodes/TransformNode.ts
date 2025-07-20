@@ -1,5 +1,6 @@
 import { NodeDefinition } from '../../types/nodeSystem';
 import { Move3d } from 'lucide-react';
+import * as THREE from 'three';
 
 // TRANSFORM NODE - Blender-style layout
 export const transformNodeDefinition: NodeDefinition = {
@@ -54,22 +55,32 @@ export const transformNodeDefinition: NodeDefinition = {
     icon: Move3d
   },
   execute: (inputs, parameters) => {
-    const { geometry, translation, rotation, scale } = inputs;
+    // Handle both 'geometry' and 'geometry-in' input keys
+    const geometry = inputs.geometry || inputs['geometry-in'];
+    const translation = inputs.translation || inputs['translation-in'] || { x: 0, y: 0, z: 0 };
+    const rotation = inputs.rotation || inputs['rotation-in'] || { x: 0, y: 0, z: 0 };
+    const scale = inputs.scale || inputs['scale-in'] || { x: 1, y: 1, z: 1 };
     
     if (!geometry) {
       return { geometry: null };
     }
 
-    // Simple transform logic - in a real implementation, this would use Three.js
-    const transformedGeometry = {
-      ...geometry,
-      transform: {
-        translation: translation || { x: 0, y: 0, z: 0 },
-        rotation: rotation || { x: 0, y: 0, z: 0 },
-        scale: scale || { x: 1, y: 1, z: 1 }
-      }
-    };
-
+    // Clone the geometry and apply transform
+    const transformedGeometry = geometry.clone();
+    
+    // Apply transformations via matrix
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(rotation.x, rotation.y, rotation.z)
+    );
+    matrix.compose(
+      new THREE.Vector3(translation.x, translation.y, translation.z),
+      quaternion,
+      new THREE.Vector3(scale.x, scale.y, scale.z)
+    );
+    
+    transformedGeometry.applyMatrix4(matrix);
+    
     return { geometry: transformedGeometry };
   }
 }; 

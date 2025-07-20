@@ -340,7 +340,6 @@ export function generateSmartLayout(
   outputs: SocketDefinition[],
   parameters: ParameterDefinition[] = []
 ): LayoutRow[] {
-  console.log('Using standard layout for all nodes');
   return generateStandardLayout(inputs, outputs, parameters);
 }
 

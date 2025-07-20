@@ -55,10 +55,16 @@ export const cubeNodeDefinition: NodeDefinition = {
     icon: Box
   },
   execute: (inputs, parameters) => {
-    const { width, height, depth } = parameters;
+    // Get parameters from inputs (the registry system passes them here)
+    // The input system adds -in suffix to socket values
+    const width = inputs['width-in'] || inputs.width || 1;
+    const height = inputs['height-in'] || inputs.height || 1;
+    const depth = inputs['depth-in'] || inputs.depth || 1;
+    
+    console.log('Cube node inputs:', inputs);
+    console.log('Cube node dimensions:', { width, height, depth });
+    
     const geometry = new THREE.BoxGeometry(width, height, depth);
-    console.log('Cube node: Creating geometry with dimensions:', { width, height, depth });
-    console.log('Cube node: Returning geometry:', geometry);
     return { geometry };
   }
 }; 
