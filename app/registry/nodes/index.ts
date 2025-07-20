@@ -18,6 +18,7 @@ export { parametricSurfaceNodeDefinition } from './ParametricSurfaceNode';
 export { gesnerWaveNodeDefinition } from './GesnerWaveNode';
 export { lighthouseNodeDefinition } from './LighthouseNode';
 export { seagullNodeDefinition } from './SeagullNode';
+export { lowPolyRockNodeDefinition } from './LowPolyRockNode';
 
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';

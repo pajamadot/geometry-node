@@ -21,6 +21,7 @@ import {
   gesnerWaveNodeDefinition,
   lighthouseNodeDefinition,
   seagullNodeDefinition,
+  lowPolyRockNodeDefinition,
   makeVectorNodeDefinition,
   breakVectorNodeDefinition,
   makeTransformNodeDefinition,
@@ -64,6 +65,7 @@ export class NodeRegistry {
     this.register(gesnerWaveNodeDefinition);
     this.register(lighthouseNodeDefinition);
     this.register(seagullNodeDefinition);
+    this.register(lowPolyRockNodeDefinition);
     this.register(outputNodeDefinition);
     
     // Register Make/Break nodes for compound data structures
