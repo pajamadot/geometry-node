@@ -461,6 +461,16 @@ function executeNode(
       case 'time':
         const timeData = data as TimeNodeData;
         const timeValue = evaluateTimeNode(timeData, currentTime, frameRate);
+        
+        if (addLog) {
+          addLog('debug', `Time node output: ${timeValue.toFixed(3)} at time ${currentTime.toFixed(3)}`, {
+            timeValue,
+            currentTime,
+            outputType: timeData.outputType,
+            frequency: timeData.frequency
+          }, 'time-node');
+        }
+        
         return {
           success: true,
           outputs: {

@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGeometry } from './GeometryContext';
+import { useTime } from './TimeContext';
 import ThreeErrorBoundary from './ThreeErrorBoundary';
 import FallbackViewport from './FallbackViewport';
 
@@ -94,6 +95,7 @@ export default function ThreeViewport() {
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const { isCompiling } = useGeometry();
+  const { isPlaying } = useTime();
   const recoveryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastRecoveryTime = React.useRef<number>(0);
   const maxRecoveryAttempts = 3;
@@ -261,7 +263,7 @@ export default function ThreeViewport() {
                 console.error('Canvas error:', error);
                 setContextLost(true);
               }}
-              frameloop={isCompiling ? "always" : "demand"}
+              frameloop={(isCompiling || isPlaying) ? "always" : "demand"}
               flat // Disable tone mapping for stability
             >
               <Scene />

@@ -11,7 +11,7 @@ import { useLogging } from './LoggingContext';
 interface GeometryContextValue {
   compiledGeometry: THREE.BufferGeometry | null;
   material: THREE.Material;
-  compileNodes: (nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number) => void;
+  compileNodes: (nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number, isTimeUpdate?: boolean) => void;
   isCompiling: boolean;
   error: string | null;
 }
@@ -35,7 +35,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
   // Debounce compilation to prevent excessive WebGL calls
   const compilationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const compileNodes = useCallback((nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number) => {
+  const compileNodes = useCallback((nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number, isTimeUpdate = false) => {
     addLog('info', `Starting compilation with ${nodes.length} nodes and ${edges.length} edges`, 
       { nodeCount: nodes.length, edgeCount: edges.length }, 'compilation');
     
@@ -44,7 +44,10 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
       clearTimeout(compilationTimeoutRef.current);
     }
     
-    // Debounce compilation by 50ms for smooth real-time updates
+    // Use shorter debounce for time updates to enable real-time animation
+    // But only if there are actually time nodes in the graph
+    const hasTimeNodes = nodes.some(node => node.data.type === 'time');
+    const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50; // 8ms for time with time nodes, 50ms otherwise
     compilationTimeoutRef.current = setTimeout(() => {
       addLog('debug', 'Beginning node graph compilation...', null, 'compilation');
       setIsCompiling(true);
@@ -92,7 +95,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
       } finally {
         setIsCompiling(false);
       }
-    }, 50);
+    }, debounceTime);
   }, [addLog]);
   
   // Cleanup on unmount

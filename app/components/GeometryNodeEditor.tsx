@@ -678,10 +678,15 @@ export default function GeometryNodeEditor() {
     return `${nodeDataHash}::${edgeHash}`;
   }, [nodeDataForCompilation, edges, disabledNodes]);
 
-  // Only compile when graph structure or time changes significantly
+  // Compile when graph structure changes
   React.useEffect(() => {
-    compileNodes(activeNodes, edges, currentTime, frameRate);
-  }, [compilationHash, currentTime, frameRate, compileNodes, activeNodes, edges]);
+    compileNodes(activeNodes, edges, currentTime, frameRate, false);
+  }, [compilationHash, compileNodes, activeNodes, edges, currentTime, frameRate]);
+
+  // Compile when time changes (with shorter debounce for real-time animation)
+  React.useEffect(() => {
+    compileNodes(activeNodes, edges, currentTime, frameRate, true);
+  }, [currentTime, compileNodes, activeNodes, edges, frameRate]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
