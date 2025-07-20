@@ -12,16 +12,8 @@ export const cubeNodeDefinition: NodeDefinition = {
     primary: '#ea580c',
     secondary: '#c2410c'
   },
-  inputs: [],
-  outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Generated cube geometry'
-    }
-  ],
-  parameters: [
+
+  inputs: [
     {
       id: 'width',
       name: 'Width',
@@ -50,8 +42,16 @@ export const cubeNodeDefinition: NodeDefinition = {
       description: 'Cube depth'
     }
   ],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Generated cube geometry'
+    }
+  ],
+  parameters: [],
   ui: {
-    width: 180,
     icon: Box
   },
   execute: (inputs, parameters) => {

@@ -19,12 +19,13 @@ import 'reactflow/dist/style.css';
 import { GeometryNode, GeometryNodeData } from '../types/nodes';
 import { nodeRegistry } from '../registry/NodeRegistry';
 import GenericNode from './GenericNode';
+import SystematicNodeLayout from './SystematicNodeLayout';
 import { useGeometry } from './GeometryContext';
 import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
-import { areTypesCompatible, getSocketTypeFromHandle } from '../types/connections';
+import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
 
 
@@ -155,8 +156,8 @@ export default function GeometryNodeEditor() {
     if (!sourceNode || !targetNode) return false;
 
     // Get socket types from handle IDs
-    const sourceType = getSocketTypeFromHandle(sourceHandle);
-    const targetType = getSocketTypeFromHandle(targetHandle);
+    const sourceType = getParameterTypeFromHandle(sourceHandle);
+    const targetType = getParameterTypeFromHandle(targetHandle);
     
     // Check type compatibility
     if (!areTypesCompatible(sourceType, targetType)) {
@@ -412,14 +413,15 @@ export default function GeometryNodeEditor() {
     
     definitions.forEach(definition => {
       types[definition.type] = ({ id, data, selected }: any) => {
-        // Use the definition directly since we know it exists
+        // Use systematic layout for all nodes (auto-generated layouts)
         return (
-          <GenericNode
+          <SystematicNodeLayout
             id={id}
             definition={definition}
             parameters={data.parameters || {}}
             inputConnections={data.inputConnections || {}}
             liveParameterValues={data.liveParameterValues || {}}
+            socketValues={data.socketValues || {}}
             selected={selected}
             disabled={data.disabled}
             onParameterChange={(parameterId: string, value: any) => {
@@ -427,6 +429,14 @@ export default function GeometryNodeEditor() {
                 parameters: { 
                   ...data.parameters, 
                   [parameterId]: value 
+                } 
+              });
+            }}
+            onSocketValueChange={(socketId: string, value: any) => {
+              updateNodeData(id, { 
+                socketValues: { 
+                  ...data.socketValues, 
+                  [socketId]: value 
                 } 
               });
             }}
@@ -847,6 +857,16 @@ export default function GeometryNodeEditor() {
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypesWithContext}
           defaultEdgeOptions={defaultEdgeOptions}
+          connectionLineStyle={{
+            stroke: '#eab308',
+            strokeWidth: 2,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            strokeDasharray: '5, 5',
+            opacity: 0.5,
+            filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.2))',
+            zIndex: -1
+          }}
           fitView
           attributionPosition="bottom-left"
           className="bg-black"

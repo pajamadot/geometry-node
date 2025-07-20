@@ -8,23 +8,23 @@ export const instanceOnPointsNodeDefinition: NodeDefinition = {
   description: 'Place geometry instances at point locations',
   category: 'instances',
   color: {
-    primary: '#10b981',
-    secondary: '#059669'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
   inputs: [
     {
-      id: 'points',
-      name: 'Points',
-      type: 'points',
-      required: true,
-      description: 'Point locations for instances'
-    },
-    {
-      id: 'instance',
-      name: 'Instance',
+      id: 'geometry',
+      name: 'Geometry',
       type: 'geometry',
       required: true,
       description: 'Geometry to instance'
+    },
+    {
+      id: 'points',
+      name: 'Points',
+      type: 'geometry',
+      required: true,
+      description: 'Points to instance on'
     }
   ],
   outputs: [

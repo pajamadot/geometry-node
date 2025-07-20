@@ -1,7 +1,35 @@
-import { NodeDefinition } from '../../types/nodeSystem';
+import { NodeDefinition, SocketDefinition } from '../../types/nodeSystem';
 import { Calculator } from 'lucide-react';
 
-// MATH NODE - was 375+ lines, now 40 lines of data
+// Dynamic input generation based on operation type
+const getMathInputs = (operation: string): SocketDefinition[] => {
+  const baseInputs: SocketDefinition[] = [
+    {
+      id: 'valueA',
+      name: 'X',
+      type: 'numeric',
+      defaultValue: 0,
+      description: 'First operand'
+    }
+  ];
+
+  // Operations that need two inputs
+  const twoInputOperations = ['add', 'subtract', 'multiply', 'divide', 'power'];
+  
+  if (twoInputOperations.includes(operation)) {
+    baseInputs.push({
+      id: 'valueB',
+      name: 'Y',
+      type: 'numeric',
+      defaultValue: 0,
+      description: 'Second operand'
+    });
+  }
+
+  return baseInputs;
+};
+
+// MATH NODE - Systematic layout with dynamic inputs
 export const mathNodeDefinition: NodeDefinition = {
   type: 'math',
   name: 'Math',
@@ -11,31 +39,22 @@ export const mathNodeDefinition: NodeDefinition = {
     primary: '#16a34a',
     secondary: '#15803d'
   },
+
   inputs: [
     {
       id: 'valueA',
-      name: 'A',
-      type: 'number',
+      name: 'X',
+      type: 'numeric',
       defaultValue: 0,
       description: 'First operand'
     },
     {
       id: 'valueB',
-      name: 'B',
-      type: 'number',
+      name: 'Y',
+      type: 'numeric',
       defaultValue: 0,
       description: 'Second operand'
-    }
-  ],
-  outputs: [
-    {
-      id: 'result',
-      name: 'Result',
-      type: 'number',
-      description: 'Mathematical result'
-    }
-  ],
-  parameters: [
+    },
     {
       id: 'operation',
       name: 'Operation',
@@ -45,8 +64,16 @@ export const mathNodeDefinition: NodeDefinition = {
       description: 'Mathematical operation to perform'
     }
   ],
+  outputs: [
+    {
+      id: 'result',
+      name: 'Result',
+      type: 'numeric',
+      description: 'Mathematical result'
+    }
+  ],
+  parameters: [],
   ui: {
-    width: 160,
     icon: Calculator
   },
   execute: (inputs, parameters) => {
@@ -69,4 +96,9 @@ export const mathNodeDefinition: NodeDefinition = {
     
     return { result };
   }
+};
+
+// Function to get dynamic inputs for a math node based on its current operation
+export const getMathNodeInputs = (operation: string): SocketDefinition[] => {
+  return getMathInputs(operation);
 }; 

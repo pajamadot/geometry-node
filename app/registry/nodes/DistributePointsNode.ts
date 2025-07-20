@@ -8,8 +8,8 @@ export const distributePointsNodeDefinition: NodeDefinition = {
   description: 'Generate points on geometry surface',
   category: 'instances',
   color: {
-    primary: '#06b6d4',
-    secondary: '#0891b2'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
   inputs: [
     {
@@ -17,7 +17,7 @@ export const distributePointsNodeDefinition: NodeDefinition = {
       name: 'Geometry',
       type: 'geometry',
       required: true,
-      description: 'Input geometry for point distribution'
+      description: 'Input geometry to distribute points on'
     }
   ],
   outputs: [

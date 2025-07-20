@@ -8,10 +8,18 @@ export const createVerticesNodeDefinition: NodeDefinition = {
   description: 'Create custom vertex positions',
   category: 'geometry',
   color: {
-    primary: '#dc2626',
-    secondary: '#b91c1c'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
-  inputs: [],
+  inputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      required: true,
+      description: 'Input geometry to extract vertices from'
+    }
+  ],
   outputs: [
     {
       id: 'vertices',

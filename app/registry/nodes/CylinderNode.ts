@@ -12,16 +12,8 @@ export const cylinderNodeDefinition: NodeDefinition = {
     primary: '#ea580c',
     secondary: '#c2410c'
   },
-  inputs: [],
-  outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Generated cylinder geometry'
-    }
-  ],
-  parameters: [
+
+  inputs: [
     {
       id: 'radiusTop',
       name: 'Top Radius',
@@ -57,12 +49,20 @@ export const cylinderNodeDefinition: NodeDefinition = {
       min: 3,
       max: 128,
       step: 1,
-      description: 'Radial segments',
-      category: 'advanced'
+      description: 'Radial segments'
     }
   ],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Generated cylinder geometry'
+    }
+  ],
+  parameters: [],
   ui: {
-    width: 180,
+    width: 220,
     icon: Cylinder,
     advanced: ['radialSegments']
   },

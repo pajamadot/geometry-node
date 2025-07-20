@@ -9,16 +9,16 @@ export const createFacesNodeDefinition: NodeDefinition = {
   description: 'Create faces from vertices',
   category: 'geometry',
   color: {
-    primary: '#6366f1',
-    secondary: '#4f46e5'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
   inputs: [
     {
-      id: 'vertices',
-      name: 'Vertices',
-      type: 'vertices',
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
       required: true,
-      description: 'Input vertices for face creation'
+      description: 'Input geometry to extract faces from'
     }
   ],
   outputs: [
@@ -62,11 +62,22 @@ export const createFacesNodeDefinition: NodeDefinition = {
     advanced: ['faces']
   },
   execute: (inputs, parameters) => {
-    const { vertices } = inputs;
+    const { geometry } = inputs;
     const { faceCount, pattern, faces } = parameters;
     
-    if (!vertices || vertices.length === 0) {
+    if (!geometry) {
       return { geometry: new THREE.BufferGeometry() };
+    }
+    
+    // Extract vertices from input geometry
+    const positionAttr = geometry.getAttribute('position');
+    const vertices = [];
+    for (let i = 0; i < positionAttr.count; i++) {
+      vertices.push({
+        x: positionAttr.getX(i),
+        y: positionAttr.getY(i),
+        z: positionAttr.getZ(i)
+      });
     }
     
     // Generate pattern if specified
@@ -100,7 +111,7 @@ export const createFacesNodeDefinition: NodeDefinition = {
     finalFaces = finalFaces.slice(0, faceCount);
     
     // Create Three.js geometry from vertices and faces
-    const geometry = new THREE.BufferGeometry();
+    const outputGeometry = new THREE.BufferGeometry();
     
     // Convert vertices to Three.js format
     const positions = new Float32Array(vertices.length * 3);
@@ -109,7 +120,7 @@ export const createFacesNodeDefinition: NodeDefinition = {
       positions[i * 3 + 1] = vertex.y;
       positions[i * 3 + 2] = vertex.z;
     });
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    outputGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     
     // Convert faces to indices
     const indices: number[] = [];
@@ -121,11 +132,11 @@ export const createFacesNodeDefinition: NodeDefinition = {
     });
     
     if (indices.length > 0) {
-      geometry.setIndex(indices);
+      outputGeometry.setIndex(indices);
     }
     
-    geometry.computeVertexNormals();
+    outputGeometry.computeVertexNormals();
     
-    return { geometry };
+    return { geometry: outputGeometry };
   }
 }; 

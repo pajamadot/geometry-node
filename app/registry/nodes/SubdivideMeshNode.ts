@@ -62,6 +62,7 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
     primary: '#8b5cf6',
     secondary: '#7c3aed'
   },
+
   inputs: [
     {
       id: 'geometry',
@@ -92,7 +93,7 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
     }
   ],
   ui: {
-    width: 180,
+    width: 220,
     icon: Scissors
   },
   execute: (inputs, parameters) => {

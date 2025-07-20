@@ -9,27 +9,23 @@ export const joinNodeDefinition: NodeDefinition = {
   description: 'Combine multiple geometries',
   category: 'utilities',
   color: {
-    primary: '#a855f7',
-    secondary: '#7c3aed'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
   inputs: [
     {
-      id: 'geometry1',
-      name: 'Geometry 1',
+      id: 'geometryA',
+      name: 'Geometry A',
       type: 'geometry',
-      description: 'First geometry input'
+      required: true,
+      description: 'First geometry to join'
     },
     {
-      id: 'geometry2',
-      name: 'Geometry 2',
+      id: 'geometryB',
+      name: 'Geometry B',
       type: 'geometry',
-      description: 'Second geometry input'
-    },
-    {
-      id: 'geometry3',
-      name: 'Geometry 3',
-      type: 'geometry',
-      description: 'Third geometry input'
+      required: true,
+      description: 'Second geometry to join'
     }
   ],
   outputs: [

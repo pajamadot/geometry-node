@@ -12,16 +12,8 @@ export const sphereNodeDefinition: NodeDefinition = {
     primary: '#ea580c',
     secondary: '#c2410c'
   },
-  inputs: [],
-  outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Generated sphere geometry'
-    }
-  ],
-  parameters: [
+
+  inputs: [
     {
       id: 'radius',
       name: 'Radius',
@@ -49,12 +41,19 @@ export const sphereNodeDefinition: NodeDefinition = {
       min: 2,
       max: 64,
       step: 1,
-      description: 'Vertical segments',
-      category: 'advanced'
+      description: 'Vertical segments'
     }
   ],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Generated sphere geometry'
+    }
+  ],
+  parameters: [],
   ui: {
-    width: 180,
     icon: Globe,
     advanced: ['heightSegments']
   },

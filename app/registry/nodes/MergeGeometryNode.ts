@@ -9,28 +9,23 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
   description: 'Combine multiple geometries into one',
   category: 'modifiers',
   color: {
-    primary: '#059669',
-    secondary: '#047857'
+    primary: '#f59e42',
+    secondary: '#b45309'
   },
   inputs: [
     {
-      id: 'geometry-1',
-      name: 'Geometry 1',
+      id: 'geometryA',
+      name: 'Geometry A',
       type: 'geometry',
       required: true,
       description: 'First geometry to merge'
     },
     {
-      id: 'geometry-2',
-      name: 'Geometry 2',
+      id: 'geometryB',
+      name: 'Geometry B',
       type: 'geometry',
+      required: true,
       description: 'Second geometry to merge'
-    },
-    {
-      id: 'geometry-3',
-      name: 'Geometry 3',
-      type: 'geometry',
-      description: 'Third geometry to merge'
     }
   ],
   outputs: [

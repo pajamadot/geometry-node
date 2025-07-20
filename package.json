@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slider": "^1.3.5",
     "@react-three/drei": "^10.5.1",
     "@react-three/fiber": "^9.2.0",
     "@types/three": "^0.178.1",

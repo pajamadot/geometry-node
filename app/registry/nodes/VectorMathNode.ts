@@ -12,6 +12,7 @@ export const vectorMathNodeDefinition: NodeDefinition = {
     primary: '#3b82f6',
     secondary: '#1d4ed8'
   },
+
   inputs: [
     {
       id: 'vectorA',
@@ -30,9 +31,17 @@ export const vectorMathNodeDefinition: NodeDefinition = {
     {
       id: 'scale',
       name: 'Scale',
-      type: 'number',
+      type: 'numeric',
       defaultValue: 1,
       description: 'Scale factor'
+    },
+    {
+      id: 'operation',
+      name: 'Operation',
+      type: 'select',
+      defaultValue: 'add',
+      options: ['add', 'subtract', 'multiply', 'divide', 'cross', 'dot', 'normalize', 'length'],
+      description: 'Vector operation to perform'
     }
   ],
   outputs: [
@@ -45,20 +54,11 @@ export const vectorMathNodeDefinition: NodeDefinition = {
     {
       id: 'value',
       name: 'Value',
-      type: 'number',
+      type: 'numeric',
       description: 'Result value (for dot product, etc.)'
     }
   ],
-  parameters: [
-    {
-      id: 'operation',
-      name: 'Operation',
-      type: 'select',
-      defaultValue: 'add',
-      options: ['add', 'subtract', 'multiply', 'divide', 'cross', 'dot', 'normalize', 'length'],
-      description: 'Vector operation to perform'
-    }
-  ],
+  parameters: [],
   ui: {
     width: 200,
     icon: GitBranch

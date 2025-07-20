@@ -420,7 +420,7 @@ export interface OperationDefinition {
   operation: GeometryOperation<any> | PrimitiveOperation<any>;
   category: 'primitive' | 'transform' | 'modifier' | 'utility' | 'custom';
   description: string;
-  inputTypes: ('geometry' | 'points' | 'number' | 'vector')[];
+  ParameterTypes: ('geometry' | 'points' | 'number' | 'vector')[];
   outputTypes: ('geometry' | 'points' | 'number' | 'vector')[];
 }
 
@@ -431,7 +431,7 @@ export const GEOMETRY_OPERATIONS = new Map<string, OperationDefinition>([
     operation: primitiveOperations.cube,
     category: 'primitive',
     description: 'Creates a cube primitive',
-    inputTypes: [],
+    ParameterTypes: [],
     outputTypes: ['geometry']
   }],
   ['primitive_sphere', {
@@ -439,7 +439,7 @@ export const GEOMETRY_OPERATIONS = new Map<string, OperationDefinition>([
     operation: primitiveOperations.sphere,
     category: 'primitive',
     description: 'Creates a sphere primitive',
-    inputTypes: [],
+    ParameterTypes: [],
     outputTypes: ['geometry']
   }],
   ['transform', {
@@ -447,7 +447,7 @@ export const GEOMETRY_OPERATIONS = new Map<string, OperationDefinition>([
     operation: transformOperation,
     category: 'transform', 
     description: 'Apply position, rotation, and scale transforms',
-    inputTypes: ['geometry'],
+    ParameterTypes: ['geometry'],
     outputTypes: ['geometry']
   }],
   ['distribute_points', {
@@ -455,7 +455,7 @@ export const GEOMETRY_OPERATIONS = new Map<string, OperationDefinition>([
     operation: distributePointsOperation,
     category: 'modifier',
     description: 'Distribute points on geometry surface',
-    inputTypes: ['geometry'],
+    ParameterTypes: ['geometry'],
     outputTypes: ['points']
   }],
   ['join', {
@@ -463,7 +463,7 @@ export const GEOMETRY_OPERATIONS = new Map<string, OperationDefinition>([
     operation: joinOperation,
     category: 'utility',
     description: 'Combine multiple geometries',
-    inputTypes: ['geometry'],
+    ParameterTypes: ['geometry'],
     outputTypes: ['geometry']
   }]
 ]);

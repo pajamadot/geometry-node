@@ -13,4 +13,14 @@ export { distributePointsNodeDefinition } from './DistributePointsNode';
 export { instanceOnPointsNodeDefinition } from './InstanceOnPointsNode';
 export { createVerticesNodeDefinition } from './CreateVerticesNode';
 export { createFacesNodeDefinition } from './CreateFacesNode';
-export { mergeGeometryNodeDefinition } from './MergeGeometryNode'; 
+export { mergeGeometryNodeDefinition } from './MergeGeometryNode';
+
+// Make/Break nodes for compound data structures
+export { makeVectorNodeDefinition } from './MakeVectorNode';
+export { breakVectorNodeDefinition } from './BreakVectorNode';
+export { makeTransformNodeDefinition } from './MakeTransformNode';
+export { breakTransformNodeDefinition } from './BreakTransformNode';
+
+// Generic Make/Break nodes for dynamic templates
+export { genericMakeNodeDefinition } from './GenericMakeNode';
+export { genericBreakNodeDefinition } from './GenericBreakNode'; 

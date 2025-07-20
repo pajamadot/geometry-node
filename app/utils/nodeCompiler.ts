@@ -1110,10 +1110,14 @@ function getNodeInputs(
   nodeId: string,
   edges: Edge[],
   nodeOutputs: Map<string, Record<string, any>>,
-  liveParameterTracker?: Map<string, Record<string, any>>
+  liveParameterTracker?: Map<string, Record<string, any>>,
+  nodeData?: any
 ): Record<string, any> {
   const inputs: Record<string, any> = {};
   const parameterInputs: Record<string, any> = {};
+  
+  // Track which inputs are connected
+  const connectedInputs = new Set<string>();
   
   edges.forEach(edge => {
     if (edge.target === nodeId) {
@@ -1121,6 +1125,7 @@ function getNodeInputs(
       
       if (sourceOutputs && edge.sourceHandle && edge.targetHandle) {
         const outputValue = sourceOutputs[edge.sourceHandle];
+        connectedInputs.add(edge.targetHandle);
         
         // Check if this is a parameter input (specific patterns, not just ending with '-in')
         const isParameterInput = edge.targetHandle.match(/^(width|height|depth|radius|segments|position-[xyz]|rotation-[xyz]|scale-[xyz]|radiusTop|radiusBottom|radialSegments|heightSegments|widthSegments|depthSegments|tubularSegments|tube|density|seed|distanceMin|level|instanceIndex|vertexCount|faceCount)-in$/);
@@ -1144,6 +1149,16 @@ function getNodeInputs(
       }
     }
   });
+  
+  // Add socket values for unconnected inputs
+  if (nodeData?.socketValues) {
+    Object.entries(nodeData.socketValues).forEach(([socketId, value]) => {
+      const inputKey = `${socketId}-in`;
+      if (!connectedInputs.has(inputKey)) {
+        inputs[inputKey] = value;
+      }
+    });
+  }
   
   // Add parameter inputs to the inputs object
   if (Object.keys(parameterInputs).length > 0) {
@@ -1212,7 +1227,7 @@ export function compileNodeGraph(
         }, 'compilation');
       }
       
-      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker);
+      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data);
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {

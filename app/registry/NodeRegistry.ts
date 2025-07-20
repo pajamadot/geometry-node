@@ -1,5 +1,6 @@
 // Central Node Registry - the brain of the data-driven system
 import { NodeDefinition, NodeCategory, SOCKET_METADATA } from '../types/nodeSystem';
+import { templateSystem } from './TemplateSystem';
 import { 
   timeNodeDefinition, 
   cubeNodeDefinition, 
@@ -15,7 +16,13 @@ import {
   instanceOnPointsNodeDefinition,
   createVerticesNodeDefinition,
   createFacesNodeDefinition,
-  mergeGeometryNodeDefinition
+  mergeGeometryNodeDefinition,
+  makeVectorNodeDefinition,
+  breakVectorNodeDefinition,
+  makeTransformNodeDefinition,
+  breakTransformNodeDefinition,
+  genericMakeNodeDefinition,
+  genericBreakNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -50,6 +57,24 @@ export class NodeRegistry {
     this.register(createFacesNodeDefinition);
     this.register(mergeGeometryNodeDefinition);
     this.register(outputNodeDefinition);
+    
+    // Register Make/Break nodes for compound data structures
+    this.register(makeVectorNodeDefinition);
+    this.register(breakVectorNodeDefinition);
+    this.register(makeTransformNodeDefinition);
+    this.register(breakTransformNodeDefinition);
+    
+    // Register generic Make/Break nodes
+    this.register(genericMakeNodeDefinition);
+    this.register(genericBreakNodeDefinition);
+    
+    // Register template-generated nodes
+    const templateNodes = templateSystem.generateAllNodes();
+    templateNodes.forEach(node => this.register(node));
+    
+    // Debug: Log all registered nodes
+    console.log('Registered nodes:', Array.from(this.definitions.keys()));
+    console.log('Total nodes registered:', this.definitions.size);
   }
 
   // Register a new node definition

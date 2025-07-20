@@ -11,6 +11,7 @@ export const outputNodeDefinition: NodeDefinition = {
     primary: '#eab308',
     secondary: '#ca8a04'
   },
+
   inputs: [
     {
       id: 'geometry',
@@ -24,6 +25,7 @@ export const outputNodeDefinition: NodeDefinition = {
   parameters: [],
   ui: {
     width: 140,
+    height: 80,
     icon: Download
   },
   execute: (inputs, parameters) => {
@@ -32,6 +34,6 @@ export const outputNodeDefinition: NodeDefinition = {
     console.log('Output node inputs:', inputs);
     const geometry = inputs.geometry || inputs['geometry-in'] || inputs['geometry-out'];
     console.log('Output node geometry:', geometry);
-    return { result: geometry };
+    return { geometry: geometry };
   }
 }; 

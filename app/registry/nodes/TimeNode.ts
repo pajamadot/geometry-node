@@ -11,16 +11,8 @@ export const timeNodeDefinition: NodeDefinition = {
     primary: '#ec4899',
     secondary: '#be185d'
   },
-  inputs: [],
-  outputs: [
-    {
-      id: 'time',
-      name: 'Time',
-      type: 'time',
-      description: 'Current time value'
-    }
-  ],
-  parameters: [
+
+  inputs: [
     {
       id: 'timeMode',
       name: 'Mode',
@@ -45,8 +37,7 @@ export const timeNodeDefinition: NodeDefinition = {
       min: 0.1,
       max: 10,
       step: 0.1,
-      description: 'Wave frequency',
-      category: 'advanced'
+      description: 'Wave frequency'
     },
     {
       id: 'amplitude',
@@ -56,8 +47,7 @@ export const timeNodeDefinition: NodeDefinition = {
       min: 0.1,
       max: 10,
       step: 0.1,
-      description: 'Wave amplitude',
-      category: 'advanced'
+      description: 'Wave amplitude'
     },
     {
       id: 'offset',
@@ -67,8 +57,7 @@ export const timeNodeDefinition: NodeDefinition = {
       min: -10,
       max: 10,
       step: 0.1,
-      description: 'Value offset',
-      category: 'advanced'
+      description: 'Value offset'
     },
     {
       id: 'phase',
@@ -78,10 +67,18 @@ export const timeNodeDefinition: NodeDefinition = {
       min: 0,
       max: Math.PI * 2,
       step: 0.1,
-      description: 'Wave phase shift',
-      category: 'advanced'
+      description: 'Wave phase shift'
     }
   ],
+  outputs: [
+    {
+      id: 'time',
+      name: 'Time',
+      type: 'time',
+      description: 'Current time value'
+    }
+  ],
+  parameters: [],
   ui: {
     width: 200,
     icon: Clock,
