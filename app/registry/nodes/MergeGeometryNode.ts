@@ -26,17 +26,7 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Second geometry to merge'
-    }
-  ],
-  outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Merged geometry'
-    }
-  ],
-  parameters: [
+    },
     {
       id: 'operation',
       name: 'Operation',
@@ -53,15 +43,27 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
       description: 'Preserve geometry attributes'
     }
   ],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Merged geometry'
+    }
+  ],
+  parameters: [],
   ui: {
     width: 200,
     icon: Merge
   },
   execute: (inputs, parameters) => {
-    const { 'geometry-1': geom1, 'geometry-2': geom2, 'geometry-3': geom3 } = inputs;
-    const { operation, keepAttributes } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const geometryA = inputs.geometryA;
+    const geometryB = inputs.geometryB;
+    const operation = inputs.operation || 'union';
+    const keepAttributes = inputs.keepAttributes !== undefined ? inputs.keepAttributes : true;
     
-    const geometries = [geom1, geom2, geom3].filter(Boolean);
+    const geometries = [geometryA, geometryB].filter(Boolean);
     
     if (geometries.length === 0) {
       return { geometry: new THREE.BufferGeometry() };

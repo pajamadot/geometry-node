@@ -25,17 +25,7 @@ export const instanceOnPointsNodeDefinition: NodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Points to instance on'
-    }
-  ],
-  outputs: [
-    {
-      id: 'instances',
-      name: 'Instances',
-      type: 'geometry',
-      description: 'Instanced geometry'
-    }
-  ],
-  parameters: [
+    },
     {
       id: 'pickInstance',
       name: 'Pick Instance',
@@ -69,18 +59,32 @@ export const instanceOnPointsNodeDefinition: NodeDefinition = {
       description: 'Instance scale'
     }
   ],
+  outputs: [
+    {
+      id: 'instances',
+      name: 'Instances',
+      type: 'geometry',
+      description: 'Instanced geometry'
+    }
+  ],
+  parameters: [],
   ui: {
     width: 220,
     icon: Copy
   },
   execute: (inputs, parameters) => {
-    const { points, instance } = inputs;
-    const { pickInstance, instanceIndex, rotation, scale } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const geometry = inputs.geometry;
+    const points = inputs.points;
+    const pickInstance = inputs.pickInstance || false;
+    const instanceIndex = inputs.instanceIndex || 0;
+    const rotation = inputs.rotation || { x: 0, y: 0, z: 0 };
+    const scale = inputs.scale || { x: 1, y: 1, z: 1 };
     
-    if (!points || !instance) return { instances: null };
+    if (!points || !geometry) return { instances: null };
     
     // Simple instancing implementation (can be enhanced)
     // For now, just return the instance geometry
-    return { instances: instance };
+    return { instances: geometry };
   }
 }; 

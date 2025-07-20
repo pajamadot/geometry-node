@@ -68,7 +68,7 @@ export const mathNodeDefinition: NodeDefinition = {
     {
       id: 'result',
       name: 'Result',
-      type: 'numeric',
+      type: 'number',
       description: 'Mathematical result'
     }
   ],
@@ -77,8 +77,10 @@ export const mathNodeDefinition: NodeDefinition = {
     icon: Calculator
   },
   execute: (inputs, parameters) => {
-    const { valueA = 0, valueB = 0 } = inputs;
-    const { operation } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const valueA = inputs.valueA || 0;
+    const valueB = inputs.valueB || 0;
+    const operation = inputs.operation || 'add';
     
     let result: number;
     switch (operation) {
@@ -94,7 +96,7 @@ export const mathNodeDefinition: NodeDefinition = {
       default: result = valueA;
     }
     
-    return { result };
+    return { result: result };
   }
 };
 

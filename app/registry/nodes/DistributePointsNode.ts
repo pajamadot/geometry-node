@@ -18,17 +18,7 @@ export const distributePointsNodeDefinition: NodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Input geometry to distribute points on'
-    }
-  ],
-  outputs: [
-    {
-      id: 'points',
-      name: 'Points',
-      type: 'points',
-      description: 'Distributed points'
-    }
-  ],
-  parameters: [
+    },
     {
       id: 'distributeMethod',
       name: 'Method',
@@ -55,8 +45,7 @@ export const distributePointsNodeDefinition: NodeDefinition = {
       min: 0,
       max: 1000,
       step: 1,
-      description: 'Random seed for distribution',
-      category: 'advanced'
+      description: 'Random seed for distribution'
     },
     {
       id: 'distanceMin',
@@ -65,18 +54,30 @@ export const distributePointsNodeDefinition: NodeDefinition = {
       defaultValue: 0.1,
       min: 0,
       step: 0.01,
-      description: 'Minimum distance between points',
-      category: 'advanced'
+      description: 'Minimum distance between points'
     }
   ],
+  outputs: [
+    {
+      id: 'points',
+      name: 'Points',
+      type: 'points',
+      description: 'Distributed points'
+    }
+  ],
+  parameters: [],
   ui: {
     width: 200,
     icon: MapPin,
     advanced: ['seed', 'distanceMin']
   },
   execute: (inputs, parameters) => {
-    const { geometry } = inputs;
-    const { distributeMethod, density, seed, distanceMin } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const geometry = inputs.geometry;
+    const distributeMethod = inputs.distributeMethod || 'random';
+    const density = inputs.density || 100;
+    const seed = inputs.seed || 0;
+    const distanceMin = inputs.distanceMin || 0.1;
     
     if (!geometry) return { points: [] };
     

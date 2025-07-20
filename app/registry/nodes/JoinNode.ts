@@ -26,6 +26,14 @@ export const joinNodeDefinition: NodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Second geometry to join'
+    },
+    {
+      id: 'operation',
+      name: 'Operation',
+      type: 'select',
+      defaultValue: 'merge',
+      options: ['merge', 'instance', 'array'],
+      description: 'Join operation type'
     }
   ],
   outputs: [
@@ -36,23 +44,16 @@ export const joinNodeDefinition: NodeDefinition = {
       description: 'Combined geometry'
     }
   ],
-  parameters: [
-    {
-      id: 'operation',
-      name: 'Operation',
-      type: 'select',
-      defaultValue: 'merge',
-      options: ['merge', 'instance', 'array'],
-      description: 'Join operation type'
-    }
-  ],
+  parameters: [],
   ui: {
     // width: 160,
     icon: Merge
   },
   execute: (inputs, parameters) => {
-    const { geometryA, geometryB } = inputs;
-    const { operation } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const geometryA = inputs.geometryA;
+    const geometryB = inputs.geometryB;
+    const operation = inputs.operation || 'merge';
     
     const geometries = [geometryA, geometryB].filter(Boolean);
     

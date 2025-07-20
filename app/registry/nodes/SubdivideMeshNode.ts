@@ -70,17 +70,7 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Input geometry to subdivide'
-    }
-  ],
-  outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Subdivided geometry'
-    }
-  ],
-  parameters: [
+    },
     {
       id: 'level',
       name: 'Level',
@@ -92,13 +82,23 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
       description: 'Subdivision level'
     }
   ],
+  outputs: [
+    {
+      id: 'geometry',
+      name: 'Geometry',
+      type: 'geometry',
+      description: 'Subdivided geometry'
+    }
+  ],
+  parameters: [],
   ui: {
     width: 220,
     icon: Scissors
   },
   execute: (inputs, parameters) => {
-    const { geometry } = inputs;
-    const { level } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const geometry = inputs.geometry;
+    const level = inputs.level || 1;
     
     if (!geometry || level === 0) return { geometry };
     

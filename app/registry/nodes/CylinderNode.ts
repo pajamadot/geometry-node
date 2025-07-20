@@ -67,7 +67,12 @@ export const cylinderNodeDefinition: NodeDefinition = {
     advanced: ['radialSegments']
   },
   execute: (inputs, parameters) => {
-    const { radiusTop, radiusBottom, height, radialSegments } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const radiusTop = inputs.radiusTop || 1;
+    const radiusBottom = inputs.radiusBottom || 1;
+    const height = inputs.height || 1;
+    const radialSegments = inputs.radialSegments || 32;
+    
     const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
     return { geometry };
   }

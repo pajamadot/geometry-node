@@ -58,7 +58,11 @@ export const sphereNodeDefinition: NodeDefinition = {
     advanced: ['heightSegments']
   },
   execute: (inputs, parameters) => {
-    const { radius, widthSegments, heightSegments } = parameters;
+    // Get values from inputs (can come from UI or connections)
+    const radius = inputs.radius || 1;
+    const widthSegments = inputs.widthSegments || 32;
+    const heightSegments = inputs.heightSegments || 16;
+    
     const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
     return { geometry };
   }
