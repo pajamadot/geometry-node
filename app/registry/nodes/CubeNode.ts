@@ -2,7 +2,7 @@ import { NodeDefinition } from '../../types/nodeSystem';
 import { Box } from 'lucide-react';
 import * as THREE from 'three';
 
-// CUBE PRIMITIVE - was 150+ lines, now 25 lines of data
+// CUBE PRIMITIVE - Unified input system
 export const cubeNodeDefinition: NodeDefinition = {
   type: 'cube',
   name: 'Cube',
@@ -50,19 +50,15 @@ export const cubeNodeDefinition: NodeDefinition = {
       description: 'Generated cube geometry'
     }
   ],
-  parameters: [],
+  parameters: [], // No parameters - everything is inputs
   ui: {
     icon: Box
   },
   execute: (inputs, parameters) => {
-    // Get parameters from inputs (the registry system passes them here)
-    // The input system adds -in suffix to socket values
-    const width = inputs['width-in'] || inputs.width || 1;
-    const height = inputs['height-in'] || inputs.height || 1;
-    const depth = inputs['depth-in'] || inputs.depth || 1;
-    
-    console.log('Cube node inputs:', inputs);
-    console.log('Cube node dimensions:', { width, height, depth });
+    // Get values from inputs (can come from UI or connections)
+    const width = inputs.width || 1;
+    const height = inputs.height || 1;
+    const depth = inputs.depth || 1;
     
     const geometry = new THREE.BoxGeometry(width, height, depth);
     return { geometry };

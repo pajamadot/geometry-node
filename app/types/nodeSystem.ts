@@ -375,42 +375,38 @@ function generateStandardLayout(inputs: SocketDefinition[], outputs: SocketDefin
     });
   }
   
-  // Combine socket inputs and parameters into a single inputs row
-  const allInputs: InputComponent[] = [];
-  
-  // Add socket inputs
-  inputs.forEach(input => {
-    allInputs.push({
-      id: input.id,
-      name: input.name,
-      type: input.type,
-      defaultValue: input.defaultValue,
-      description: input.description,
-      required: input.required
-    });
-  });
-  
-  // Add parameters as inputs
-  parameters.forEach(param => {
-    allInputs.push({
-      id: param.id,
-      name: param.name,
-      type: param.type,
-      defaultValue: param.defaultValue,
-      description: param.description || `Parameter: ${param.name}`,
-      min: param.min,
-      max: param.max,
-      step: param.step,
-      options: param.options
-    });
-  });
-  
-  // Add single inputs row with all inputs
-  if (allInputs.length > 0) {
+  // Add socket inputs row
+  if (inputs.length > 0) {
     layout.push({
       type: 'inputs',
-      components: allInputs,
-      height: Math.max(40, allInputs.length * 40) // Increased height for better spacing
+      components: inputs.map(input => ({
+        id: input.id,
+        name: input.name,
+        type: input.type,
+        defaultValue: input.defaultValue,
+        description: input.description,
+        required: input.required
+      })),
+      height: Math.max(40, inputs.length * 40) // Increased height for better spacing
+    });
+  }
+  
+  // Add parameters row
+  if (parameters.length > 0) {
+    layout.push({
+      type: 'parameters',
+      components: parameters.map(param => ({
+        id: param.id,
+        name: param.name,
+        type: param.type,
+        defaultValue: param.defaultValue,
+        description: param.description || `Parameter: ${param.name}`,
+        min: param.min,
+        max: param.max,
+        step: param.step,
+        options: param.options
+      })),
+      height: Math.max(40, parameters.length * 40) // Increased height for better spacing
     });
   }
   

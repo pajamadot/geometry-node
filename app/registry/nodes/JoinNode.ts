@@ -47,21 +47,60 @@ export const joinNodeDefinition: NodeDefinition = {
     }
   ],
   ui: {
-    width: 160,
+    // width: 160,
     icon: Merge
   },
   execute: (inputs, parameters) => {
-    const { geometry1, geometry2, geometry3 } = inputs;
+    const { geometryA, geometryB } = inputs;
     const { operation } = parameters;
     
-    const geometries = [geometry1, geometry2, geometry3].filter(Boolean);
+    const geometries = [geometryA, geometryB].filter(Boolean);
     
-    if (geometries.length === 0) return { geometry: null };
-    if (geometries.length === 1) return { geometry: geometries[0] };
+    if (geometries.length === 0) return { result: null };
+    if (geometries.length === 1) return { result: geometries[0] };
     
-    // For now, just merge geometries (can be enhanced later)
+    // Implement proper geometry merging
     const mergedGeometry = new THREE.BufferGeometry();
-    // Simple merge implementation - can be improved
-    return { geometry: geometries[0] };
+    
+    let vertexOffset = 0;
+    const allPositions: number[] = [];
+    const allIndices: number[] = [];
+    
+    geometries.forEach(geometry => {
+      if (!geometry) return;
+      
+      const positions = geometry.attributes.position;
+      const indices = geometry.index;
+      
+      if (positions) {
+        for (let i = 0; i < positions.count; i++) {
+          allPositions.push(
+            positions.getX(i),
+            positions.getY(i),
+            positions.getZ(i)
+          );
+        }
+      }
+      
+      if (indices) {
+        for (let i = 0; i < indices.count; i++) {
+          allIndices.push(indices.getX(i) + vertexOffset);
+        }
+      }
+      
+      vertexOffset += positions ? positions.count : 0;
+    });
+    
+    if (allPositions.length > 0) {
+      mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(allPositions, 3));
+    }
+    
+    if (allIndices.length > 0) {
+      mergedGeometry.setIndex(allIndices);
+    }
+    
+    mergedGeometry.computeVertexNormals();
+    
+    return { geometry: mergedGeometry };
   }
 }; 

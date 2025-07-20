@@ -232,18 +232,19 @@ export default function SystematicNodeLayout({
       return inputs;
     }
     
-    // For other nodes, get all inputs from the layout (both socket inputs and parameters)
-    const inputRows = effectiveLayout.filter(row => row.type === 'inputs');
-    const allInputs: InputComponent[] = [];
-    
-    // Collect all inputs from all input rows
-    inputRows.forEach(row => {
-      if (row.components) {
-        allInputs.push(...row.components);
-      }
-    });
-    
-    return allInputs;
+    // For other nodes, get all inputs from the definition
+    return definition.inputs.map(input => ({
+      id: input.id,
+      name: input.name,
+      type: input.type,
+      defaultValue: input.defaultValue,
+      description: input.description,
+      required: input.required,
+      min: input.min,
+      max: input.max,
+      step: input.step,
+      options: input.options
+    }));
   };
 
   // Render input component using TypeRenderer
@@ -382,10 +383,11 @@ export default function SystematicNodeLayout({
                 className="relative px-3 border-b border-slate-600/30"
                 style={{ minHeight: row.height || 'auto' }}
               >
-                {row.components?.map((component, index) => {
-                  const totalInputs = row.components?.length || 1;
+                {getDynamicInputs().map((component, index) => {
+                  const totalInputs = getDynamicInputs().length || 1;
                   const topPercent = totalInputs === 1 ? 50 : (index / (totalInputs - 1)) * 80 + 10;
                   const isConnected = inputConnections[component.id] || false;
+                  const liveValue = liveParameterValues[component.id];
                   
                   return (
                     <div 
@@ -405,9 +407,9 @@ export default function SystematicNodeLayout({
                         type={component.type}
                         isConnected={isConnected}
                         isInput={true}
-                        value={socketValues[component.id]}
+                        value={isConnected ? liveValue : (parameters[component.id] || component.defaultValue)}
                         defaultValue={component.defaultValue}
-                        onValueChange={(value) => handleSocketValueChange(component.id, value)}
+                        onValueChange={(value) => onParameterChange(component.id, value)}
                         description={component.description}
                         required={component.required}
                         min={component.min}
@@ -421,7 +423,50 @@ export default function SystematicNodeLayout({
               </div>
             );
             
-
+          case 'parameters':
+            return (
+              <div 
+                key={rowIndex}
+                className="relative px-3 border-b border-slate-600/30"
+                style={{ minHeight: row.height || 'auto' }}
+              >
+                {row.components?.map((component, index) => {
+                  const totalParams = row.components?.length || 1;
+                  const topPercent = totalParams === 1 ? 50 : (index / (totalParams - 1)) * 80 + 10;
+                  
+                  return (
+                    <div 
+                      key={`${component.id}-${index}`} 
+                      style={{ 
+                        position: 'absolute', 
+                        top: `${topPercent}%`, 
+                        transform: 'translateY(-50%)', 
+                        left: '0px',
+                        width: 'calc(100% - 8px)',
+                        zIndex: 10
+                      }}
+                    >
+                      <TypeRenderer
+                        id={component.id}
+                        name={component.name}
+                        type={component.type}
+                        isConnected={false}
+                        isInput={true}
+                        value={parameters[component.id]}
+                        defaultValue={component.defaultValue}
+                        onValueChange={(value) => onParameterChange(component.id, value)}
+                        description={component.description}
+                        required={component.required}
+                        min={component.min}
+                        max={component.max}
+                        step={component.step}
+                        options={component.options}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
             
           default:
             return null;

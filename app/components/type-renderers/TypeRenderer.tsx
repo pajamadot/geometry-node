@@ -66,7 +66,6 @@ export const TypeRenderer: React.FC<TypeRendererComponentProps> = (props) => {
         return <TextWidget {...props} />;
       
       case 'dropdown':
-        console.log('TypeRenderer: Rendering dropdown widget with props:', props);
         return <DropdownWidget {...props} />;
       
       case 'none':

@@ -17,8 +17,7 @@ export const DropdownWidget: React.FC<DropdownWidgetProps> = ({
     onValueChange?.(e.target.value);
   };
 
-  // Debug logging
-  console.log('DropdownWidget render:', { value, defaultValue, currentValue, options });
+
 
   return (
     <select

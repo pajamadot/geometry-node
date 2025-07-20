@@ -443,6 +443,12 @@ function executeNode(
       //   finalParameters: parameters
       // });
 
+      // Inject currentTime for time nodes
+      if (data.type === 'time') {
+        inputs.currentTime = currentTime;
+        inputs.frameRate = frameRate;
+      }
+      
       // Execute using registry
       const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
       
@@ -465,6 +471,7 @@ function executeNode(
       // Convert outputs to the expected format
       const formattedOutputs: Record<string, any> = {};
       Object.entries(outputs).forEach(([key, value]) => {
+        // All nodes use -out suffix for consistency
         formattedOutputs[`${key}-out`] = value;
       });
       
@@ -556,7 +563,7 @@ function executeNode(
         return {
           success: true,
           outputs: {
-            'time-out': timeValue
+            'time': timeValue
           }
         };
 
@@ -1119,10 +1126,10 @@ function getNodeInputs(
   edges: Edge[],
   nodeOutputs: Map<string, Record<string, any>>,
   liveParameterTracker?: Map<string, Record<string, any>>,
-  nodeData?: any
+  nodeData?: any,
+  allNodes?: Node<GeometryNodeData>[]
 ): Record<string, any> {
   const inputs: Record<string, any> = {};
-  const parameterInputs: Record<string, any> = {};
   
   // Track which inputs are connected
   const connectedInputs = new Set<string>();
@@ -1135,42 +1142,48 @@ function getNodeInputs(
         const outputValue = sourceOutputs[edge.sourceHandle];
         connectedInputs.add(edge.targetHandle);
         
-        // Check if this is a parameter input (specific patterns, not just ending with '-in')
-        const isParameterInput = edge.targetHandle.match(/^(width|height|depth|radius|segments|position-[xyz]|rotation-[xyz]|scale-[xyz]|radiusTop|radiusBottom|radialSegments|heightSegments|widthSegments|depthSegments|tubularSegments|tube|density|seed|distanceMin|level|instanceIndex|vertexCount|faceCount)-in$/);
+        // Extract socket names from handle IDs
+        const targetSocketName = edge.targetHandle.replace('-in', '');
+        const sourceSocketName = edge.sourceHandle?.replace('-out', '');
         
-        if (isParameterInput) {
-          const paramName = edge.targetHandle.replace('-in', '');
-          parameterInputs[paramName] = outputValue;
+        // Get node definitions to check types
+        const targetNode = allNodes?.find(n => n.id === nodeId);
+        const sourceNode = allNodes?.find(n => n.id === edge.source);
+        
+        if (targetNode && sourceNode) {
+          const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+          const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
           
-          // Track live parameter values for UI display
-          if (liveParameterTracker) {
-            if (!liveParameterTracker.has(nodeId)) {
-              liveParameterTracker.set(nodeId, {});
+          if (targetDef && sourceDef) {
+            const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+            const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+            
+            if (targetSocket && sourceSocket) {
+              // Unified input system - all inputs go directly to inputs object
+              inputs[targetSocketName] = outputValue;
+              
+              // Track live parameter values for UI display
+              if (liveParameterTracker) {
+                if (!liveParameterTracker.has(nodeId)) {
+                  liveParameterTracker.set(nodeId, {});
+                }
+                const nodeParams = liveParameterTracker.get(nodeId)!;
+                nodeParams[targetSocketName] = outputValue;
+              }
             }
-            const nodeParams = liveParameterTracker.get(nodeId)!;
-            nodeParams[paramName] = outputValue;
           }
-        } else {
-          // Direct inputs like 'geometry-in', 'points-in', 'instance-in', 'vertices-in', 'faces-in', 'time-in', etc.
-          inputs[edge.targetHandle] = outputValue;
         }
       }
     }
   });
   
-  // Add socket values for unconnected inputs
-  if (nodeData?.socketValues) {
-    Object.entries(nodeData.socketValues).forEach(([socketId, value]) => {
-      const inputKey = `${socketId}-in`;
-      if (!connectedInputs.has(inputKey)) {
-        inputs[inputKey] = value;
+  // Add default values for unconnected inputs from node parameters
+  if (nodeData?.parameters) {
+    Object.entries(nodeData.parameters).forEach(([paramId, value]) => {
+      if (!connectedInputs.has(`${paramId}-in`)) {
+        inputs[paramId] = value;
       }
     });
-  }
-  
-  // Add parameter inputs to the inputs object
-  if (Object.keys(parameterInputs).length > 0) {
-    inputs.parameters = parameterInputs;
   }
   
   return inputs;
@@ -1235,7 +1248,7 @@ export function compileNodeGraph(
         }, 'compilation');
       }
       
-      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data);
+      const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {

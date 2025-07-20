@@ -20,6 +20,7 @@ import { GeometryNode, GeometryNodeData } from '../types/nodes';
 import { nodeRegistry } from '../registry/NodeRegistry';
 import GenericNode from './GenericNode';
 import SystematicNodeLayout from './SystematicNodeLayout';
+
 import { useGeometry } from './GeometryContext';
 import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';
@@ -142,9 +143,59 @@ export default function GeometryNodeEditor() {
   } | null>(null);
   const [connectionWasMade, setConnectionWasMade] = useState(false);
 
-  // Connection validation with type checking (Blender-style)
-  const isValidConnection = useCallback((connection: Connection) => {
-    const { source, target, sourceHandle, targetHandle } = connection;
+  // Type-based connection validation (NEW SYSTEM)
+  const validateTypeBasedConnection = useCallback((params: Connection): boolean => {
+    const sourceNode = nodes.find(n => n.id === params.source);
+    const targetNode = nodes.find(n => n.id === params.target);
+    
+    if (!sourceNode || !targetNode) return false;
+    
+    // Get node definitions
+    const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
+    const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+    
+    if (!sourceDef || !targetDef) return false;
+    
+    // Extract socket names from handle IDs
+    const sourceSocketName = params.sourceHandle?.replace('-out', '');
+    const targetSocketName = params.targetHandle?.replace('-in', '');
+    
+    console.log('Connection validation:', {
+      sourceNode: sourceNode.data.type,
+      targetNode: targetNode.data.type,
+      sourceHandle: params.sourceHandle,
+      targetHandle: params.targetHandle,
+      sourceSocketName,
+      targetSocketName
+    });
+    
+    // Find socket definitions
+    const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+    const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+    
+    console.log('Socket definitions:', {
+      sourceSocket: sourceSocket?.type,
+      targetSocket: targetSocket?.type,
+      sourceDefOutputs: sourceDef.outputs.map(s => ({ id: s.id, type: s.type })),
+      targetDefInputs: targetDef.inputs.map(s => ({ id: s.id, type: s.type }))
+    });
+    
+    if (!sourceSocket || !targetSocket) return false;
+    
+    // Check type compatibility
+    const isCompatible = nodeRegistry.areSocketsCompatible(sourceSocket.type, targetSocket.type);
+    console.log('Type compatibility:', {
+      sourceType: sourceSocket.type,
+      targetType: targetSocket.type,
+      isCompatible
+    });
+    
+    return isCompatible;
+  }, [nodes]);
+
+  // Legacy name-based validation (for backward compatibility)
+  const isValidConnection = useCallback((params: Connection) => {
+    const { source, target, sourceHandle, targetHandle } = params;
     
     if (!source || !target || !sourceHandle || !targetHandle) return false;
     
@@ -178,7 +229,7 @@ export default function GeometryNodeEditor() {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      if (isValidConnection(params)) {
+      if (validateTypeBasedConnection(params)) {
         // Mark that a connection was successfully made
         setConnectionWasMade(true);
         
@@ -189,20 +240,27 @@ export default function GeometryNodeEditor() {
             !(edge.target === params.target && edge.targetHandle === params.targetHandle)
           );
           
-          // Determine connection type based on handle IDs (Blender-inspired)
+          // Determine connection type based on socket types (NEW SYSTEM)
+          const sourceNode = nodes.find(n => n.id === params.source);
+          const targetNode = nodes.find(n => n.id === params.target);
+          
           let connectionType = 'geometry';
-          if (params.sourceHandle?.includes('time') || params.targetHandle?.includes('time')) {
-            connectionType = 'time';
-          } else if (params.sourceHandle?.includes('points') || params.targetHandle?.includes('points')) {
-            connectionType = 'points';
-          } else if (params.sourceHandle?.includes('instances') || params.targetHandle?.includes('instances')) {
-            connectionType = 'instances';
-          } else if (params.sourceHandle?.includes('vertices') || params.targetHandle?.includes('vertices')) {
-            connectionType = 'vertices';
-          } else if (params.sourceHandle?.includes('faces') || params.targetHandle?.includes('faces')) {
-            connectionType = 'faces';
-          } else if (params.sourceHandle?.includes('number') || params.targetHandle?.includes('number')) {
-            connectionType = 'number';
+          if (sourceNode && targetNode) {
+            const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
+            const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+            
+            if (sourceDef && targetDef) {
+              const sourceSocketName = params.sourceHandle?.replace('-out', '');
+              const targetSocketName = params.targetHandle?.replace('-in', '');
+              
+              const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+              const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+              
+              if (sourceSocket && targetSocket) {
+                // Use the source socket type for connection type
+                connectionType = sourceSocket.type;
+              }
+            }
           }
           
           const newEdge = {
