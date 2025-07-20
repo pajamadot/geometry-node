@@ -14,6 +14,9 @@ export { instanceOnPointsNodeDefinition } from './InstanceOnPointsNode';
 export { createVerticesNodeDefinition } from './CreateVerticesNode';
 export { createFacesNodeDefinition } from './CreateFacesNode';
 export { mergeGeometryNodeDefinition } from './MergeGeometryNode';
+export { parametricSurfaceNodeDefinition } from './ParametricSurfaceNode';
+export { gesnerWaveNodeDefinition } from './GesnerWaveNode';
+export { lighthouseNodeDefinition } from './LighthouseNode';
 
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';
