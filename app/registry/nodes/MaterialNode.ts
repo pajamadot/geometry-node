@@ -50,6 +50,16 @@ export const standardMaterialNodeDefinition: NodeDefinition = {
       description: 'Base diffuse color'
     },
     {
+      id: 'redChannel',
+      name: 'Red Channel',
+      type: 'number',
+      defaultValue: 1.0,
+      min: 0,
+      max: 1,
+      step: 0.01,
+      description: 'Red color component (0-1) for animation'
+    },
+    {
       id: 'metalness',
       name: 'Metalness',
       type: 'number',
@@ -111,8 +121,14 @@ export const standardMaterialNodeDefinition: NodeDefinition = {
     width: 250
   },
   execute: (inputs, parameters) => {
-    const colorInput = inputs.color || '#ffffff';
+    let colorInput = inputs.color || '#ffffff';
     const emissiveInput = inputs.emissive || '#000000';
+    
+    // Handle numeric input for red channel animation
+    if (typeof inputs.redChannel === 'number') {
+      const red = Math.max(0, Math.min(1, inputs.redChannel));
+      colorInput = { r: red, g: 0.3, b: 0.8 }; // Animated red, fixed green/blue
+    }
     
     const color = parseColorInput(colorInput);
     const emissive = parseColorInput(emissiveInput);

@@ -389,8 +389,10 @@ function executeNode(
   try {
     const { data } = node;
     
-    // Check cache first (skip for time-dependent nodes and nodes with parameters)
-    if (data.type !== 'time' && !('parameters' in data && data.parameters && Object.keys(data.parameters).length > 0)) {
+    // Check cache first (skip for time-dependent nodes, transform nodes, and nodes with parameters)
+    if (data.type !== 'time' && 
+        data.type !== 'transform' && 
+        !('parameters' in data && data.parameters && Object.keys(data.parameters).length > 0)) {
       const cachedResult = getCachedNodeResult(node.id, inputs, data);
       if (cachedResult) {
         if (addLog) {
@@ -959,7 +961,9 @@ function executeNodeWithCaching(
   const result = executeNode(node, inputs, cache, currentTime, frameRate, addLog);
   
   // Cache successful results (skip time-dependent nodes, nodes with parameters, and material-related nodes)
+  // Also skip transform nodes as they may have time-dependent inputs
   const skipCaching = node.data.type === 'time' || 
+                     node.data.type === 'transform' ||
                      node.data.type === 'set-material' ||
                      node.data.type === 'material-mixer' ||
                      node.data.type === 'water-material' ||

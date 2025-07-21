@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -55,14 +55,54 @@ const backgroundProps = {
   color: "#1f2937",
 };
 
-// Initial nodes for testing - using new registry system
-const initialNodes: Node<GeometryNodeData>[] = [
-  {
-    id: '1',
+// Scene configurations
+const getDefaultScene = () => ({
+  nodes: [
+    {
+      id: 'time-1',
+      type: 'time',
+      position: { x: 50, y: 150 },
+      data: {
+        id: 'time-1',
+        type: 'time',
+        label: 'Time',
+        parameters: { speed: 1, outputType: 'sine', frequency: 1, amplitude: 1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'math-1',
+      type: 'math',
+      position: { x: 400, y: 150 },
+      data: {
+        id: 'math-1',
+        type: 'math',
+        label: 'Math (× π)',
+        parameters: { operation: 'multiply', valueB: 30 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'make-vector-1',
+      type: 'make-vector',
+      position: { x: 750, y: 150 },
+      data: {
+        id: 'make-vector-1',
+        type: 'make-vector',
+        label: 'Make Vector',
+        parameters: { z: 0 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'cube-1',
     type: 'cube',
-    position: { x: 100, y: 100 },
+      position: { x: 50, y: 500 },
     data: {
-      id: '1',
+        id: 'cube-1',
       type: 'cube',
       label: 'Cube',
       parameters: { width: 1, height: 1, depth: 1 },
@@ -71,11 +111,63 @@ const initialNodes: Node<GeometryNodeData>[] = [
     }
   },
   {
-    id: '2', 
+      id: 'math-normalize',
+      type: 'math',
+      position: { x: 750, y: 300 },
+      data: {
+        id: 'math-normalize',
+        type: 'math',
+        label: 'Math (×0.5)',
+        parameters: { operation: 'multiply', valueB: 0.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'math-add',
+      type: 'math',
+      position: { x: 1100, y: 300 },
+      data: {
+        id: 'math-add',
+        type: 'math',
+        label: 'Math (+ 0.5)',
+        parameters: { operation: 'add', valueB: 0.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-1',
+      type: 'standard-material',
+      position: { x: 400, y: 500 },
+      data: {
+        id: 'standard-material-1',
+        type: 'standard-material',
+        label: 'Animated Material',
+        parameters: { roughness: 0.3, metalness: 0.1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-1',
+      type: 'set-material',
+      position: { x: 750, y: 600 },
+      data: {
+        id: 'set-material-1',
+        type: 'set-material',
+        label: 'Set Material',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-1', 
     type: 'transform',
-    position: { x: 400, y: 100 },
+      position: { x: 1100, y: 500 },
     data: {
-      id: '2',
+        id: 'transform-1',
       type: 'transform',
       label: 'Transform',
       parameters: { 
@@ -88,11 +180,11 @@ const initialNodes: Node<GeometryNodeData>[] = [
     }
   },
   {
-    id: '3',
+      id: 'output-1',
     type: 'output', 
-    position: { x: 700, y: 100 },
+      position: { x: 1450, y: 500 },
     data: {
-      id: '3',
+        id: 'output-1',
       type: 'output',
       label: 'Output',
       parameters: {},
@@ -100,24 +192,604 @@ const initialNodes: Node<GeometryNodeData>[] = [
       liveParameterValues: {}
     }
   }
-];
+  ],
+  edges: [
+    {
+      id: 'e-time-math',
+      source: 'time-1',
+      target: 'math-1',
+      sourceHandle: 'time-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-math-makevector-x',
+      source: 'math-1',
+      target: 'make-vector-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'x-in',
+    },
+    {
+      id: 'e-math-makevector-y',
+      source: 'math-1',
+      target: 'make-vector-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'y-in',
+    },
+    {
+      id: 'e-makevector-transform',
+      source: 'make-vector-1',
+      target: 'transform-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'rotation-in',
+    },
+    {
+      id: 'e-math-normalize',
+      source: 'math-1',
+      target: 'math-normalize',
+      sourceHandle: 'result-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-normalize-add',
+      source: 'math-normalize',
+      target: 'math-add',
+      sourceHandle: 'result-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-add-material',
+      source: 'math-add',
+      target: 'standard-material-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'redChannel-in',
+    },
+    {
+      id: 'e-cube-setmaterial',
+      source: 'cube-1',
+      target: 'set-material-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-material-setmaterial',
+      source: 'standard-material-1',
+      target: 'set-material-1',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    {
+      id: 'e-setmaterial-transform',
+      source: 'set-material-1',
+      target: 'transform-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-transform-output',
+      source: 'transform-1',
+      target: 'output-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+  ]
+});
 
-const initialEdges: Edge[] = [
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
+const getLighthouseScene = () => ({
+  nodes: [
+    // Time node - top left
+    {
+      id: 'time-1',
+      type: 'time',
+      position: { x: 50, y: 100 },
+      data: {
+        id: 'time-1',
+        type: 'time',
+        label: 'Time',
+        parameters: { speed: 1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    
+    // Water row - top
+    {
+      id: 'gesner-wave-1',
+      type: 'gesner-wave',
+      position: { x: 500, y: 100 },
+      data: {
+        id: 'gesner-wave-1',
+        type: 'gesner-wave',
+        label: 'Gesner Wave',
+        parameters: { 
+          width: 100, 
+          height: 100, 
+          amplitude: 0.5, 
+          segments: 8,
+          waveType: 'multiple',
+          waveCount: 4
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'water-material-1',
+      type: 'water-material',
+      position: { x: 950, y: 50 },
+      data: {
+        id: 'water-material-1',
+        type: 'water-material',
+        label: 'Water Material',
+        parameters: { shallowColor: '#40e0d0', deepColor: '#006994' },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-1',
+      type: 'set-material',
+      position: { x: 1350, y: 100 },
+      data: {
+        id: 'set-material-1',
+        type: 'set-material',
+        label: 'Set Material (Water)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Lighthouse row - middle
+    {
+      id: 'lighthouse-1',
+      type: 'lighthouse',
+      position: { x: 500, y: 450 },
+      data: {
+        id: 'lighthouse-1',
+        type: 'lighthouse',
+        label: 'Lighthouse',
+        parameters: { towerHeight: 15, towerRadius: 2.5, baseRadius: 3.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-lighthouse',
+      type: 'transform',
+      position: { x: 900, y: 450 },
+      data: {
+        id: 'transform-lighthouse',
+        type: 'transform',
+        label: 'Transform Lighthouse',
+        parameters: { 
+          position: { x: 0, y: 3.5, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 }
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-1',
+      type: 'standard-material',
+      position: { x: 950, y: 350 },
+      data: {
+        id: 'standard-material-1',
+        type: 'standard-material',
+        label: 'Standard Material (Yellow)',
+        parameters: { color: '#ffeb3b', roughness: 0.7, metalness: 0.1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-2',
+      type: 'set-material',
+      position: { x: 1350, y: 450 },
+      data: {
+        id: 'set-material-2',
+        type: 'set-material',
+        label: 'Set Material (Lighthouse)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Rock row - bottom
+    {
+      id: 'rock-1',
+      type: 'lowPolyRock',
+      position: { x: 500, y: 800 },
+      data: {
+        id: 'rock-1',
+        type: 'lowPolyRock',
+        label: 'Low Poly Rock',
+        parameters: { radius: 2, detail: 2, noise: 0.8 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-rock',
+      type: 'transform',
+      position: { x: 900, y: 800 },
+      data: {
+        id: 'transform-rock',
+        type: 'transform',
+        label: 'Transform Rock',
+        parameters: { 
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 5, y: 0.4, z: 3 }
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-2',
+      type: 'standard-material',
+      position: { x: 950, y: 700 },
+      data: {
+        id: 'standard-material-2',
+        type: 'standard-material',
+        label: 'Standard Material (Brown)',
+        parameters: { color: '#8d5524', roughness: 0.9, metalness: 0.05 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-3',
+      type: 'set-material',
+      position: { x: 1350, y: 800 },
+      data: {
+        id: 'set-material-3',
+        type: 'set-material',
+        label: 'Set Material (Rock)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Join nodes - right side
+    {
+      id: 'join-1',
+      type: 'join',
+      position: { x: 1700, y: 275 },
+      data: {
+        id: 'join-1',
+        type: 'join',
+        label: 'Join Water & Lighthouse',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'join-2',
+      type: 'join',
+      position: { x: 2050, y: 525 },
+      data: {
+        id: 'join-2',
+        type: 'join',
+        label: 'Join All',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'output-1',
+      type: 'output',
+      position: { x: 2400, y: 525 },
+      data: {
+        id: 'output-1',
+        type: 'output',
+        label: 'Output',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    }
+  ],
+  edges: [
+    // Time to gesner wave
+    {
+      id: 'e-time-wave',
+      source: 'time-1',
+      target: 'gesner-wave-1',
+      sourceHandle: 'time-out',
+      targetHandle: 'time-in',
+    },
+    
+    // Water material setup
+    {
+      id: 'e-wave-setmat1',
+      source: 'gesner-wave-1',
+      target: 'set-material-1',
     sourceHandle: 'geometry-out',
     targetHandle: 'geometry-in',
   },
   {
-    id: 'e2-3',
-    source: '2',
-    target: '3',
+      id: 'e-watermat-setmat1',
+      source: 'water-material-1',
+      target: 'set-material-1',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Lighthouse with transform and material setup
+    {
+      id: 'e-lighthouse-transform',
+      source: 'lighthouse-1',
+      target: 'transform-lighthouse',
     sourceHandle: 'geometry-out',
     targetHandle: 'geometry-in',
   },
-];
+    {
+      id: 'e-transform-lighthouse-setmat2',
+      source: 'transform-lighthouse',
+      target: 'set-material-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-yellowmat-setmat2',
+      source: 'standard-material-1',
+      target: 'set-material-2',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Rock with transform and material setup
+    {
+      id: 'e-rock-transform',
+      source: 'rock-1',
+      target: 'transform-rock',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-transform-rock-setmat3',
+      source: 'transform-rock',
+      target: 'set-material-3',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-brownmat-setmat3',
+      source: 'standard-material-2',
+      target: 'set-material-3',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Join everything
+    {
+      id: 'e-water-join1',
+      source: 'set-material-1',
+      target: 'join-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryA-in',
+    },
+    {
+      id: 'e-lighthouse-join1',
+      source: 'set-material-2',
+      target: 'join-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryB-in',
+    },
+    {
+      id: 'e-join1-join2',
+      source: 'join-1',
+      target: 'join-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryA-in',
+    },
+    {
+      id: 'e-rock-join2',
+      source: 'set-material-3',
+      target: 'join-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryB-in',
+    },
+    {
+      id: 'e-join2-output',
+      source: 'join-2',
+      target: 'output-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    }
+  ]
+});
+
+// Scene management functions
+const saveSceneToLocalStorage = (nodes: Node<GeometryNodeData>[], edges: Edge[]) => {
+  // Check if we're running in the browser
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    console.warn('localStorage not available (running on server)');
+    return;
+  }
+  
+  const sceneData = {
+    nodes: nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data
+    })),
+    edges: edges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle
+    })),
+    timestamp: Date.now()
+  };
+  localStorage.setItem('geometry-script-scene', JSON.stringify(sceneData));
+  console.log('Scene saved to localStorage');
+};
+
+const loadSceneFromLocalStorage = () => {
+  // Check if we're running in the browser
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return null;
+  }
+  
+  try {
+    const sceneData = localStorage.getItem('geometry-script-scene');
+    if (sceneData) {
+      const parsed = JSON.parse(sceneData);
+      return {
+        nodes: parsed.nodes || [],
+        edges: parsed.edges || []
+      };
+    }
+  } catch (error) {
+    console.error('Error loading scene from localStorage:', error);
+  }
+  return null;
+};
+
+// Helper function to enhance edges (needed for initial scene setup)
+const enhanceEdgesWithMetadataStatic = (edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
+  return edges.map((edge: Edge) => {
+    // Determine connection type based on socket types
+    let connectionType = 'geometry';
+    
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const targetNode = nodes.find(n => n.id === edge.target);
+    
+    if (sourceNode && targetNode) {
+      const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
+      const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+      
+      if (sourceDef && targetDef && edge.sourceHandle && edge.targetHandle) {
+        const sourceSocketName = edge.sourceHandle.replace('-out', '');
+        const targetSocketName = edge.targetHandle.replace('-in', '');
+        
+        const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+        const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+        
+        if (sourceSocket && targetSocket) {
+          connectionType = sourceSocket.type;
+          // Normalize numeric types
+          if (connectionType === 'numeric') {
+            connectionType = 'number';
+          }
+        } else {
+          // Fallback: Try to determine type from handle names for common patterns
+          if (edge.sourceHandle.includes('time') || edge.targetHandle.includes('time')) {
+            connectionType = 'time';
+          } else if (edge.sourceHandle.includes('vector') || edge.targetHandle.includes('rotation') || edge.targetHandle.includes('position') || edge.targetHandle.includes('scale')) {
+            connectionType = 'vector';
+          } else if (edge.sourceHandle.includes('number') || edge.sourceHandle.includes('result') || edge.targetHandle.includes('valueA') || edge.targetHandle.includes('valueB')) {
+            connectionType = 'number';
+          } else if (edge.sourceHandle.includes('material') || edge.targetHandle.includes('material')) {
+            connectionType = 'material';
+          }
+        }
+        
+
+      }
+    }
+    
+    // Get edge style based on connection type
+    const getEdgeStyle = (connectionType: string) => {
+      switch (connectionType) {
+        case 'geometry':
+          return {
+            stroke: '#eab308',
+            strokeWidth: 3,
+            filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.4))'
+          };
+        case 'time':
+          return {
+            stroke: '#ec4899',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(236, 72, 153, 0.4))'
+          };
+        case 'number':
+        case 'numeric':
+          return {
+            stroke: '#22c55e',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))'
+          };
+        case 'vector':
+          return {
+            stroke: '#06b6d4',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.4))'
+          };
+        case 'material':
+          return {
+            stroke: '#8b5cf6',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(139, 92, 246, 0.4))'
+          };
+        default:
+          return {
+            stroke: '#6b7280',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(107, 114, 128, 0.4))'
+          };
+      }
+    };
+    
+    // Return enhanced edge with same metadata as manual connections
+    return {
+      ...edge,
+      animated: true,
+      data: { connectionType },
+      style: getEdgeStyle(connectionType),
+      className: `connection-${connectionType}`,
+      'data-connection-type': connectionType,
+      'data-target-handle': edge.targetHandle,
+      'data-source-handle': edge.sourceHandle
+    };
+  });
+};
+
+// Initial nodes for testing - using new registry system
+const getInitialScene = () => {
+  // Try to load from localStorage first, fallback to default scene
+  const savedScene = loadSceneFromLocalStorage();
+  if (savedScene && savedScene.nodes.length > 0) {
+    // Enhance saved edges if they don't have proper metadata
+    const nodes = savedScene.nodes as Node<GeometryNodeData>[];
+    const edges = savedScene.edges;
+    
+    // Check if edges need enhancement (missing data property)
+    const needsEnhancement = edges.some((edge: Edge) => !edge.data?.connectionType);
+    if (needsEnhancement) {
+      return {
+        nodes,
+        edges: enhanceEdgesWithMetadataStatic(edges, nodes)
+      };
+    }
+    
+    return savedScene;
+  }
+  
+  const defaultScene = getDefaultScene();
+  const nodes = defaultScene.nodes as Node<GeometryNodeData>[];
+  const enhancedEdges = enhanceEdgesWithMetadataStatic(defaultScene.edges, nodes);
+  
+  return {
+    nodes,
+    edges: enhancedEdges
+  };
+};
+
+const initialSceneData = getInitialScene();
+const initialNodes: Node<GeometryNodeData>[] = initialSceneData.nodes as Node<GeometryNodeData>[];
+const initialEdges: Edge[] = initialSceneData.edges;
 
 export default function GeometryNodeEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -134,6 +806,105 @@ export default function GeometryNodeEditor() {
   } | null>(null);
   const [disabledNodes, setDisabledNodes] = useState<Set<string>>(new Set());
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+
+  // Auto-save scene to localStorage when nodes or edges change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveSceneToLocalStorage(nodes, edges);
+    }, 1000); // Debounce saves to avoid excessive localStorage writes
+
+    return () => clearTimeout(timer);
+  }, [nodes, edges]);
+
+    // Helper function to enhance programmatic edges with proper metadata
+  const enhanceEdgesWithMetadata = useCallback((edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
+    return edges.map((edge: Edge) => {
+      // Determine connection type based on socket types
+      let connectionType = 'geometry';
+      
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      
+      if (sourceNode && targetNode) {
+        const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
+        const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+        
+        if (sourceDef && targetDef && edge.sourceHandle && edge.targetHandle) {
+          const sourceSocketName = edge.sourceHandle.replace('-out', '');
+          const targetSocketName = edge.targetHandle.replace('-in', '');
+          
+          const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
+          const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
+          
+          if (sourceSocket && targetSocket) {
+            connectionType = sourceSocket.type;
+            // Normalize numeric types
+            if (connectionType === 'numeric') {
+              connectionType = 'number';
+            }
+          } else {
+            // Fallback: Try to determine type from handle names for common patterns
+            if (edge.sourceHandle.includes('time') || edge.targetHandle.includes('time')) {
+              connectionType = 'time';
+            } else if (edge.sourceHandle.includes('vector') || edge.targetHandle.includes('rotation') || edge.targetHandle.includes('position') || edge.targetHandle.includes('scale')) {
+              connectionType = 'vector';
+            } else if (edge.sourceHandle.includes('number') || edge.sourceHandle.includes('result') || edge.targetHandle.includes('valueA') || edge.targetHandle.includes('valueB')) {
+              connectionType = 'number';
+            } else if (edge.sourceHandle.includes('material') || edge.targetHandle.includes('material')) {
+              connectionType = 'material';
+            }
+          }
+          
+
+        }
+      }
+      
+      // Return enhanced edge with same metadata as manual connections
+      return {
+        ...edge,
+        animated: true,
+        data: { connectionType },
+        style: getEdgeStyle(connectionType),
+        className: `connection-${connectionType}`,
+        'data-connection-type': connectionType,
+        'data-target-handle': edge.targetHandle,
+        'data-source-handle': edge.sourceHandle
+      };
+    });
+  }, []);
+
+  // Scene switching functions
+  const loadDefaultScene = useCallback(() => {
+    const scene = getDefaultScene();
+    const sceneNodes = scene.nodes as Node<GeometryNodeData>[];
+    const enhancedEdges = enhanceEdgesWithMetadata(scene.edges, sceneNodes);
+    
+    setNodes(sceneNodes);
+    setEdges(enhancedEdges);
+    saveSceneToLocalStorage(sceneNodes, enhancedEdges);
+  }, [setNodes, setEdges, enhanceEdgesWithMetadata]);
+
+  const loadLighthouseScene = useCallback(() => {
+    const scene = getLighthouseScene();
+    const sceneNodes = scene.nodes as Node<GeometryNodeData>[];
+    const enhancedEdges = enhanceEdgesWithMetadata(scene.edges, sceneNodes);
+    
+    setNodes(sceneNodes);
+    setEdges(enhancedEdges);
+    saveSceneToLocalStorage(sceneNodes, enhancedEdges);
+  }, [setNodes, setEdges, enhanceEdgesWithMetadata]);
+
+  const saveCurrentScene = useCallback(() => {
+    saveSceneToLocalStorage(nodes, edges);
+    // Show temporary notification
+    const notification = document.createElement('div');
+    notification.textContent = 'Scene saved to local storage!';
+    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded z-50';
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 2000);
+  }, [nodes, edges]);
   
   // Track connection drag state for Blender-style disconnect
   const [connectionDragState, setConnectionDragState] = useState<{
@@ -809,6 +1580,31 @@ export default function GeometryNodeEditor() {
 
   return (
     <div className="h-full w-full relative">
+      {/* Scene Control Buttons */}
+      <div className="absolute top-3 left-3 z-20 flex gap-2">
+        <button
+          onClick={loadDefaultScene}
+          className="bg-blue-600/80 hover:bg-blue-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-blue-500/30 shadow-lg transition-colors font-medium"
+          title="Load default scene with time input controlling cube rotation"
+        >
+          🎲 Default Scene
+        </button>
+        <button
+          onClick={loadLighthouseScene}
+          className="bg-amber-600/80 hover:bg-amber-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-amber-500/30 shadow-lg transition-colors font-medium"
+          title="Load lighthouse scene with animated water, lighthouse, and rock"
+        >
+          🏠 Lighthouse Scene
+        </button>
+        <button
+          onClick={saveCurrentScene}
+          className="bg-green-600/80 hover:bg-green-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-green-500/30 shadow-lg transition-colors font-medium"
+          title="Save current scene to local storage"
+        >
+          💾 Save Scene
+        </button>
+      </div>
+
       {/* Status indicator */}
       <div className="absolute top-3 right-3 z-20">
         {isCompiling && (

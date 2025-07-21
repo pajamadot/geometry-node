@@ -61,6 +61,8 @@ export const transformNodeDefinition: NodeDefinition = {
     const rotation = inputs.rotation || inputs['rotation-in'] || { x: 0, y: 0, z: 0 };
     const scale = inputs.scale || inputs['scale-in'] || { x: 1, y: 1, z: 1 };
     
+    // Transform node now properly receives real-time updates (caching disabled)
+    
     if (!geometry) {
       return { geometry: null };
     }
@@ -104,13 +106,20 @@ export const transformNodeDefinition: NodeDefinition = {
     
     // Apply transformations via matrix
     const matrix = new THREE.Matrix4();
-    const quaternion = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(rotation.x, rotation.y, rotation.z)
+    
+    // Convert rotation from degrees to radians (transform node expects degrees input)
+    const rotationRadians = new THREE.Euler(
+      (rotation.x || 0) * Math.PI / 180,
+      (rotation.y || 0) * Math.PI / 180, 
+      (rotation.z || 0) * Math.PI / 180
     );
+    
+    const quaternion = new THREE.Quaternion().setFromEuler(rotationRadians);
+    
     matrix.compose(
-      new THREE.Vector3(translation.x, translation.y, translation.z),
+      new THREE.Vector3(translation.x || 0, translation.y || 0, translation.z || 0),
       quaternion,
-      new THREE.Vector3(scale.x, scale.y, scale.z)
+      new THREE.Vector3(scale.x || 1, scale.y || 1, scale.z || 1)
     );
     
     transformedGeometry.applyMatrix4(matrix);

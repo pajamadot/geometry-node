@@ -37,7 +37,7 @@ export const makeVectorNodeDefinition: NodeDefinition = {
   ],
   outputs: [
     {
-      id: 'vector',
+      id: 'result',
       name: 'Vector',
       type: 'vector',
       description: 'Combined vector'
@@ -52,7 +52,7 @@ export const makeVectorNodeDefinition: NodeDefinition = {
     const { x = 0, y = 0, z = 0 } = inputs;
     
     return {
-      vector: { x, y, z }
+      result: { x, y, z }
     };
   }
 }; 
