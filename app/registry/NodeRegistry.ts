@@ -39,8 +39,7 @@ import {
   setMaterialNodeDefinition,
   materialMixerNodeDefinition,
   waterMaterialNodeDefinition,
-  hologramMaterialNodeDefinition,
-  lavaMaterialNodeDefinition
+  hologramMaterialNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -48,14 +47,47 @@ export class NodeRegistry {
   private definitions = new Map<string, NodeDefinition>();
   private customNodes = new Map<string, JsonNodeDefinition>(); // Store original JSON definitions
   private updateCallbacks: (() => void)[] = []; // Callbacks for when registry updates
+  private serverNodesLoadState: 'idle' | 'loading' | 'loaded' | 'error' = 'idle';
+  private serverNodesLoadPromise: Promise<any> | null = null;
 
   private constructor() {
     this.registerDefaultNodes();
-    // Load custom nodes after initial setup, only in browser
+    // Fetch server nodes after initial setup, only in browser
     if (typeof window !== 'undefined') {
       // Defer loading to allow for proper initialization
-      setTimeout(() => this.loadCustomNodes(), 0);
+      setTimeout(() => {
+        this.initializeServerNodes();
+      }, 0);
     }
+  }
+
+  private async initializeServerNodes(): Promise<void> {
+    if (this.serverNodesLoadState !== 'idle') return;
+    
+    this.serverNodesLoadState = 'loading';
+    this.notifyUpdate();
+    
+    try {
+      console.log('🌐 Fetching server nodes...');
+      const result = await this.fetchNodesFromServer();
+      
+      if (result.success > 0) {
+        this.serverNodesLoadState = 'loaded';
+        console.log(`✅ Loaded ${result.success} server nodes`);
+      } else {
+        this.serverNodesLoadState = 'error';
+        console.warn('⚠️ No server nodes could be loaded');
+      }
+      
+      if (result.failed.length > 0) {
+        console.warn(`⚠️ Failed to load ${result.failed.length} nodes:`, result.failed.map(f => f.error));
+      }
+    } catch (error) {
+      this.serverNodesLoadState = 'error';
+      console.warn('⚠️ Failed to fetch server nodes:', error);
+    }
+    
+    this.notifyUpdate();
   }
 
   static getInstance(): NodeRegistry {
@@ -109,7 +141,7 @@ export class NodeRegistry {
     this.register(materialMixerNodeDefinition);
     this.register(waterMaterialNodeDefinition);
     this.register(hologramMaterialNodeDefinition);
-    this.register(lavaMaterialNodeDefinition);
+    // Note: lava-material is now provided by server nodes only
     
     // Register template-generated nodes
     const templateNodes = templateSystem.generateAllNodes();
@@ -257,48 +289,7 @@ export class NodeRegistry {
 
   // JSON Node Management Methods
 
-  // Load custom nodes from localStorage
-  private loadCustomNodes() {
-    // Only load custom nodes in browser environment
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      return;
-    }
-    
-    try {
-      const stored = localStorage.getItem('geometry-script-custom-nodes');
-      if (stored) {
-        const collection = parseJsonNodeCollection(stored);
-        const result = this.loadJsonNodeCollection(collection);
-        if (result.success > 0) {
-          console.log(`Loaded ${result.success} custom nodes from localStorage`);
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load custom nodes from storage:', error);
-    }
-  }
 
-  // Save custom nodes to localStorage
-  private saveCustomNodes() {
-    // Only save in browser environment
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      return;
-    }
-    
-    try {
-      const collection: JsonNodeCollection = {
-        version: '1.0.0',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-        nodes: Array.from(this.customNodes.values())
-      };
-      
-      const jsonString = JSON.stringify(collection, null, 2);
-      localStorage.setItem('geometry-script-custom-nodes', jsonString);
-    } catch (error) {
-      console.error('Failed to save custom nodes to storage:', error);
-    }
-  }
 
   // Register a JSON node definition
   registerJsonNode(jsonNode: JsonNodeDefinition): { success: boolean; error?: string } {
@@ -313,7 +304,6 @@ export class NodeRegistry {
       // Register the node
       this.register(nodeDefinition);
       this.customNodes.set(jsonNode.type, jsonNode);
-      this.saveCustomNodes();
       
       console.log(`Registered custom node: ${jsonNode.type}`);
       return { success: true };
@@ -357,7 +347,6 @@ export class NodeRegistry {
     });
 
     if (successCount > 0) {
-      this.saveCustomNodes();
       this.notifyUpdate();
     }
 
@@ -388,7 +377,6 @@ export class NodeRegistry {
     if (this.customNodes.has(nodeType)) {
       this.definitions.delete(nodeType);
       this.customNodes.delete(nodeType);
-      this.saveCustomNodes();
       return true;
     }
     return false;
@@ -428,7 +416,6 @@ export class NodeRegistry {
       // Update registration
       this.register(nodeDefinition);
       this.customNodes.set(nodeType, jsonNode);
-      this.saveCustomNodes();
       
       console.log(`Updated custom node: ${nodeType}`);
       return { success: true };
@@ -468,27 +455,55 @@ export class NodeRegistry {
       this.definitions.delete(nodeType);
     });
     
-    // Clear storage
+    // Clear custom nodes map
     this.customNodes.clear();
-    this.saveCustomNodes();
     this.notifyUpdate();
   }
 
-  // Refresh entire node system (reload defaults + custom nodes)
+  // Get server nodes loading state
+  getServerNodesState(): 'idle' | 'loading' | 'loaded' | 'error' {
+    return this.serverNodesLoadState;
+  }
+
+  // Get server nodes loading promise (for waiting)
+  getServerNodesPromise(): Promise<any> | null {
+    return this.serverNodesLoadPromise;
+  }
+
+  // Check if any server nodes are loaded
+  hasServerNodes(): boolean {
+    return Array.from(this.customNodes.keys()).some(type => 
+      this.isServerNode(type)
+    );
+  }
+
+  // Check if a node type comes from server (vs local custom nodes)
+  private isServerNode(nodeType: string): boolean {
+    // Server nodes are identified by having specific naming patterns or categories
+    const definition = this.definitions.get(nodeType);
+    return definition?.name.includes('Surface') || 
+           definition?.name.includes('Material') || 
+           definition?.name.includes('Deform') ||
+           definition?.category === 'materials';
+  }
+
+  // Refresh entire node system (reload server nodes)
   async refreshNodeSystem(): Promise<{
     success: number;
     failed: { node: JsonNodeDefinition; error: string }[];
   }> {
-    // Clear existing custom nodes
+    // Clear existing custom nodes (server nodes)
     this.clearCustomNodes();
     
-    // Reload from localStorage
-    this.loadCustomNodes();
+    // Reset server state and reload
+    this.serverNodesLoadState = 'idle';
+    await this.initializeServerNodes();
     
-    // Fetch from server and merge
-    const serverResult = await this.fetchNodesFromServer();
-    
-    return serverResult;
+    // Return the result based on current state
+    return {
+      success: this.hasServerNodes() ? Array.from(this.customNodes.keys()).filter(type => this.isServerNode(type)).length : 0,
+      failed: []
+    };
   }
 }
 

@@ -11,13 +11,6 @@ export const holographicMaterialNode: JsonNodeDefinition = {
   },
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      required: true,
-      description: 'Input geometry to apply material'
-    },
-    {
       id: 'time',
       name: 'Time',
       type: 'number',
@@ -27,10 +20,10 @@ export const holographicMaterialNode: JsonNodeDefinition = {
   ],
   outputs: [
     {
-      id: 'mesh',
-      name: 'Mesh',
-      type: 'geometry',
-      description: 'Geometry with holographic material'
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      description: 'Holographic shader material'
     }
   ],
   parameters: [
@@ -66,15 +59,10 @@ export const holographicMaterialNode: JsonNodeDefinition = {
     }
   ],
   executeCode: `
-const geometry = inputs.geometry;
 const time = inputs.time || 0;
 const intensity = parameters.intensity || 2.0;
 const speed = parameters.speed || 1.0;
 const fresnelPower = parameters.fresnelPower || 3.0;
-
-if (!geometry) {
-  return { mesh: null };
-}
 
 // Holographic vertex shader
 const vertexShader = \`
@@ -143,9 +131,7 @@ const material = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-const mesh = new THREE.Mesh(geometry, material);
-
-return { mesh };`,
+return { material };`,
   ui: {
     width: 260,
     icon: 'zap',

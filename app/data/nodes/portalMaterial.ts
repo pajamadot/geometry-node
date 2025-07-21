@@ -11,13 +11,6 @@ export const portalMaterialNode: JsonNodeDefinition = {
   },
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      required: true,
-      description: 'Input geometry to apply material'
-    },
-    {
       id: 'time',
       name: 'Time',
       type: 'number',
@@ -27,10 +20,10 @@ export const portalMaterialNode: JsonNodeDefinition = {
   ],
   outputs: [
     {
-      id: 'mesh',
-      name: 'Mesh',
-      type: 'geometry',
-      description: 'Geometry with portal material'
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      description: 'Portal swirl shader material'
     }
   ],
   parameters: [
@@ -60,15 +53,10 @@ export const portalMaterialNode: JsonNodeDefinition = {
     }
   ],
   executeCode: `
-const geometry = inputs.geometry;
 const time = inputs.time || 0;
 const swirl = parameters.swirl || 3.0;
 const color1 = parameters.color1 || '#ff006e';
 const color2 = parameters.color2 || '#8338ec';
-
-if (!geometry) {
-  return { mesh: null };
-}
 
 // Convert hex colors to RGB
 function hexToRgb(hex) {
@@ -147,9 +135,7 @@ const material = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-const mesh = new THREE.Mesh(geometry, material);
-
-return { mesh };`,
+return { material };`,
   ui: {
     width: 240,
     icon: 'zap',
