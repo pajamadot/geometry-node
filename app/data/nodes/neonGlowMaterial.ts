@@ -11,13 +11,6 @@ export const neonGlowMaterialNode: JsonNodeDefinition = {
   },
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      required: true,
-      description: 'Input geometry to apply material'
-    },
-    {
       id: 'time',
       name: 'Time',
       type: 'number',
@@ -27,10 +20,10 @@ export const neonGlowMaterialNode: JsonNodeDefinition = {
   ],
   outputs: [
     {
-      id: 'mesh',
-      name: 'Mesh',
-      type: 'geometry',
-      description: 'Geometry with neon material'
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      description: 'Neon glow shader material'
     }
   ],
   parameters: [
@@ -63,15 +56,10 @@ export const neonGlowMaterialNode: JsonNodeDefinition = {
     }
   ],
   executeCode: `
-const geometry = inputs.geometry;
 const time = inputs.time || 0;
 const glowColor = parameters.glowColor || '#00ffff';
 const intensity = parameters.intensity || 2.5;
 const pulse = parameters.pulse || 2.0;
-
-if (!geometry) {
-  return { mesh: null };
-}
 
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -148,9 +136,7 @@ const material = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-const mesh = new THREE.Mesh(geometry, material);
-
-return { mesh };`,
+return { material };`,
   ui: {
     width: 240,
     icon: 'zap',

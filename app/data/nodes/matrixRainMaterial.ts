@@ -11,13 +11,6 @@ export const matrixRainMaterialNode: JsonNodeDefinition = {
   },
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      required: true,
-      description: 'Input geometry to apply material'
-    },
-    {
       id: 'time',
       name: 'Time',
       type: 'number',
@@ -27,10 +20,10 @@ export const matrixRainMaterialNode: JsonNodeDefinition = {
   ],
   outputs: [
     {
-      id: 'mesh',
-      name: 'Mesh',
-      type: 'geometry',
-      description: 'Geometry with matrix material'
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      description: 'Matrix rain shader material'
     }
   ],
   parameters: [
@@ -65,15 +58,10 @@ export const matrixRainMaterialNode: JsonNodeDefinition = {
     }
   ],
   executeCode: `
-const geometry = inputs.geometry;
 const time = inputs.time || 0;
 const density = parameters.density || 20;
 const speed = parameters.speed || 2.0;
 const brightness = parameters.brightness || 1.5;
-
-if (!geometry) {
-  return { mesh: null };
-}
 
 const vertexShader = \`
   varying vec2 vUv;
@@ -148,9 +136,7 @@ const material = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-const mesh = new THREE.Mesh(geometry, material);
-
-return { mesh };`,
+return { material };`,
   ui: {
     width: 260,
     icon: 'zap',

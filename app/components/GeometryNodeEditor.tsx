@@ -27,7 +27,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
 
@@ -810,6 +810,7 @@ export default function GeometryNodeEditor() {
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [customNodeManagerOpen, setCustomNodeManagerOpen] = useState(false);
   const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
+  const [serverNodesStatus, setServerNodesStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
 
   // Auto-save scene to localStorage when nodes or edges change
@@ -825,9 +826,28 @@ export default function GeometryNodeEditor() {
   useEffect(() => {
     const unsubscribe = nodeRegistry.onUpdate(() => {
       setRegistryUpdateKey(prev => prev + 1);
+      
+      // Sync server nodes status from registry
+      const newStatus = nodeRegistry.getServerNodesState();
+      setServerNodesStatus(newStatus);
     });
+    
+    // Initialize with current state
+    setServerNodesStatus(nodeRegistry.getServerNodesState());
+    
     return unsubscribe;
   }, []);
+
+  // Auto-hide notifications after success/error
+  useEffect(() => {
+    if (serverNodesStatus === 'loaded' || serverNodesStatus === 'error') {
+      const timer = setTimeout(() => {
+        setServerNodesStatus('idle');
+      }, serverNodesStatus === 'loaded' ? 3000 : 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [serverNodesStatus]);
 
     // Helper function to enhance programmatic edges with proper metadata
   const enhanceEdgesWithMetadata = useCallback((edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
@@ -1779,6 +1799,34 @@ export default function GeometryNodeEditor() {
           <div className="flex items-center gap-2">
             <RefreshCw size={16} className="animate-spin text-blue-400" />
             <span>Refreshing nodes from server...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Server nodes loading status */}
+      {serverNodesStatus === 'loading' && (
+        <div className="fixed top-4 right-4 z-50 bg-purple-900/90 backdrop-blur-sm border border-purple-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <Download size={16} className="animate-pulse text-purple-400" />
+            <span>Loading server nodes...</span>
+          </div>
+        </div>
+      )}
+
+      {serverNodesStatus === 'loaded' && (
+        <div className="fixed top-4 right-4 z-50 bg-green-900/90 backdrop-blur-sm border border-green-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-green-400" />
+            <span>Server nodes loaded successfully!</span>
+          </div>
+        </div>
+      )}
+
+      {serverNodesStatus === 'error' && (
+        <div className="fixed top-4 right-4 z-50 bg-red-900/90 backdrop-blur-sm border border-red-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-400" />
+            <span>Failed to load server nodes</span>
           </div>
         </div>
       )}

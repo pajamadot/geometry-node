@@ -11,13 +11,6 @@ export const lavaMaterialNode: JsonNodeDefinition = {
   },
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      required: true,
-      description: 'Input geometry to apply material'
-    },
-    {
       id: 'time',
       name: 'Time',
       type: 'number',
@@ -27,10 +20,10 @@ export const lavaMaterialNode: JsonNodeDefinition = {
   ],
   outputs: [
     {
-      id: 'mesh',
-      name: 'Mesh',
-      type: 'geometry',
-      description: 'Geometry with lava material'
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      description: 'Animated lava shader material'
     }
   ],
   parameters: [
@@ -65,15 +58,10 @@ export const lavaMaterialNode: JsonNodeDefinition = {
     }
   ],
   executeCode: `
-const geometry = inputs.geometry;
 const time = inputs.time || 0;
 const temperature = parameters.temperature || 2000;
 const flowSpeed = parameters.flowSpeed || 1.0;
 const crustThickness = parameters.crustThickness || 0.3;
-
-if (!geometry) {
-  return { mesh: null };
-}
 
 const vertexShader = \`
   varying vec3 vWorldPosition;
@@ -163,9 +151,7 @@ const material = new THREE.ShaderMaterial({
   }
 });
 
-const mesh = new THREE.Mesh(geometry, material);
-
-return { mesh };`,
+return { material };`,
   ui: {
     width: 240,
     icon: 'zap',
