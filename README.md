@@ -1,4 +1,4 @@
-# Geometry Script - Procedural Geometry System
+# Geometry Nodes On The Web! - A Procedural Geometry System
 
 A comprehensive web-based procedural geometry system for creating and managing complex 3D geometry with advanced node-based editing and real-time visualization.
 
