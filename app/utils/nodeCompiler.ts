@@ -412,10 +412,10 @@ function executeNode(
           nodeType: data.type 
         }, 'registry-execution');
       } else {
-        console.log(`Executing node via registry: ${definition.name}`, { 
-          nodeId: node.id,
-          nodeType: data.type 
-        });
+        // console.log(`Executing node via registry: ${definition.name}`, { 
+        //   nodeId: node.id,
+        //   nodeType: data.type 
+        // });
       }
 
       // Prepare parameters - combine default values with current values
@@ -976,7 +976,7 @@ function executeNodeWithCaching(
       }, 'caching');
     }
   } else if (result.success && skipCaching) {
-    console.log(`⚠️ Skipping cache for ${node.data.type} to avoid re-execution issues`);
+    // console.log(`⚠️ Skipping cache for ${node.data.type} to avoid re-execution issues`);
   }
   
   return result;
@@ -1283,14 +1283,14 @@ export function compileNodeGraph(
   const temporaryGeometries: THREE.BufferGeometry[] = [];
   const liveParameterTracker = new Map<string, Record<string, any>>();
   
-  console.log('🔄 Starting node graph compilation with', nodes.length, 'nodes and', edges.length, 'edges');
+  // console.log('🔄 Starting node graph compilation with', nodes.length, 'nodes and', edges.length, 'edges');
   
   try {
     // Get execution order
     const executionOrder = getExecutionOrder(nodes, edges);
     
-    console.log('📋 Execution order:', executionOrder.map(n => `${n.data.type}(${n.id})`));
-    console.log('🔗 Edges:', edges.map(e => `${e.source}→${e.target} (${e.sourceHandle}→${e.targetHandle})`));
+    // console.log('📋 Execution order:', executionOrder.map(n => `${n.data.type}(${n.id})`));
+    // console.log('🔗 Edges:', edges.map(e => `${e.source}→${e.target} (${e.sourceHandle}→${e.targetHandle})`));
     
     // Execute nodes in order
     const nodeOutputs = new Map<string, Record<string, any>>();
@@ -1299,7 +1299,7 @@ export function compileNodeGraph(
     for (const node of executionOrder) {
       const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
       
-      console.log(`⚡ Executing ${node.data.type}(${node.id}) with inputs:`, Object.keys(inputs));
+      // console.log(`⚡ Executing ${node.data.type}(${node.id}) with inputs:`, Object.keys(inputs));
       
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
@@ -1316,7 +1316,7 @@ export function compileNodeGraph(
         };
       }
       
-      console.log(`✅ ${node.data.type}(${node.id}) produced outputs:`, Object.keys(result.outputs));
+      // console.log(`✅ ${node.data.type}(${node.id}) produced outputs:`, Object.keys(result.outputs));
       
       // Track intermediate geometries for cleanup
       Object.values(result.outputs).forEach(output => {
@@ -1356,12 +1356,12 @@ export function compileNodeGraph(
       };
     }
     
-    console.log('🎯 Final geometry:', {
-      type: finalGeometry.type,
-      vertices: finalGeometry.attributes.position?.count || 0,
-      hasMaterial: !!((finalGeometry as any).material),
-      userDataMaterials: finalGeometry.userData?.materials?.length || 0
-    });
+    // console.log('🎯 Final geometry:', {
+    //   type: finalGeometry.type,
+    //   vertices: finalGeometry.attributes.position?.count || 0,
+    //   hasMaterial: !!((finalGeometry as any).material),
+    //   userDataMaterials: finalGeometry.userData?.materials?.length || 0
+    // });
     
     // Clean up intermediate geometries, but keep the final one
     temporaryGeometries.forEach(geom => {
@@ -1386,7 +1386,7 @@ export function compileNodeGraph(
       liveParameterValues[nodeId] = params;
     });
 
-    console.log('🏁 Compilation completed successfully');
+    // console.log('🏁 Compilation completed successfully');
 
     return {
       success: true,
