@@ -52,9 +52,12 @@ export class NodeRegistry {
 
   private constructor() {
     this.registerDefaultNodes();
-    // Fetch server nodes after initial setup, only in browser
+    
+    // Load custom nodes from localStorage first
     if (typeof window !== 'undefined') {
-      // Defer loading to allow for proper initialization
+      this.loadCustomNodesFromLocalStorage();
+      
+      // Fetch server nodes after initial setup
       setTimeout(() => {
         this.initializeServerNodes();
       }, 0);
@@ -289,7 +292,65 @@ export class NodeRegistry {
 
   // JSON Node Management Methods
 
+  // Save custom nodes to localStorage
+  private saveCustomNodesToLocalStorage(): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return; // Skip if not in browser
+    }
+    
+    try {
+      const customNodesArray = Array.from(this.customNodes.values());
+      const collection: JsonNodeCollection = {
+        version: '1.0.0',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        nodes: customNodesArray
+      };
+      
+      localStorage.setItem('geometry-script-custom-nodes', JSON.stringify(collection));
+      console.log(`💾 Saved ${customNodesArray.length} custom nodes to localStorage`);
+    } catch (error) {
+      console.error('Failed to save custom nodes to localStorage:', error);
+    }
+  }
 
+  // Load custom nodes from localStorage
+  private loadCustomNodesFromLocalStorage(): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return; // Skip if not in browser
+    }
+    
+    try {
+      const stored = localStorage.getItem('geometry-script-custom-nodes');
+      if (!stored) return;
+      
+      const collection: JsonNodeCollection = JSON.parse(stored);
+      const result = this.loadJsonNodeCollection(collection);
+      
+      if (result.success > 0) {
+        console.log(`📂 Loaded ${result.success} custom nodes from localStorage`);
+      }
+      if (result.failed.length > 0) {
+        console.warn(`⚠️ Failed to load ${result.failed.length} custom nodes from localStorage`);
+      }
+    } catch (error) {
+      console.error('Failed to load custom nodes from localStorage:', error);
+    }
+  }
+
+  // Clear custom nodes from localStorage
+  private clearCustomNodesFromLocalStorage(): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    
+    try {
+      localStorage.removeItem('geometry-script-custom-nodes');
+      console.log('🗑️ Cleared custom nodes from localStorage');
+    } catch (error) {
+      console.error('Failed to clear custom nodes from localStorage:', error);
+    }
+  }
 
   // Register a JSON node definition
   registerJsonNode(jsonNode: JsonNodeDefinition): { success: boolean; error?: string } {
@@ -304,6 +365,9 @@ export class NodeRegistry {
       // Register the node
       this.register(nodeDefinition);
       this.customNodes.set(jsonNode.type, jsonNode);
+      
+      // Save to localStorage
+      this.saveCustomNodesToLocalStorage();
       
       console.log(`Registered custom node: ${jsonNode.type}`);
       return { success: true };
@@ -347,6 +411,8 @@ export class NodeRegistry {
     });
 
     if (successCount > 0) {
+      // Save to localStorage
+      this.saveCustomNodesToLocalStorage();
       this.notifyUpdate();
     }
 
@@ -377,6 +443,12 @@ export class NodeRegistry {
     if (this.customNodes.has(nodeType)) {
       this.definitions.delete(nodeType);
       this.customNodes.delete(nodeType);
+      
+      // Save to localStorage
+      this.saveCustomNodesToLocalStorage();
+      
+      console.log(`Removed custom node: ${nodeType}`);
+      this.notifyUpdate();
       return true;
     }
     return false;
@@ -416,6 +488,9 @@ export class NodeRegistry {
       // Update registration
       this.register(nodeDefinition);
       this.customNodes.set(nodeType, jsonNode);
+      
+      // Save to localStorage
+      this.saveCustomNodesToLocalStorage();
       
       console.log(`Updated custom node: ${nodeType}`);
       return { success: true };
@@ -457,6 +532,10 @@ export class NodeRegistry {
     
     // Clear custom nodes map
     this.customNodes.clear();
+    
+    // Clear from localStorage
+    this.clearCustomNodesFromLocalStorage();
+    
     this.notifyUpdate();
   }
 

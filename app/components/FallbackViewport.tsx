@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Target } from 'lucide-react';
 import { useGeometry } from './GeometryContext';
 
 export default function FallbackViewport() {
@@ -27,7 +28,9 @@ export default function FallbackViewport() {
   return (
     <div className="h-full w-full bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
       <div className="text-center text-white p-8 max-w-md">
-        <div className="text-6xl mb-6">🎯</div>
+        <div className="mb-6 flex justify-center">
+          <Target size={64} className="text-cyan-400" />
+        </div>
         <h2 className="text-xl font-semibold mb-4">Geometry Node Preview</h2>
         <div className="text-gray-300 mb-6">
           WebGL is not available, but your node graph is still processing geometry data.

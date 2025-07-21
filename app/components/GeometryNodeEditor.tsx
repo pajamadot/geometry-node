@@ -27,7 +27,10 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight } from 'lucide-react';
+import Button from './ui/Button';
+import Dropdown, { DropdownOption } from './ui/Dropdown';
+import Tooltip from './ui/Tooltip';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
 import { useModal } from './ModalContext';
@@ -814,6 +817,24 @@ export default function GeometryNodeEditor() {
   const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
   const [serverNodesStatus, setServerNodesStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
+  const [selectedScenePreset, setSelectedScenePreset] = useState<string>('');
+  const [isLoadingScene, setIsLoadingScene] = useState(false);
+
+  // Scene preset options
+  const scenePresets: DropdownOption[] = [
+    {
+      value: 'default',
+      label: 'Default Scene',
+      icon: Box,
+      description: 'Basic scene with time input controlling cube rotation'
+    },
+    {
+      value: 'lighthouse',
+      label: 'Lighthouse Scene', 
+      icon: Flashlight,
+      description: 'Animated water, lighthouse, and rock'
+    }
+  ];
 
   // Auto-save scene to localStorage when nodes or edges change
   useEffect(() => {
@@ -940,6 +961,48 @@ export default function GeometryNodeEditor() {
       document.body.removeChild(notification);
     }, 2000);
   }, [nodes, edges]);
+
+  // Handle scene preset selection
+  const handleScenePresetChange = useCallback(async (presetValue: string) => {
+    setSelectedScenePreset(presetValue);
+    setIsLoadingScene(true);
+    
+    try {
+      // Add small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      switch (presetValue) {
+        case 'default':
+          loadDefaultScene();
+          break;
+        case 'lighthouse':
+          loadLighthouseScene();
+          break;
+        default:
+          break;
+      }
+      
+      // Show success feedback
+      await showAlert(
+        'Scene Loaded',
+        `${presetValue === 'default' ? 'Default' : 'Lighthouse'} scene has been loaded successfully.`,
+        'info'
+      );
+      
+    } catch (error) {
+      await showAlert(
+        'Loading Error',
+        `Failed to load ${presetValue} scene: ${error}`,
+        'error'
+      );
+    } finally {
+      setIsLoadingScene(false);
+      // Auto-clear selection after loading to show it's been applied
+      setTimeout(() => {
+        setSelectedScenePreset('');
+      }, 1000);
+    }
+  }, [loadDefaultScene, loadLighthouseScene, showAlert]);
   
   // Track connection drag state for Blender-style disconnect
   const [connectionDragState, setConnectionDragState] = useState<{
@@ -1704,37 +1767,43 @@ export default function GeometryNodeEditor() {
 
   return (
     <div className="h-full w-full relative">
-      {/* Scene Control Buttons */}
-      <div className="absolute top-3 left-3 z-20 flex gap-2">
-        <button
-          onClick={loadDefaultScene}
-          className="bg-blue-600/80 hover:bg-blue-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-blue-500/30 shadow-lg transition-colors font-medium"
-          title="Load default scene with time input controlling cube rotation"
-        >
-          🎲 Default Scene
-        </button>
-        <button
-          onClick={loadLighthouseScene}
-          className="bg-amber-600/80 hover:bg-amber-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-amber-500/30 shadow-lg transition-colors font-medium"
-          title="Load lighthouse scene with animated water, lighthouse, and rock"
-        >
-          🏠 Lighthouse Scene
-        </button>
-        <button
-          onClick={saveCurrentScene}
-          className="bg-green-600/80 hover:bg-green-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-green-500/30 shadow-lg transition-colors font-medium"
-          title="Save current scene to local storage"
-        >
-          💾 Save Scene
-        </button>
-        <button
-          onClick={cleanupUnusedNodes}
-          className="bg-red-600/80 hover:bg-red-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-red-500/30 shadow-lg transition-colors font-medium flex items-center gap-1"
-          title="Remove nodes that don't contribute to the final output"
-        >
-          <Trash2 size={12} />
-          🧹 Cleanup
-        </button>
+      {/* Scene Control Panel */}
+      <div className="absolute top-3 left-3 z-20 flex gap-2 items-start">
+        {/* Scene Preset Dropdown */}
+        <Dropdown
+          options={scenePresets}
+          value={selectedScenePreset}
+          onChange={handleScenePresetChange}
+          placeholder="Load Scene Preset"
+          size="sm"
+          variant="secondary"
+          loading={isLoadingScene}
+          disabled={isLoadingScene}
+          className="h-[32px]"
+        />
+        
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Tooltip content="Save current scene to local storage" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Save}
+              onClick={saveCurrentScene}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+          
+          <Tooltip content="Remove nodes that don't contribute to the final output" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Paintbrush}
+              onClick={cleanupUnusedNodes}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+        </div>
       </div>
 
       {/* Status indicator */}

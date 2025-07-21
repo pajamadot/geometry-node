@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle, Monitor, X } from 'lucide-react';
 
 interface MemoryInfo {
   usedJSHeapSize: number;
@@ -136,7 +137,7 @@ export default function MemoryMonitor() {
         `}
         title={`Memory Usage: ${memoryUsagePercent.toFixed(1)}%`}
       >
-        {isWarning ? '⚠' : 'M'}
+        {isWarning ? <AlertTriangle size={14} /> : <Monitor size={14} />}
       </button>
 
       {/* Memory Info Panel */}
@@ -148,7 +149,7 @@ export default function MemoryMonitor() {
               onClick={() => setIsVisible(false)}
               className="text-gray-400 hover:text-white"
             >
-              ×
+              <X size={16} />
             </button>
           </div>
 

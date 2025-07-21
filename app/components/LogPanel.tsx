@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { X, AlertTriangle, CheckCircle, Info, Search, FileText, Bell, BellOff, ChevronRight } from 'lucide-react';
 import { useLogging, LogEntry, LogLevel } from './LoggingContext';
 
 export default function LogPanel() {
@@ -46,12 +47,12 @@ export default function LogPanel() {
 
   const getLogIcon = (level: LogLevel) => {
     switch (level) {
-      case 'error': return '❌';
-      case 'warning': return '⚠️';
-      case 'success': return '✅';
-      case 'info': return 'ℹ️';
-      case 'debug': return '🔍';
-      default: return '📝';
+      case 'error': return <X size={14} className="text-red-400" />;
+      case 'warning': return <AlertTriangle size={14} className="text-yellow-400" />;
+      case 'success': return <CheckCircle size={14} className="text-green-400" />;
+      case 'info': return <Info size={14} className="text-blue-400" />;
+      case 'debug': return <Search size={14} className="text-purple-400" />;
+      default: return <FileText size={14} className="text-gray-400" />;
     }
   };
 
@@ -101,9 +102,10 @@ export default function LogPanel() {
       >
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
-            <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
-              ▶
-            </span>
+            <ChevronRight 
+              size={14}
+              className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+            />
             <h3 className="text-sm font-semibold text-white">Compilation Logs</h3>
           </div>
           
@@ -159,7 +161,10 @@ export default function LogPanel() {
               }`}
               title={autoExpandOnError ? 'Auto-expand on errors: ON' : 'Auto-expand on errors: OFF'}
             >
-              Auto {autoExpandOnError ? '🔔' : '🔕'}
+              <div className="flex items-center gap-1">
+                <span className="text-xs">Auto</span>
+                {autoExpandOnError ? <Bell size={12} /> : <BellOff size={12} />}
+              </div>
             </button>
           )}
 

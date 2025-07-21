@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { X, AlertTriangle, Info, HelpCircle, ChevronRight } from 'lucide-react';
 
 export interface ModalOptions {
   title: string;
@@ -206,10 +207,10 @@ function Modal({ options, onConfirm, onCancel, onClose }: ModalProps) {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'error': return '❌';
-      case 'warning': return '⚠️';
-      case 'info': return 'ℹ️';
-      default: return '❓';
+      case 'error': return <X size={16} />;
+      case 'warning': return <AlertTriangle size={16} />;
+      case 'info': return <Info size={16} />;
+      default: return <HelpCircle size={16} />;
     }
   };
 
@@ -255,7 +256,10 @@ function Modal({ options, onConfirm, onCancel, onClose }: ModalProps) {
                 onClick={() => setShowDetails(!showDetails)}
                 className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
               >
-                <span className={`transform transition-transform ${showDetails ? 'rotate-90' : ''}`}>▶</span>
+                <ChevronRight 
+                  size={12} 
+                  className={`transform transition-transform ${showDetails ? 'rotate-90' : ''}`} 
+                />
                 {showDetails ? 'Hide Details' : 'Show Details'}
               </button>
               
