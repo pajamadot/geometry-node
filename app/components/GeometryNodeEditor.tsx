@@ -810,7 +810,7 @@ export default function GeometryNodeEditor() {
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [customNodeManagerOpen, setCustomNodeManagerOpen] = useState(false);
   const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
-  const [serverNodesStatus, setServerNodesStatus] = useState<'loading' | 'loaded' | 'error' | null>(null);
+  const [serverNodesStatus, setServerNodesStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
 
   // Auto-save scene to localStorage when nodes or edges change
@@ -827,40 +827,27 @@ export default function GeometryNodeEditor() {
     const unsubscribe = nodeRegistry.onUpdate(() => {
       setRegistryUpdateKey(prev => prev + 1);
       
-      // Check if server nodes are now loaded
-      const definitions = nodeRegistry.getAllDefinitions();
-      const hasServerNodes = definitions.some(def => 
-        ['mandelbrot-surface', 'holographic-material', 'lava-material'].includes(def.type)
-      );
-      
-      if (hasServerNodes && serverNodesStatus !== 'loaded') {
-        setServerNodesStatus('loaded');
-        setTimeout(() => setServerNodesStatus(null), 3000); // Hide after 3 seconds
-      } else if (serverNodesStatus === 'loading') {
-        // Check if we've been loading for a while and still no server nodes
-        setTimeout(() => {
-          const updatedDefinitions = nodeRegistry.getAllDefinitions();
-          const stillHasNoServerNodes = !updatedDefinitions.some(def => 
-            ['mandelbrot-surface', 'holographic-material', 'lava-material'].includes(def.type)
-          );
-          if (stillHasNoServerNodes && serverNodesStatus === 'loading') {
-            setServerNodesStatus('error');
-            setTimeout(() => setServerNodesStatus(null), 5000); // Hide error after 5 seconds
-          }
-        }, 3000); // Wait 3 seconds before considering it an error
-      }
+      // Sync server nodes status from registry
+      const newStatus = nodeRegistry.getServerNodesState();
+      setServerNodesStatus(newStatus);
     });
+    
+    // Initialize with current state
+    setServerNodesStatus(nodeRegistry.getServerNodesState());
+    
     return unsubscribe;
-  }, [serverNodesStatus]);
-
-  // Monitor initial server node loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setServerNodesStatus('loading');
-    }, 500); // Show loading after 500ms to avoid flash
-
-    return () => clearTimeout(timer);
   }, []);
+
+  // Auto-hide notifications after success/error
+  useEffect(() => {
+    if (serverNodesStatus === 'loaded' || serverNodesStatus === 'error') {
+      const timer = setTimeout(() => {
+        setServerNodesStatus('idle');
+      }, serverNodesStatus === 'loaded' ? 3000 : 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [serverNodesStatus]);
 
     // Helper function to enhance programmatic edges with proper metadata
   const enhanceEdgesWithMetadata = useCallback((edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
