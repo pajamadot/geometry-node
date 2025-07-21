@@ -72,6 +72,9 @@ export const genericMakeNodeDefinition: NodeDefinition = {
     icon: GitBranch,
     advanced: ['customTemplate']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { template, customTemplate } = parameters;
     const { x = 0, y = 0, z = 0, w = 0 } = inputs;

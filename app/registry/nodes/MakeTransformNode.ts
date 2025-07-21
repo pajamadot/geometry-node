@@ -47,6 +47,9 @@ export const makeTransformNodeDefinition: NodeDefinition = {
     width: 220,
     icon: Move3d
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { 
       position = { x: 0, y: 0, z: 0 }, 

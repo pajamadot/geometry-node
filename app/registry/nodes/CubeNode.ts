@@ -54,6 +54,9 @@ export const cubeNodeDefinition: NodeDefinition = {
   ui: {
     icon: Box
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const width = inputs.width || 1;

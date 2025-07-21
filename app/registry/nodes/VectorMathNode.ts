@@ -63,6 +63,9 @@ export const vectorMathNodeDefinition: NodeDefinition = {
     width: 200,
     icon: GitBranch
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { vectorA = { x: 0, y: 0, z: 0 }, vectorB = { x: 0, y: 0, z: 0 }, scale = 1 } = inputs;
     const { operation } = parameters;

@@ -71,6 +71,9 @@ export const distributePointsNodeDefinition: NodeDefinition = {
     icon: MapPin,
     advanced: ['seed', 'distanceMin']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const geometry = inputs.geometry;

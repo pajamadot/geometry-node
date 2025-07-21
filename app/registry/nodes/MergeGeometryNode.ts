@@ -56,6 +56,9 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
     width: 200,
     icon: Merge
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const geometryA = inputs.geometryA;

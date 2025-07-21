@@ -49,6 +49,9 @@ export const joinNodeDefinition: NodeDefinition = {
     // width: 160,
     icon: Merge
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     // Handle both naming conventions: geometryA/geometryB and geometry

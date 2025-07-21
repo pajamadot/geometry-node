@@ -52,7 +52,11 @@ export const transformNodeDefinition: NodeDefinition = {
   ],
   parameters: [],
   ui: {
+    width: 200,
     icon: Move3d
+  },
+  execution: {
+    type: 'javascript'
   },
   execute: (inputs, parameters) => {
     // Handle both 'geometry' and 'geometry-in' input keys

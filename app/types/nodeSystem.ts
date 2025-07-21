@@ -21,6 +21,104 @@ export type ParameterType =
   | 'numeric'      // Numeric input (alias for number)
   | 'file';        // File input
 
+// Execution types - how nodes are executed
+export type NodeExecutionType = 
+  | 'javascript'   // JavaScript function (legacy)
+  | 'expression'   // Mathematical expression
+  | 'template'     // Template-based execution
+  | 'builtin'      // Built-in function by name
+  | 'composite';   // Combination of multiple operations
+
+// Serializable node execution definition
+export interface SerializableExecution {
+  type: NodeExecutionType;
+  // For 'expression' type - mathematical expressions
+  expressions?: Record<string, string>; // output_id -> expression
+  // For 'builtin' type - function name
+  functionName?: string;
+  // For 'template' type - template configuration
+  template?: {
+    type: string;
+    operations: Array<{
+      operation: string;
+      inputs: string[];
+      output: string;
+    }>;
+  };
+  // For 'composite' type - multiple steps
+  steps?: Array<{
+    operation: string;
+    inputs: Record<string, string | number>;
+    output: string;
+  }>;
+}
+
+// Icon types - serializable icon identifiers
+export type IconType = 
+  | 'box' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'torus'          // Geometry
+  | 'calculator' | 'plus' | 'minus' | 'x' | 'divide'                    // Math
+  | 'move' | 'rotate-3d' | 'scale' | 'grid-3x3'                        // Transform
+  | 'clock' | 'play' | 'pause' | 'skip-forward'                        // Time
+  | 'git-branch' | 'git-merge' | 'combine' | 'split'                    // Vector/Combine
+  | 'map-pin' | 'target' | 'layers' | 'copy'                           // Points/Instance
+  | 'settings' | 'sliders' | 'toggles' | 'monitor'                     // Utility
+  | 'waves' | 'mountain' | 'building' | 'shapes' | 'sparkles';         // Procedural
+
+// Database-ready node definition
+export interface SerializableNodeDefinition {
+  // Basic properties
+  id?: string;              // Database ID
+  type: string;
+  name: string;
+  description: string;
+  category: NodeCategory;
+  version?: string;         // For versioning
+  
+  // Visual properties
+  color: {
+    primary: string;
+    secondary: string;
+  };
+  
+  // Layout and UI
+  layout?: LayoutRow[];
+  ui?: {
+    width?: number;
+    height?: number;
+    icon?: IconType;         // Serializable icon identifier
+    advanced?: string[];
+  };
+  
+  // Node definition
+  inputs: SocketDefinition[];
+  outputs: SocketDefinition[];
+  parameters: ParameterDefinition[];
+  
+  // Serializable execution
+  execution: SerializableExecution;
+  
+  // Metadata
+  tags?: string[];
+  author?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isPublic?: boolean;
+}
+
+// Runtime node definition (extends serializable with compiled functions)
+export interface NodeDefinition extends Omit<SerializableNodeDefinition, 'ui'> {
+  // Runtime execution function (compiled from SerializableExecution)
+  execute: (inputs: Record<string, any>, parameters: Record<string, any>) => Record<string, any>;
+  
+  // UI with React component icon support
+  ui?: {
+    width?: number;
+    height?: number;
+    icon?: string | React.ComponentType<any>;
+    advanced?: string[];
+  };
+}
+
 // Alias for backward compatibility
 
 // Input component definition

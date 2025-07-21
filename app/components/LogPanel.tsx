@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useLogging, LogEntry, LogLevel } from './LoggingContext';
+import { useLog, LogEntry, LogLevel } from './LoggingContext';
 
 export default function LogPanel() {
-  const { logs, clearLogs, getLogsByLevel } = useLogging();
+  const { logs, clearLogs } = useLog();
+  
+  // Helper function to filter logs by level
+  const getLogsByLevel = (level: LogLevel) => {
+    return logs.filter(log => log.level === level);
+  };
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<LogLevel | 'all'>('all');
   const [autoExpandOnError, setAutoExpandOnError] = useState(() => {
@@ -50,7 +55,6 @@ export default function LogPanel() {
       case 'warning': return '⚠️';
       case 'success': return '✅';
       case 'info': return 'ℹ️';
-      case 'debug': return '🔍';
       default: return '📝';
     }
   };
@@ -61,7 +65,6 @@ export default function LogPanel() {
       case 'warning': return 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30';
       case 'success': return 'text-green-400 bg-green-900/20 border-green-500/30';
       case 'info': return 'text-blue-400 bg-blue-900/20 border-blue-500/30';
-      case 'debug': return 'text-gray-400 bg-gray-900/20 border-gray-500/30';
       default: return 'text-gray-300 bg-gray-800/20 border-gray-600/30';
     }
   };
@@ -72,7 +75,6 @@ export default function LogPanel() {
       case 'warning': return 'bg-yellow-600 text-white';
       case 'success': return 'bg-green-600 text-white';
       case 'info': return 'bg-blue-600 text-white';
-      case 'debug': return 'bg-gray-600 text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
@@ -141,7 +143,6 @@ export default function LogPanel() {
               <option value="warning">Warnings</option>
               <option value="success">Success</option>
               <option value="info">Info</option>
-              <option value="debug">Debug</option>
             </select>
           )}
 
@@ -218,13 +219,13 @@ export default function LogPanel() {
                       <div className="mt-1 text-sm font-mono break-words">
                         {log.message}
                       </div>
-                      {log.details && (
+                      {log.data && (
                         <details className="mt-2">
                           <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
                             Show details
                           </summary>
                           <pre className="mt-1 p-2 bg-black/30 rounded text-xs text-gray-300 overflow-x-auto">
-                            {typeof log.details === 'string' ? log.details : JSON.stringify(log.details, null, 2)}
+                            {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 2)}
                           </pre>
                         </details>
                       )}

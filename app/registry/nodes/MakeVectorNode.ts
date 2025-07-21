@@ -48,6 +48,9 @@ export const makeVectorNodeDefinition: NodeDefinition = {
     width: 160,
     icon: GitBranch
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { x = 0, y = 0, z = 0 } = inputs;
     

@@ -72,6 +72,9 @@ export const instanceOnPointsNodeDefinition: NodeDefinition = {
     width: 220,
     icon: Copy
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const geometry = inputs.geometry;

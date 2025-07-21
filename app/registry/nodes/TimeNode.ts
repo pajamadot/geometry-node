@@ -132,9 +132,12 @@ export const timeNodeDefinition: NodeDefinition = {
   ],
   parameters: [], // No parameters - everything is inputs
   ui: {
-    width: 240,
+    width: 200,
     icon: Clock,
-    advanced: ['frequency', 'amplitude', 'offset', 'phase', 'frameRate', 'speed', 'totalFrames']
+    advanced: ['speed', 'loops', 'offset']
+  },
+  execution: {
+    type: 'javascript'
   },
   execute: (inputs, parameters) => {
     // Extract values from inputs (can come from UI or connections)

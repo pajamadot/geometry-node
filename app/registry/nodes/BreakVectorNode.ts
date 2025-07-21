@@ -46,6 +46,9 @@ export const breakVectorNodeDefinition: NodeDefinition = {
     width: 160,
     icon: GitBranch
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { vector } = inputs;
     

@@ -66,6 +66,9 @@ export const cylinderNodeDefinition: NodeDefinition = {
     icon: Cylinder,
     advanced: ['radialSegments']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const radiusTop = inputs.radiusTop || 1;

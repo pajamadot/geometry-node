@@ -69,6 +69,9 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
     icon: Combine,
     advanced: ['precision', 'useWebAssembly']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const geometryA = inputs.geometryA;
     const geometryB = inputs.geometryB;

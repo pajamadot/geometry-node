@@ -11,8 +11,12 @@ export const seagullNodeDefinition: NodeDefinition = {
     secondary: '#0284c7'
   },
   ui: {
-    icon: '🕊️',
-    advanced: []
+    width: 260,
+    icon: Bird,
+    advanced: ['rotation', 'animationPhase', 'detailLevel']
+  },
+  execution: {
+    type: 'javascript'
   },
   inputs: [
     {

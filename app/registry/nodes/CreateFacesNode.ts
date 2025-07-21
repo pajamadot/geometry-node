@@ -61,6 +61,9 @@ export const createFacesNodeDefinition: NodeDefinition = {
     icon: Triangle,
     advanced: ['faces']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { geometry } = inputs;
     const { faceCount, pattern, faces } = parameters;

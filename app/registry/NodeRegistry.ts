@@ -1,5 +1,7 @@
-// Central Node Registry - the brain of the data-driven system
+// Central Node Registry - upgraded to support serializable nodes
 import { NodeDefinition, NodeCategory, SOCKET_METADATA } from '../types/nodeSystem';
+import { serializableNodeRegistry } from './SerializableNodeRegistry';
+import { NodeDefinitionConverter } from './NodeDefinitionConverter';
 import { templateSystem } from './TemplateSystem';
 import { 
   timeNodeDefinition, 
@@ -35,9 +37,10 @@ import {
 export class NodeRegistry {
   private static instance: NodeRegistry;
   private definitions = new Map<string, NodeDefinition>();
+  private migrationCompleted = false;
 
   private constructor() {
-    this.registerDefaultNodes();
+    this.initializeRegistry();
   }
 
   static getInstance(): NodeRegistry {
@@ -47,8 +50,21 @@ export class NodeRegistry {
     return NodeRegistry.instance;
   }
 
-  // Register all default nodes
-  private registerDefaultNodes() {
+  // Initialize with hybrid approach - legacy + serializable
+  private async initializeRegistry() {
+    console.log('🔄 Initializing hybrid node registry...');
+    
+    // Step 1: Register legacy nodes for immediate use
+    this.registerLegacyNodes();
+    
+    // Step 2: Start migration to serializable system in background
+    this.migrateToSerializableSystem();
+  }
+
+  // Register legacy nodes (for immediate use)
+  private registerLegacyNodes() {
+    console.log('📦 Loading legacy nodes...');
+    
     this.register(timeNodeDefinition);
     this.register(cubeNodeDefinition);
     this.register(sphereNodeDefinition);
@@ -86,23 +102,96 @@ export class NodeRegistry {
     const templateNodes = templateSystem.generateAllNodes();
     templateNodes.forEach(node => this.register(node));
     
-    // Debug: Log all registered nodes
-    console.log('Registered nodes:', Array.from(this.definitions.keys()));
-    console.log('Total nodes registered:', this.definitions.size);
+    console.log('✅ Legacy nodes loaded:', this.definitions.size);
   }
 
-  // Register a new node definition
+  // Migrate to serializable system
+  private async migrateToSerializableSystem() {
+    try {
+      console.log('🔄 Starting migration to serializable system...');
+      
+      // Convert existing nodes to serializable format
+      const existingNodes = Array.from(this.definitions.values());
+      const serializableNodes = NodeDefinitionConverter.convertExistingNodes(existingNodes, {
+        author: 'system',
+        isPublic: true
+      });
+      
+      console.log(`📦 Converting ${serializableNodes.length} nodes to serializable format...`);
+      
+      // Register serializable nodes
+      for (const node of serializableNodes) {
+        try {
+          await serializableNodeRegistry.registerSerializable(node);
+        } catch (error) {
+          console.warn(`⚠️ Failed to register serializable node ${node.name}:`, error);
+        }
+      }
+      
+      // Load any nodes from database
+      await serializableNodeRegistry.loadFromDatabase();
+      
+      // Update this registry to use serializable definitions
+      this.syncWithSerializableRegistry();
+      
+      this.migrationCompleted = true;
+      console.log('✅ Migration to serializable system completed!');
+      
+    } catch (error) {
+      console.error('❌ Migration failed:', error);
+      console.log('⚠️ Continuing with legacy system...');
+    }
+  }
+
+  // Sync with serializable registry
+  private syncWithSerializableRegistry() {
+    const serializableDefinitions = serializableNodeRegistry.getAllDefinitions();
+    
+    // Replace legacy definitions with serializable ones
+    serializableDefinitions.forEach(definition => {
+      this.definitions.set(definition.type, definition);
+    });
+    
+    console.log(`🔄 Synced ${serializableDefinitions.length} definitions from serializable registry`);
+  }
+
+  // Register a new node definition (legacy method)
   register(definition: NodeDefinition) {
     this.definitions.set(definition.type, definition);
   }
 
+  // Register a serializable node (new method)
+  async registerSerializable(definition: any) {
+    if (this.migrationCompleted) {
+      return await serializableNodeRegistry.registerSerializable(definition);
+    } else {
+      console.warn('⚠️ Serializable registration attempted before migration completion');
+    }
+  }
+
   // Get node definition by type
   getDefinition(type: string): NodeDefinition | undefined {
-    return this.definitions.get(type);
+    // First check local definitions
+    let definition = this.definitions.get(type);
+    
+    // If not found and migration is complete, check serializable registry
+    if (!definition && this.migrationCompleted) {
+      definition = serializableNodeRegistry.getDefinition(type);
+      if (definition) {
+        // Cache it locally for faster access
+        this.definitions.set(type, definition);
+      }
+    }
+    
+    return definition;
   }
 
   // Get all node definitions
   getAllDefinitions(): NodeDefinition[] {
+    if (this.migrationCompleted) {
+      // Get latest from serializable registry
+      return serializableNodeRegistry.getAllDefinitions();
+    }
     return Array.from(this.definitions.values());
   }
 
@@ -201,6 +290,54 @@ export class NodeRegistry {
       def.description.toLowerCase().includes(lowercaseQuery) ||
       def.type.toLowerCase().includes(lowercaseQuery)
     );
+  }
+
+  // Database operations (delegate to serializable registry)
+  async saveNodeToDatabase(node: any) {
+    if (this.migrationCompleted) {
+      return await serializableNodeRegistry.saveNode(node);
+    } else {
+      throw new Error('Database operations not available before migration completion');
+    }
+  }
+
+  async loadNodesFromDatabase(userId?: string) {
+    if (this.migrationCompleted) {
+      await serializableNodeRegistry.loadFromDatabase(userId);
+      this.syncWithSerializableRegistry();
+    } else {
+      throw new Error('Database operations not available before migration completion');
+    }
+  }
+
+  async exportUserNodes(userId: string) {
+    if (this.migrationCompleted) {
+      return await serializableNodeRegistry.exportUserNodes(userId);
+    } else {
+      throw new Error('Export not available before migration completion');
+    }
+  }
+
+  async importNodes(jsonData: string) {
+    if (this.migrationCompleted) {
+      const result = await serializableNodeRegistry.importNodes(jsonData);
+      this.syncWithSerializableRegistry();
+      return result;
+    } else {
+      throw new Error('Import not available before migration completion');
+    }
+  }
+
+  // Get migration status
+  isMigrationCompleted(): boolean {
+    return this.migrationCompleted;
+  }
+
+  // Force sync with serializable registry (useful for real-time updates)
+  async forceSync() {
+    if (this.migrationCompleted) {
+      this.syncWithSerializableRegistry();
+    }
   }
 }
 

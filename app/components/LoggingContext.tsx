@@ -1,105 +1,69 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type LogLevel = 'error' | 'warning' | 'info' | 'debug' | 'success';
+export type LogLevel = 'info' | 'warning' | 'error' | 'success';
 
 export interface LogEntry {
   id: string;
-  timestamp: Date;
   level: LogLevel;
   message: string;
-  details?: any;
+  data?: any;
   category?: string;
+  timestamp: Date;
 }
 
-interface LoggingContextValue {
+interface LoggingContextType {
   logs: LogEntry[];
-  addLog: (level: LogLevel, message: string, details?: any, category?: string) => void;
+  addLog: (level: LogLevel, message: string, data?: any, category?: string) => void;
   clearLogs: () => void;
-  getLogsByLevel: (level: LogLevel) => LogEntry[];
   getLogsByCategory: (category: string) => LogEntry[];
 }
 
-const LoggingContext = createContext<LoggingContextValue | undefined>(undefined);
+const LoggingContext = createContext<LoggingContextType | undefined>(undefined);
 
-export function useLogging() {
+export const useLog = () => {
   const context = useContext(LoggingContext);
-  if (context === undefined) {
-    throw new Error('useLogging must be used within a LoggingProvider');
+  if (!context) {
+    throw new Error('useLog must be used within LoggingProvider');
   }
   return context;
-}
+};
 
 interface LoggingProviderProps {
   children: ReactNode;
 }
 
-export function LoggingProvider({ children }: LoggingProviderProps) {
+export const LoggingProvider: React.FC<LoggingProviderProps> = ({ children }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  const addLog = useCallback((level: LogLevel, message: string, details?: any, category?: string) => {
+  const addLog = (level: LogLevel, message: string, data?: any, category?: string) => {
     const newLog: LogEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       level,
       message,
-      details,
-      category
+      data,
+      category,
+      timestamp: new Date()
     };
 
-    setLogs(prevLogs => {
-      const updatedLogs = [newLog, ...prevLogs];
-      // Keep only the last 100 logs to prevent memory issues
-      return updatedLogs.slice(0, 100);
-    });
+    setLogs(prev => [newLog, ...prev].slice(0, 1000)); // Keep last 1000 logs
+    
+    // Also log to console for development
+    console.log(`[${level.toUpperCase()}] ${message}`, data || '');
+  };
 
-    // Console logging disabled for clean output
-    // Uncomment the following lines for development debugging:
-    /*
-    const consoleMessage = category ? `[${category}] ${message}` : message;
-    switch (level) {
-      case 'error':
-        console.error(consoleMessage, details);
-        break;
-      case 'warning':
-        console.warn(consoleMessage, details);
-        break;
-      case 'debug':
-        console.debug(consoleMessage, details);
-        break;
-      case 'success':
-        console.log(`✅ ${consoleMessage}`, details);
-        break;
-      default:
-        console.log(consoleMessage, details);
-    }
-    */
-  }, []);
-
-  const clearLogs = useCallback(() => {
+  const clearLogs = () => {
     setLogs([]);
-  }, []);
+  };
 
-  const getLogsByLevel = useCallback((level: LogLevel) => {
-    return logs.filter(log => log.level === level);
-  }, [logs]);
-
-  const getLogsByCategory = useCallback((category: string) => {
+  const getLogsByCategory = (category: string) => {
     return logs.filter(log => log.category === category);
-  }, [logs]);
-
-  const value: LoggingContextValue = {
-    logs,
-    addLog,
-    clearLogs,
-    getLogsByLevel,
-    getLogsByCategory
   };
 
   return (
-    <LoggingContext.Provider value={value}>
+    <LoggingContext.Provider value={{ logs, addLog, clearLogs, getLogsByCategory }}>
       {children}
     </LoggingContext.Provider>
   );
-} 
+}; 

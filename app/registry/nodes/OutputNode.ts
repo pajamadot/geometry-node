@@ -28,6 +28,9 @@ export const outputNodeDefinition: NodeDefinition = {
     height: 80,
     icon: Download
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Output node just passes through the geometry
     // Handle both 'geometry' and 'geometry-in' input keys

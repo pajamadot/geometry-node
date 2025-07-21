@@ -76,6 +76,9 @@ export const mathNodeDefinition: NodeDefinition = {
   ui: {
     icon: Calculator
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const valueA = inputs.valueA || 0;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -12,6 +12,7 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   useReactFlow,
+  MiniMap,
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
@@ -26,9 +27,12 @@ import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
+import NodeLibrary from './NodeLibrary';
+import NodeCreator from './NodeCreator';
+import { Database, Plus, Zap, Users, Settings } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
-
+import { useLog } from './LoggingContext';
 
 
 // Define default edge options outside component
@@ -120,12 +124,17 @@ const initialEdges: Edge[] = [
 ];
 
 export default function GeometryNodeEditor() {
+  const { addLog } = useLog();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { compileNodes, isCompiling, error, liveParameterValues } = useGeometry();
   const { currentTime, frameRate } = useTime();
   const { screenToFlowPosition } = useReactFlow();
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showNodeLibrary, setShowNodeLibrary] = useState(false);
+  const [showNodeCreator, setShowNodeCreator] = useState(false);
+  const [showCollaborationPanel, setShowCollaborationPanel] = useState(false);
+  const [userId] = useState('demo-user'); // In real app, get from auth
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | undefined>(undefined);
   const [nodeContextMenu, setNodeContextMenu] = useState<{ 
     x: number; 
     y: number; 
@@ -379,7 +388,7 @@ export default function GeometryNodeEditor() {
     }
   };
 
-  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  const closeContextMenu = useCallback(() => setContextMenu(undefined), []);
   const closeNodeContextMenu = useCallback(() => setNodeContextMenu(null), []);
 
   // Handle edge click for deletion with Alt key
@@ -516,7 +525,7 @@ export default function GeometryNodeEditor() {
   const onNodeContextMenu = useCallback((event: React.MouseEvent, node: any) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenu(null); // Close pane context menu if open
+    setContextMenu(undefined); // Close pane context menu if open
     setNodeContextMenu({ 
       x: event.clientX, 
       y: event.clientY, 
@@ -613,14 +622,17 @@ export default function GeometryNodeEditor() {
     });
   }, []);
 
-  // Add new node using registry system
-  const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
+  // Enhanced addNode to support newly created nodes
+  const addNode = useCallback((type: any, screenPosition?: { x: number; y: number }, primitiveType?: string) => {
     const newId = `${Date.now()}`;
+    
+    // Use provided position or context menu position
+    const position = screenPosition || (contextMenu ? { x: contextMenu.x, y: contextMenu.y } : { x: 400, y: 300 });
     
     // Convert screen coordinates to flow coordinates
     const flowPosition = screenToFlowPosition({
-      x: screenPosition.x,
-      y: screenPosition.y,
+      x: position.x,
+      y: position.y,
     });
     
     try {
@@ -632,8 +644,14 @@ export default function GeometryNodeEditor() {
       );
       
       setNodes((nds) => [...nds, newNode as any]);
-    } catch (error) {
-      console.warn(`Failed to create node of type "${type}" using registry, creating fallback`, error);
+      setContextMenu(undefined); // Close context menu after adding
+      
+             // Log successful node creation
+       addLog('info', `Added ${type} node`, { nodeId: newId }, 'node-creation');
+       
+      } catch (error) {
+        console.warn(`Failed to create node of type "${type}" using registry, creating fallback`, error);
+        addLog('warning', `Fallback node creation for ${type}`, { error: String(error) }, 'node-creation');
       
       // Fallback for nodes not yet in registry
       const fallbackNode: Node = {
@@ -649,8 +667,9 @@ export default function GeometryNodeEditor() {
       };
       
       setNodes((nds) => [...nds, fallbackNode]);
+      setContextMenu(undefined);
     }
-  }, [setNodes, screenToFlowPosition]);
+  }, [setNodes, screenToFlowPosition, contextMenu, addLog]);
 
   // Track input connections for each node
   const getInputConnections = React.useMemo(() => {
@@ -814,8 +833,10 @@ export default function GeometryNodeEditor() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [nodeContextMenu, contextMenu, deleteNode, duplicateNode, copyNode, closeContextMenu, closeNodeContextMenu, deleteSelectedNodes, nodes, selectedNodes]);
 
+  
+
   return (
-    <div className="h-full w-full relative">
+    <div className="h-screen flex flex-col bg-gray-100">
       {/* Status indicator */}
       <div className="absolute top-3 right-3 z-20">
         {isCompiling && (
@@ -935,27 +956,259 @@ export default function GeometryNodeEditor() {
           className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 shadow-lg"
         />
         <Background {...backgroundProps} />
+        <MiniMap 
+          nodeColor={(node) => {
+            const definition = nodeRegistry.getDefinition(node.data?.type);
+            return definition?.color?.primary || '#6b7280';
+          }}
+          className="bg-white border border-gray-300 rounded-lg"
+        />
       </ReactFlow>
       </NodeProvider>
 
       {/* Context Menu */}
       <ContextMenu
-        position={contextMenu}
+        position={contextMenu || null}
         onClose={closeContextMenu}
         onAddNode={addNode}
       />
 
       {/* Node Context Menu */}
-      <NodeContextMenu
-        position={nodeContextMenu ? { x: nodeContextMenu.x, y: nodeContextMenu.y } : null}
-        nodeData={nodeContextMenu?.nodeData || null}
-        isDisabled={nodeContextMenu ? disabledNodes.has(nodeContextMenu.nodeId) : false}
-        onClose={closeNodeContextMenu}
-        onDelete={() => nodeContextMenu && deleteNode(nodeContextMenu.nodeId)}
-        onDuplicate={() => nodeContextMenu && duplicateNode(nodeContextMenu.nodeId)}
-        onCopy={() => nodeContextMenu && copyNode(nodeContextMenu.nodeId)}
-        onDisable={() => nodeContextMenu && toggleNodeDisabled(nodeContextMenu.nodeId)}
-      />
+      {nodeContextMenu && (
+        <div className="absolute" style={{ left: nodeContextMenu.x, top: nodeContextMenu.y, zIndex: 1000 }}>
+          <NodeContextMenu
+            onAddNode={(type) => addNode(type, nodeContextMenu)}
+            onClose={closeNodeContextMenu}
+            onCreateCustomNode={() => {
+              setShowNodeCreator(true);
+              closeNodeContextMenu();
+            }}
+            onOpenLibrary={() => {
+              setShowNodeLibrary(true);
+              closeNodeContextMenu();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Floating Action Buttons */}
+      <div className="absolute bottom-6 right-6 flex flex-col gap-3">
+        {/* Quick Node Creator */}
+        <button
+          onClick={() => setShowNodeCreator(true)}
+          className="w-14 h-14 bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title="Create Custom Node"
+        >
+          <Zap className="w-6 h-6" />
+        </button>
+        
+        {/* Node Library */}
+        <button
+          onClick={() => setShowNodeLibrary(true)}
+          className="w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title="Browse Node Library"
+        >
+          <Database className="w-5 h-5" />
+        </button>
+        
+        {/* Collaboration Panel */}
+        <button
+          onClick={() => setShowCollaborationPanel(true)}
+          className="w-12 h-12 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title="Collaboration & Sharing"
+        >
+          <Users className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Quick Add Menu (Enhanced) */}
+      {contextMenu && (
+        <div className="absolute" style={{ left: contextMenu.x, top: contextMenu.y, zIndex: 1000 }}>
+          <NodeContextMenu
+            onAddNode={(type) => addNode(type, contextMenu)}
+            onClose={() => setContextMenu(undefined)}
+            onCreateCustomNode={() => {
+              setShowNodeCreator(true);
+              setContextMenu(undefined);
+            }}
+            onOpenLibrary={() => {
+              setShowNodeLibrary(true);
+              setContextMenu(undefined);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Node Library Modal */}
+      {showNodeLibrary && (
+        <NodeLibrary
+          userId={userId}
+          isOpen={showNodeLibrary}
+          onClose={() => setShowNodeLibrary(false)}
+          onAddNode={(nodeType) => {
+            addNode(nodeType);
+            setShowNodeLibrary(false);
+          }}
+        />
+      )}
+
+      {/* Node Creator Modal */}
+      {showNodeCreator && (
+        <NodeCreator
+          isOpen={showNodeCreator}
+          onClose={() => setShowNodeCreator(false)}
+          onNodeCreated={(nodeType) => {
+            addNode(nodeType);
+            addLog('success', `Created and added custom node: ${nodeType}`, { nodeType }, 'custom-node');
+          }}
+          userId={userId}
+          currentPosition={contextMenu}
+        />
+      )}
+
+      {/* Collaboration Panel */}
+      {showCollaborationPanel && (
+        <CollaborationPanel
+          isOpen={showCollaborationPanel}
+          onClose={() => setShowCollaborationPanel(false)}
+          userId={userId}
+          onNodeShared={(nodeType) => {
+            addLog('info', `Shared node: ${nodeType}`, { nodeType }, 'collaboration');
+          }}
+        />
+      )}
+
+      {/* User Status Bar */}
+      <div className="h-8 bg-gray-800 text-white px-4 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-4">
+          <span>User: {userId}</span>
+          <span>Nodes: {nodes.length}</span>
+          <span>Connections: {edges.length}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+          <span>Live System Active</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Collaboration Panel Component
+interface CollaborationPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string;
+  onNodeShared: (nodeType: string) => void;
+}
+
+function CollaborationPanel({ isOpen, onClose, userId, onNodeShared }: CollaborationPanelProps) {
+  const [sharedNodes, setSharedNodes] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      // Load shared nodes and recent activity
+      loadCollaborationData();
+    }
+  }, [isOpen]);
+
+  const loadCollaborationData = async () => {
+    // Mock data - in real app, fetch from API
+    setSharedNodes([
+      { id: 1, name: 'Advanced Spiral', author: 'user123', downloads: 45, rating: 4.8 },
+      { id: 2, name: 'Organic Growth', author: 'designer456', downloads: 23, rating: 4.5 },
+      { id: 3, name: 'Procedural City', author: 'architect789', downloads: 67, rating: 4.9 },
+    ]);
+    
+    setRecentActivity([
+      { type: 'shared', user: 'user123', node: 'Advanced Spiral', time: '2 hours ago' },
+      { type: 'downloaded', user: 'designer456', node: 'Mesh Optimizer', time: '4 hours ago' },
+      { type: 'updated', user: 'architect789', node: 'Procedural City', time: '1 day ago' },
+    ]);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <div className="border-b p-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Collaboration Hub
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            ✕
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-auto p-6">
+          <div className="grid gap-6">
+            {/* Popular Shared Nodes */}
+            <div>
+              <h3 className="font-semibold mb-3">Popular Community Nodes</h3>
+              <div className="space-y-2">
+                {sharedNodes.map(node => (
+                  <div key={node.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
+                    <div>
+                      <div className="font-medium">{node.name}</div>
+                      <div className="text-sm text-gray-500">by {node.author}</div>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span>{node.downloads} downloads</span>
+                      <span>⭐ {node.rating}</span>
+                      <button 
+                        onClick={() => onNodeShared(node.name)}
+                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Use
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Recent Activity */}
+            <div>
+              <h3 className="font-semibold mb-3">Recent Activity</h3>
+              <div className="space-y-2">
+                {recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.type === 'shared' ? 'bg-green-400' :
+                      activity.type === 'downloaded' ? 'bg-blue-400' : 'bg-yellow-400'
+                    }`}></div>
+                    <span className="flex-1">
+                      <strong>{activity.user}</strong> {activity.type} <em>{activity.node}</em>
+                    </span>
+                    <span className="text-gray-500">{activity.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Quick Actions */}
+            <div>
+              <h3 className="font-semibold mb-3">Quick Actions</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="p-3 border border-dashed border-gray-300 rounded hover:border-purple-400 hover:bg-purple-50 text-center">
+                  <Zap className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                  <div className="text-sm font-medium">Create Node</div>
+                  <div className="text-xs text-gray-500">Build custom logic</div>
+                </button>
+                
+                <button className="p-3 border border-dashed border-gray-300 rounded hover:border-green-400 hover:bg-green-50 text-center">
+                  <Users className="w-6 h-6 mx-auto mb-2 text-green-500" />
+                  <div className="text-sm font-medium">Share Graph</div>
+                  <div className="text-xs text-gray-500">Export current work</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

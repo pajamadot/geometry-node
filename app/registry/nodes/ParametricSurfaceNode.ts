@@ -196,8 +196,12 @@ export const parametricSurfaceNodeDefinition: NodeDefinition = {
   parameters: [],
   ui: {
     width: 280,
+    height: 300,
     icon: Waves,
     advanced: ['widthSegments', 'heightSegments', 'tubeRadius', 'customX', 'customY', 'customZ']
+  },
+  execution: {
+    type: 'javascript'
   },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
@@ -304,4 +308,4 @@ export const parametricSurfaceNodeDefinition: NodeDefinition = {
 
     return { geometry };
   }
-}; 
+};

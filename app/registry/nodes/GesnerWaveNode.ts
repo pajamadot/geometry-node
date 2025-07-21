@@ -152,6 +152,9 @@ export const gesnerWaveNodeDefinition: NodeDefinition = {
     icon: Waves,
     advanced: ['steepness', 'direction', 'speed', 'time', 'waveCount']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const waveType = inputs.waveType || 'single';

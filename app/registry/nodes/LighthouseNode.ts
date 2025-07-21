@@ -180,6 +180,9 @@ export const lighthouseNodeDefinition: NodeDefinition = {
     icon: Building2,
     advanced: ['windowCount', 'windowHeight', 'windowWidth', 'windowPosition', 'balconyRadius', 'balconyHeight', 'lanternRadius', 'lanternHeight']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     // Get values from inputs (can come from UI or connections)
     const towerHeight = inputs.towerHeight || 20.0;

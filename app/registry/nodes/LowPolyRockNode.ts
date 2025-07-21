@@ -54,6 +54,9 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
   ui: {
     icon: Mountain
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const radius = inputs.radius || 1.0;
     const detail = Math.max(3, Math.min(5, inputs.detail || 3)); // Icosahedron detail levels

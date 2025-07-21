@@ -69,6 +69,9 @@ export const genericBreakNodeDefinition: NodeDefinition = {
     icon: GitBranch,
     advanced: ['customTemplate']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { input } = inputs;
     const { template, customTemplate } = parameters;

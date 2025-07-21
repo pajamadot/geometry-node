@@ -64,6 +64,9 @@ export const createVerticesNodeDefinition: NodeDefinition = {
     icon: Square,
     advanced: ['vertices']
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { vertexCount, pattern, vertices } = parameters;
     

@@ -6,7 +6,7 @@ import { Node, Edge } from 'reactflow';
 import { GeometryNodeData } from '../types/nodes';
 import { compileNodeGraph, createDefaultMaterial } from '../utils/nodeCompiler';
 import { useTime } from './TimeContext';
-import { useLogging } from './LoggingContext';
+import { useLog } from './LoggingContext';
 
 interface GeometryContextValue {
   compiledGeometry: THREE.BufferGeometry | null;

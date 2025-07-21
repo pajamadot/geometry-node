@@ -45,6 +45,9 @@ export const breakTransformNodeDefinition: NodeDefinition = {
     width: 220,
     icon: Move3d
   },
+  execution: {
+    type: 'javascript'
+  },
   execute: (inputs, parameters) => {
     const { transform } = inputs;
     
