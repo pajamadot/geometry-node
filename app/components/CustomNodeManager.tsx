@@ -19,6 +19,7 @@ import { JsonNodeDefinition, JSON_NODE_TEMPLATE } from '../types/jsonNodes';
 import { nodeRegistry } from '../registry/NodeRegistry';
 import { nodeStorageManager } from '../utils/nodeStorage';
 import { validateJsonNode } from '../utils/jsonNodeLoader';
+import { useModal } from './ModalContext';
 
 interface CustomNodeManagerProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function CustomNodeManager({ isOpen, onClose }: CustomNodeManager
   const [isEditing, setIsEditing] = useState(false);
   const [editingNode, setEditingNode] = useState<JsonNodeDefinition | null>(null);
   const [jsonInput, setJsonInput] = useState('');
+  const { showConfirm } = useModal();
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [notifications, setNotifications] = useState<Array<{
     id: string;
@@ -99,8 +101,13 @@ export default function CustomNodeManager({ isOpen, onClose }: CustomNodeManager
     }
   };
 
-  const handleDeleteNode = (nodeType: string) => {
-    if (confirm('Are you sure you want to delete this node?')) {
+  const handleDeleteNode = async (nodeType: string) => {
+    const confirmed = await showConfirm(
+      'Delete Custom Node',
+      `Are you sure you want to delete the "${nodeType}" node? This action cannot be undone.`
+    );
+    
+    if (confirmed) {
       const success = nodeRegistry.removeCustomNode(nodeType);
       if (success) {
         showNotification('success', 'Node deleted successfully');

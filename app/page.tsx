@@ -11,6 +11,7 @@ import ResizableLayout from './components/ResizableLayout';
 import MemoryMonitor from './components/MemoryMonitor';
 import { LoggingProvider } from './components/LoggingContext';
 import LogPanel from './components/LogPanel';
+import { ModalProvider } from './components/ModalContext';
 
 export default function Home() {
   const [showShortcuts, setShowShortcuts] = React.useState(true);
@@ -68,40 +69,42 @@ export default function Home() {
   );
 
   return (
-    <LoggingProvider>
-      <TimeProvider>
-        <GeometryProvider>
-          <div className="h-screen w-screen overflow-hidden bg-black text-white relative">
-            <ResizableLayout
-              leftPanel={LeftPanel}
-              rightPanel={RightPanel}
-              initialLeftWidth={40}
-              minLeftWidth={25}
-              maxLeftWidth={75}
-            />
-            
-            {/* Layout shortcuts indicator */}
-            {showShortcuts && (
-              <div 
-                className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-40 bg-black/80 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-400 transition-opacity duration-500"
-                onMouseEnter={() => setShowShortcuts(true)}
-              >
-                <div className="flex items-center space-x-4">
-                  <span>Drag splitter to resize</span>
-                  <span className="text-gray-600">|</span>
-                  <span><kbd className="bg-gray-800 px-1 rounded">Ctrl+[</kbd> <kbd className="bg-gray-800 px-1 rounded">Ctrl+]</kbd> <kbd className="bg-gray-800 px-1 rounded">Ctrl+\</kbd></span>
+    <ModalProvider>
+      <LoggingProvider>
+        <TimeProvider>
+          <GeometryProvider>
+            <div className="h-screen w-screen overflow-hidden bg-black text-white relative">
+              <ResizableLayout
+                leftPanel={LeftPanel}
+                rightPanel={RightPanel}
+                initialLeftWidth={40}
+                minLeftWidth={25}
+                maxLeftWidth={75}
+              />
+              
+              {/* Layout shortcuts indicator */}
+              {showShortcuts && (
+                <div 
+                  className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-40 bg-black/80 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-400 transition-opacity duration-500"
+                  onMouseEnter={() => setShowShortcuts(true)}
+                >
+                  <div className="flex items-center space-x-4">
+                    <span>Drag splitter to resize</span>
+                    <span className="text-gray-600">|</span>
+                    <span><kbd className="bg-gray-800 px-1 rounded">Ctrl+[</kbd> <kbd className="bg-gray-800 px-1 rounded">Ctrl+]</kbd> <kbd className="bg-gray-800 px-1 rounded">Ctrl+\</kbd></span>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {/* Memory Monitor */}
-            <MemoryMonitor />
-            
-            {/* Log Panel */}
-            <LogPanel />
-          </div>
-        </GeometryProvider>
-      </TimeProvider>
-    </LoggingProvider>
+              )}
+              
+              {/* Memory Monitor */}
+              <MemoryMonitor />
+              
+              {/* Log Panel */}
+              <LogPanel />
+            </div>
+          </GeometryProvider>
+        </TimeProvider>
+      </LoggingProvider>
+    </ModalProvider>
   );
 }

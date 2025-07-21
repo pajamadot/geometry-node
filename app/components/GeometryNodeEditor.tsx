@@ -30,6 +30,7 @@ import CustomNodeManager from './CustomNodeManager';
 import { RefreshCw, Download, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
+import { useModal } from './ModalContext';
 
 
 
@@ -799,6 +800,7 @@ export default function GeometryNodeEditor() {
   const { compileNodes, isCompiling, error, liveParameterValues } = useGeometry();
   const { currentTime, frameRate } = useTime();
   const { screenToFlowPosition } = useReactFlow();
+  const { showConfirm, showAlert } = useModal();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [nodeContextMenu, setNodeContextMenu] = useState<{ 
     x: number; 
@@ -1435,19 +1437,30 @@ export default function GeometryNodeEditor() {
   }, []);
 
   // Cleanup unused nodes
-  const cleanupUnusedNodes = useCallback(() => {
+  const cleanupUnusedNodes = useCallback(async () => {
     const analysis = analyzeNodeGraphForCleanup(nodes, edges);
     
     if (!analysis.canCleanup) {
-      // Show a notification that there are no unused nodes to clean up
-      console.log('No unused nodes to clean up');
+      // Show info modal that there are no unused nodes to clean up
+      await showAlert(
+        'No Cleanup Needed',
+        'All nodes in the graph contribute to the final output. No cleanup is necessary.',
+        'info'
+      );
       return;
     }
     
     // Show confirmation dialog with statistics
-    const confirmMessage = `This will remove ${analysis.unusedCount} unused node${analysis.unusedCount === 1 ? '' : 's'} that don't contribute to the output.\n\nNodes to be removed:\n${analysis.unusedNodes.map(n => `- ${n.data.label || n.data.type}`).join('\n')}\n\nContinue?`;
+    const message = `This will remove ${analysis.unusedCount} unused node${analysis.unusedCount === 1 ? '' : 's'} that don't contribute to the output.`;
+    const details = `Nodes to be removed:\n${analysis.unusedNodes.map(n => `• ${n.data.label || n.data.type} (${n.id})`).join('\n')}`;
     
-    if (!window.confirm(confirmMessage)) {
+    const confirmed = await showConfirm(
+      'Cleanup Unused Nodes',
+      message,
+      details
+    );
+    
+    if (!confirmed) {
       return;
     }
     
@@ -1478,8 +1491,15 @@ export default function GeometryNodeEditor() {
       return newSelected;
     });
     
+    // Show success message
+    await showAlert(
+      'Cleanup Complete',
+      `Successfully removed ${cleanupResult.stats.nodesRemoved} node${cleanupResult.stats.nodesRemoved === 1 ? '' : 's'} and ${cleanupResult.stats.edgesRemoved} edge${cleanupResult.stats.edgesRemoved === 1 ? '' : 's'}.`,
+      'info'
+    );
+    
     console.log(`🧹 Cleanup complete: Removed ${cleanupResult.stats.nodesRemoved} nodes and ${cleanupResult.stats.edgesRemoved} edges`);
-  }, [nodes, edges, setNodes, setEdges]);
+  }, [nodes, edges, setNodes, setEdges, showConfirm, showAlert]);
 
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
