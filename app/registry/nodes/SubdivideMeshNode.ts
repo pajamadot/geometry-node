@@ -105,8 +105,24 @@ export const subdivideMeshNodeDefinition: NodeDefinition = {
     // Implement Catmull-Clark subdivision
     let subdividedGeometry = geometry.clone();
     
+    // Preserve materials before subdivision
+    const originalMaterial = (geometry as any).material;
+    const originalMaterials = geometry.userData?.materials;
+    
     for (let i = 0; i < level; i++) {
       subdividedGeometry = subdivideGeometry(subdividedGeometry);
+    }
+    
+    // Restore materials after subdivision
+    if (originalMaterial) {
+      (subdividedGeometry as any).material = originalMaterial;
+    }
+    
+    if (originalMaterials) {
+      if (!subdividedGeometry.userData) {
+        subdividedGeometry.userData = {};
+      }
+      subdividedGeometry.userData.materials = [...originalMaterials];
     }
     
     return { geometry: subdividedGeometry };

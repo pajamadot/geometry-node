@@ -42,6 +42,13 @@ export const sphereNodeDefinition: NodeDefinition = {
       max: 64,
       step: 1,
       description: 'Vertical segments'
+    },
+    {
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      required: false,
+      description: 'Optional material to apply'
     }
   ],
   outputs: [
@@ -62,8 +69,15 @@ export const sphereNodeDefinition: NodeDefinition = {
     const radius = inputs.radius || 1;
     const widthSegments = inputs.widthSegments || 32;
     const heightSegments = inputs.heightSegments || 16;
+    const material = inputs.material;
     
     const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
+    
+    // Apply material if provided
+    if (material) {
+      (geometry as any).material = material;
+    }
+    
     return { geometry };
   }
 }; 

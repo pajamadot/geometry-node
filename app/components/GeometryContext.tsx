@@ -46,8 +46,19 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
     // Use shorter debounce for time updates to enable real-time animation
     // But only if there are actually time nodes in the graph
     const hasTimeNodes = nodes.some(node => node.data.type === 'time');
-    const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50; // 8ms for time with time nodes, 50ms otherwise
+    const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50;
+    
+    console.log('📅 Compilation requested:', {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      isTimeUpdate,
+      hasTimeNodes,
+      debounceTime,
+      currentTime: currentTime || 0
+    });
+    
     compilationTimeoutRef.current = setTimeout(() => {
+      console.log('🔨 Starting compilation...');
       setIsCompiling(true);
       setError(null);
 
@@ -71,18 +82,70 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
             prevGeometryRef.current = geometry;
             setCompiledGeometry(geometry);
             setError(null);
+            
+            // Animate water materials if present
+            const animateWaterMaterials = (time: number) => {
+              const materials = [
+                (geometry as any).material,
+                ...(geometry.userData?.materials || [])
+              ].filter(Boolean);
+              
+              materials.forEach(mat => {
+                if (mat && (mat as any).isWaterMaterial && (mat as any).animateWater) {
+                  (mat as any).animateWater(time * 0.001); // Convert to seconds
+                }
+                if (mat && (mat as any).isHologramMaterial && (mat as any).animateHologram) {
+                  (mat as any).animateHologram(time * 0.001);
+                }
+                if (mat && (mat as any).isLavaMaterial && (mat as any).animateLava) {
+                  (mat as any).animateLava(time * 0.001);
+                }
+              });
+            };
+            
+            // Set up animation loop for water materials if needed
+            const hasWaterMaterials = [
+              (geometry as any).material,
+              ...(geometry.userData?.materials || [])
+            ].some(mat => mat && (mat as any).isWaterMaterial);
+            
+            const hasShaderMaterials = [
+              (geometry as any).material,
+              ...(geometry.userData?.materials || [])
+            ].some(mat => mat && (
+              (mat as any).isWaterMaterial || 
+              (mat as any).isHologramMaterial || 
+              (mat as any).isLavaMaterial
+            ));
+            
+            if (hasShaderMaterials) {
+              const animate = () => {
+                animateWaterMaterials(Date.now());
+                requestAnimationFrame(animate);
+              };
+              animate();
+            }
+            
+            console.log('✅ Compilation successful, geometry updated', {
+              hasWaterMaterials,
+              hasShaderMaterials,
+              materialCount: (geometry.userData?.materials?.length || 0) + ((geometry as any).material ? 1 : 0)
+            });
           } else {
             const errorMsg = 'No geometry was produced by compilation';
             setError(errorMsg);
+            console.error('❌', errorMsg);
           }
         } else {
           setError(result.error || 'Unknown compilation error');
           setCompiledGeometry(null);
+          console.error('❌ Compilation failed:', result.error);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown compilation error';
         setError(errorMsg);
         setCompiledGeometry(null);
+        console.error('💥 Compilation crashed:', err);
       } finally {
         setIsCompiling(false);
       }

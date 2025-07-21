@@ -80,8 +80,10 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
     let vertexOffset = 0;
     const allPositions: number[] = [];
     const allIndices: number[] = [];
+    const allMaterials: THREE.Material[] = [];
+    const materialGroups: { start: number; count: number; materialIndex: number }[] = [];
     
-    geometries.forEach(geometry => {
+    geometries.forEach((geometry, geomIndex) => {
       const positions = geometry.attributes.position;
       const indices = geometry.index;
       
@@ -95,9 +97,59 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
         }
       }
       
+      let indexCount = 0;
+      const indexStart = allIndices.length;
+      
       if (indices) {
         for (let i = 0; i < indices.count; i++) {
           allIndices.push(indices.getX(i) + vertexOffset);
+          indexCount++;
+        }
+      }
+      
+      // Handle materials - collect ALL materials from each geometry
+      const geometryMaterial = (geometry as any).material;
+      const geometryMaterials = geometry.userData?.materials || [];
+      const geometryGroups = geometry.groups || [];
+      
+      // If geometry has multiple materials (from previous merges), collect them all
+      if (geometryMaterials.length > 0) {
+        // Add all existing materials
+        const materialIndexOffset = allMaterials.length;
+        geometryMaterials.forEach((mat: THREE.Material) => {
+          allMaterials.push(mat);
+        });
+        
+        // Preserve existing material groups with updated indices
+        if (geometryGroups.length > 0) {
+          geometryGroups.forEach((group: { start: number; count: number; materialIndex?: number }) => {
+            materialGroups.push({
+              start: indexStart + (group.start || 0),
+              count: group.count,
+              materialIndex: materialIndexOffset + (group.materialIndex || 0)
+            });
+          });
+        } else {
+          // No existing groups, so assign all faces to first material
+          if (indexCount > 0) {
+            materialGroups.push({
+              start: indexStart,
+              count: indexCount,
+              materialIndex: materialIndexOffset
+            });
+          }
+        }
+      } else if (geometryMaterial) {
+        // Single material geometry
+        const materialIndex = allMaterials.length;
+        allMaterials.push(geometryMaterial);
+        
+        if (indexCount > 0) {
+          materialGroups.push({
+            start: indexStart,
+            count: indexCount,
+            materialIndex
+          });
         }
       }
       
@@ -113,6 +165,20 @@ export const mergeGeometryNodeDefinition: NodeDefinition = {
     }
     
     mergedGeometry.computeVertexNormals();
+    
+    // Store materials and groups for multi-material rendering
+    if (allMaterials.length > 0) {
+      mergedGeometry.userData.materials = allMaterials;
+      
+      // Add material groups to geometry
+      materialGroups.forEach(group => {
+        mergedGeometry.addGroup(group.start, group.count, group.materialIndex);
+      });
+      
+      // Set the first material as the primary material for simple rendering
+      (mergedGeometry as any).material = allMaterials.length === 1 ? 
+        allMaterials[0] : allMaterials;
+    }
     
     return { geometry: mergedGeometry };
   }

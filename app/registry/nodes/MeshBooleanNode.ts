@@ -90,11 +90,37 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
 
     try {
       const result = performBooleanOperation(geometryA, geometryB, operation, useWebAssembly, precision);
+      
+      // Preserve material from geometry A (primary geometry) since boolean operations
+      // create new topology and we can't easily track which faces come from which geometry
+      const materialA = (geometryA as any).material || geometryA.userData?.materials?.[0];
+      
+      if (materialA && result) {
+        (result as any).material = materialA;
+        
+        if (!result.userData) {
+          result.userData = {};
+        }
+        result.userData.materials = [materialA];
+      }
+      
       return { geometry: result };
     } catch (error) {
       console.error('Boolean operation failed:', error);
-      // Fallback to simple merge
-      return { geometry: geometryA };
+      // Fallback to simple merge with material preservation
+      const fallback = geometryA.clone();
+      
+      // Preserve materials in fallback
+      const materialA = (geometryA as any).material || geometryA.userData?.materials?.[0];
+      if (materialA) {
+        (fallback as any).material = materialA;
+        if (!fallback.userData) {
+          fallback.userData = {};
+        }
+        fallback.userData.materials = [materialA];
+      }
+      
+      return { geometry: fallback };
     }
   }
 };

@@ -54,12 +54,47 @@ function CompiledGeometry() {
     );
   }
 
+  // Check for material stored on geometry userData (from Set Material node)
+  const geometryMaterial = (compiledGeometry as any).material;
+  const geometryMaterials = compiledGeometry.userData?.materials;
+  
+  // Debug logging for multi-material geometries
+  if (geometryMaterials && geometryMaterials.length > 1) {
+    console.log('🎨 Multi-material geometry detected:', {
+      materialCount: geometryMaterials.length,
+      groupCount: compiledGeometry.groups?.length || 0,
+      materials: geometryMaterials.map((mat: THREE.Material, i: number) => ({
+        index: i,
+        type: mat.type,
+        name: mat.name || `Material ${i}`
+      })),
+      groups: compiledGeometry.groups
+    });
+  }
+  
+  // Determine final material(s) to use
+  let finalMaterial;
+  
+  if (geometryMaterials && geometryMaterials.length > 1) {
+    // Multi-material geometry - use array of materials
+    finalMaterial = geometryMaterials;
+  } else if (geometryMaterial) {
+    // Single material from geometry
+    finalMaterial = geometryMaterial;
+  } else if (geometryMaterials && geometryMaterials.length === 1) {
+    // Single material from userData
+    finalMaterial = geometryMaterials[0];
+  } else {
+    // Fall back to context material
+    finalMaterial = material;
+  }
+
   return (
     <mesh 
       key={`compiled-geometry-${geometryKey}`}
       position={[0, 0, 0]} 
       geometry={compiledGeometry} 
-      material={material}
+      material={finalMaterial}
       scale={isCompiling ? 0.98 : 1.0} // Subtle scale animation during compilation
     />
   );

@@ -242,7 +242,11 @@ function createGesnerWaveGeometry(params: {
 
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
+  
+  // Ensure indices are properly formatted
+  if (indices.length > 0) {
+    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
+  }
   
   // Manually calculate normals facing upward
   const normals: number[] = [];
@@ -313,6 +317,10 @@ function createGesnerWaveGeometry(params: {
   }
   
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  
+  // Ensure geometry is properly formed
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
 
   return geometry;
 }

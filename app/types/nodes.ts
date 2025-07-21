@@ -42,7 +42,17 @@ export type NodeType =
   | 'subdivide-mesh'
   | 'lowPolyRock'
   | 'spiralStair'
-  | 'meshBoolean';
+  | 'meshBoolean'
+  // Material node types
+  | 'standard-material'
+  | 'basic-material'
+  | 'physical-material'
+  | 'emissive-material'
+  | 'set-material'
+  | 'material-mixer'
+  | 'water-material'
+  | 'hologram-material'
+  | 'lava-material';
 
 // Input/Output port types
 export type PortType = 'geometry' | 'vector' | 'number' | 'integer' | 'material' | 'boolean' | 'string' | 'color' | 'time' | 'vertices' | 'faces' | 'attributes' | 'points' | 'instances';
@@ -186,7 +196,7 @@ export interface SetVertexAttributesNodeData extends BaseNodeData {
 
 // Registry-based node data (for new data-driven system)
 export interface RegistryNodeData extends BaseNodeData {
-  type: 'cube' | 'sphere' | 'cylinder' | 'subdivide-mesh' | 'transform' | 'output' | 'math' | 'vector-math' | 'join' | 'distribute-points' | 'instance-on-points' | 'create-vertices' | 'create-faces' | 'merge-geometry' | 'time' | 'lowPolyRock' | 'spiralStair' | 'meshBoolean';
+  type: 'cube' | 'sphere' | 'cylinder' | 'subdivide-mesh' | 'transform' | 'output' | 'math' | 'vector-math' | 'join' | 'distribute-points' | 'instance-on-points' | 'create-vertices' | 'create-faces' | 'merge-geometry' | 'time' | 'lowPolyRock' | 'spiralStair' | 'meshBoolean' | 'standard-material' | 'basic-material' | 'physical-material' | 'emissive-material' | 'set-material' | 'material-mixer' | 'water-material' | 'hologram-material' | 'lava-material';
   parameters: Record<string, any>;
 }
 

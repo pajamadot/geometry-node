@@ -29,7 +29,16 @@ import {
   makeTransformNodeDefinition,
   breakTransformNodeDefinition,
   genericMakeNodeDefinition,
-  genericBreakNodeDefinition
+  genericBreakNodeDefinition,
+  standardMaterialNodeDefinition,
+  basicMaterialNodeDefinition,
+  physicalMaterialNodeDefinition,
+  emissiveMaterialNodeDefinition,
+  setMaterialNodeDefinition,
+  materialMixerNodeDefinition,
+  waterMaterialNodeDefinition,
+  hologramMaterialNodeDefinition,
+  lavaMaterialNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -81,6 +90,17 @@ export class NodeRegistry {
     // Register generic Make/Break nodes
     this.register(genericMakeNodeDefinition);
     this.register(genericBreakNodeDefinition);
+    
+    // Register material nodes
+    this.register(standardMaterialNodeDefinition);
+    this.register(basicMaterialNodeDefinition);
+    this.register(physicalMaterialNodeDefinition);
+    this.register(emissiveMaterialNodeDefinition);
+    this.register(setMaterialNodeDefinition);
+    this.register(materialMixerNodeDefinition);
+    this.register(waterMaterialNodeDefinition);
+    this.register(hologramMaterialNodeDefinition);
+    this.register(lavaMaterialNodeDefinition);
     
     // Register template-generated nodes
     const templateNodes = templateSystem.generateAllNodes();

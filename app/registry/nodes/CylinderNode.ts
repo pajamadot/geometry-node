@@ -50,6 +50,13 @@ export const cylinderNodeDefinition: NodeDefinition = {
       max: 128,
       step: 1,
       description: 'Radial segments'
+    },
+    {
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      required: false,
+      description: 'Optional material to apply'
     }
   ],
   outputs: [
@@ -72,8 +79,15 @@ export const cylinderNodeDefinition: NodeDefinition = {
     const radiusBottom = inputs.radiusBottom || 1;
     const height = inputs.height || 1;
     const radialSegments = inputs.radialSegments || 32;
+    const material = inputs.material;
     
     const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
+    
+    // Apply material if provided
+    if (material) {
+      (geometry as any).material = material;
+    }
+    
     return { geometry };
   }
 }; 

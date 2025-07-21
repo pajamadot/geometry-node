@@ -30,4 +30,29 @@ export { breakTransformNodeDefinition } from './BreakTransformNode';
 
 // Generic Make/Break nodes for dynamic templates
 export { genericMakeNodeDefinition } from './GenericMakeNode';
-export { genericBreakNodeDefinition } from './GenericBreakNode'; 
+export { genericBreakNodeDefinition } from './GenericBreakNode';
+
+// Material nodes
+export { 
+  standardMaterialNodeDefinition,
+  basicMaterialNodeDefinition,
+  physicalMaterialNodeDefinition,
+  emissiveMaterialNodeDefinition
+} from './MaterialNode';
+
+export { 
+  setMaterialNodeDefinition,
+  materialMixerNodeDefinition
+} from './SetMaterialNode';
+
+export { 
+  waterMaterialNodeDefinition
+} from './WaterMaterialNode';
+
+export { 
+  hologramMaterialNodeDefinition
+} from './HologramMaterialNode';
+
+export { 
+  lavaMaterialNodeDefinition
+} from './LavaMaterialNode'; 

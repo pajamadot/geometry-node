@@ -468,7 +468,18 @@ function createLighthouseGeometry(params: {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-  geometry.setIndex(indices);
+  
+  // Convert indices to proper typed array for compatibility
+  if (indices.length > 0) {
+    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
+  }
+
+  // Compute vertex normals to ensure proper lighting
+  geometry.computeVertexNormals();
+  
+  // Ensure geometry is properly formed
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
 
   return geometry;
 } 

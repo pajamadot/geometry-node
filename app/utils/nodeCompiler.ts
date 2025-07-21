@@ -674,13 +674,15 @@ function executeNode(
         if (geometries.length === 1) {
           joinedGeometry = geometries[0].clone();
         } else {
-          // Merge multiple geometries by combining vertices and indices
+          // Merge multiple geometries by combining vertices and indices with material preservation
           const mergedGeometry = new THREE.BufferGeometry();
           let vertexOffset = 0;
           const allPositions: number[] = [];
           const allIndices: number[] = [];
+          const allMaterials: THREE.Material[] = [];
+          const materialGroups: { start: number; count: number; materialIndex: number }[] = [];
           
-          geometries.forEach(geometry => {
+          geometries.forEach((geometry, geomIndex) => {
             const positions = geometry.attributes.position;
             const indices = geometry.index;
             
@@ -694,9 +696,31 @@ function executeNode(
               }
             }
             
+            let indexCount = 0;
+            const indexStart = allIndices.length;
+            
             if (indices) {
               for (let i = 0; i < indices.count; i++) {
                 allIndices.push(indices.getX(i) + vertexOffset);
+                indexCount++;
+              }
+            }
+            
+            // Handle materials - collect materials from each geometry
+            const geometryMaterial = (geometry as any).material || 
+                                    geometry.userData?.materials?.[0];
+            
+            if (geometryMaterial) {
+              const materialIndex = allMaterials.length;
+              allMaterials.push(geometryMaterial);
+              
+              // Add material group for this geometry's faces
+              if (indexCount > 0) {
+                materialGroups.push({
+                  start: indexStart,
+                  count: indexCount,
+                  materialIndex
+                });
               }
             }
             
@@ -712,6 +736,21 @@ function executeNode(
           }
           
           mergedGeometry.computeVertexNormals();
+          
+          // Store materials and groups for multi-material rendering
+          if (allMaterials.length > 0) {
+            mergedGeometry.userData.materials = allMaterials;
+            
+            // Add material groups to geometry
+            materialGroups.forEach(group => {
+              mergedGeometry.addGroup(group.start, group.count, group.materialIndex);
+            });
+            
+            // Set the first material as the primary material for simple rendering
+            (mergedGeometry as any).material = allMaterials.length === 1 ? 
+              allMaterials[0] : allMaterials;
+          }
+          
           joinedGeometry = mergedGeometry;
         }
 
@@ -919,8 +958,16 @@ function executeNodeWithCaching(
 ): NodeExecutionResult {
   const result = executeNode(node, inputs, cache, currentTime, frameRate, addLog);
   
-  // Cache successful results (skip time-dependent nodes and nodes with parameters)
-  if (result.success && node.data.type !== 'time' && !('parameters' in node.data && node.data.parameters && Object.keys(node.data.parameters).length > 0)) {
+  // Cache successful results (skip time-dependent nodes, nodes with parameters, and material-related nodes)
+  const skipCaching = node.data.type === 'time' || 
+                     node.data.type === 'set-material' ||
+                     node.data.type === 'material-mixer' ||
+                     node.data.type === 'water-material' ||
+                     node.data.type === 'hologram-material' ||
+                     node.data.type === 'lava-material' ||
+                     ('parameters' in node.data && node.data.parameters && Object.keys(node.data.parameters).length > 0);
+  
+  if (result.success && !skipCaching) {
     cacheNodeResult(node.id, inputs, node.data, result.outputs);
     if (addLog) {
       addLog('debug', `Cached result for node: ${node.data.label || node.data.type}`, { 
@@ -928,6 +975,8 @@ function executeNodeWithCaching(
         nodeType: node.data.type 
       }, 'caching');
     }
+  } else if (result.success && skipCaching) {
+    console.log(`⚠️ Skipping cache for ${node.data.type} to avoid re-execution issues`);
   }
   
   return result;
@@ -1234,11 +1283,14 @@ export function compileNodeGraph(
   const temporaryGeometries: THREE.BufferGeometry[] = [];
   const liveParameterTracker = new Map<string, Record<string, any>>();
   
-
+  console.log('🔄 Starting node graph compilation with', nodes.length, 'nodes and', edges.length, 'edges');
   
   try {
     // Get execution order
     const executionOrder = getExecutionOrder(nodes, edges);
+    
+    console.log('📋 Execution order:', executionOrder.map(n => `${n.data.type}(${n.id})`));
+    console.log('🔗 Edges:', edges.map(e => `${e.source}→${e.target} (${e.sourceHandle}→${e.targetHandle})`));
     
     // Execute nodes in order
     const nodeOutputs = new Map<string, Record<string, any>>();
@@ -1246,11 +1298,16 @@ export function compileNodeGraph(
     
     for (const node of executionOrder) {
       const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
+      
+      console.log(`⚡ Executing ${node.data.type}(${node.id}) with inputs:`, Object.keys(inputs));
+      
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {
         // Clean up any temporary geometries on error
         temporaryGeometries.forEach(geom => geom.dispose());
+        
+        console.error('❌ Node execution failed:', node.data.type, result.error);
         
         return {
           success: false,
@@ -1258,6 +1315,8 @@ export function compileNodeGraph(
           liveParameterValues: {}
         };
       }
+      
+      console.log(`✅ ${node.data.type}(${node.id}) produced outputs:`, Object.keys(result.outputs));
       
       // Track intermediate geometries for cleanup
       Object.values(result.outputs).forEach(output => {
@@ -1297,6 +1356,13 @@ export function compileNodeGraph(
       };
     }
     
+    console.log('🎯 Final geometry:', {
+      type: finalGeometry.type,
+      vertices: finalGeometry.attributes.position?.count || 0,
+      hasMaterial: !!((finalGeometry as any).material),
+      userDataMaterials: finalGeometry.userData?.materials?.length || 0
+    });
+    
     // Clean up intermediate geometries, but keep the final one
     temporaryGeometries.forEach(geom => {
       if (geom !== finalGeometry) {
@@ -1319,6 +1385,8 @@ export function compileNodeGraph(
     liveParameterTracker.forEach((params, nodeId) => {
       liveParameterValues[nodeId] = params;
     });
+
+    console.log('🏁 Compilation completed successfully');
 
     return {
       success: true,
@@ -1344,6 +1412,8 @@ export function compileNodeGraph(
   } catch (error) {
     // Clean up any temporary geometries on error
     temporaryGeometries.forEach(geom => geom.dispose());
+    
+    console.error('💥 Compilation failed:', error);
     
     return {
       success: false,

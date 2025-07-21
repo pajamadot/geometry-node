@@ -40,6 +40,13 @@ export const cubeNodeDefinition: NodeDefinition = {
       min: 0.1,
       step: 0.1,
       description: 'Cube depth'
+    },
+    {
+      id: 'material',
+      name: 'Material',
+      type: 'material',
+      required: false,
+      description: 'Optional material to apply'
     }
   ],
   outputs: [
@@ -59,8 +66,15 @@ export const cubeNodeDefinition: NodeDefinition = {
     const width = inputs.width || 1;
     const height = inputs.height || 1;
     const depth = inputs.depth || 1;
+    const material = inputs.material;
     
     const geometry = new THREE.BoxGeometry(width, height, depth);
+    
+    // Apply material if provided
+    if (material) {
+      (geometry as any).material = material;
+    }
+    
     return { geometry };
   }
 }; 

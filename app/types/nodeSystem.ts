@@ -83,7 +83,7 @@ export interface ParameterDefinition {
 // Node category for organization
 export type NodeCategory = 
   | 'geometry' | 'math' | 'vector' | 'utilities' | 'input' 
-  | 'output' | 'modifiers' | 'instances' | 'animation';
+  | 'output' | 'modifiers' | 'instances' | 'animation' | 'materials';
 
 // Complete node definition - this is what defines a node type
 export interface NodeDefinition {
@@ -286,6 +286,11 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
     color: 'pink',
     icon: '',
     description: 'Time and animation'
+  },
+  materials: {
+    color: 'stone',
+    icon: '',
+    description: 'Material creation and manipulation'
   }
 };
 

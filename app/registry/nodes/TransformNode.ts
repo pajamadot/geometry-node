@@ -65,8 +65,42 @@ export const transformNodeDefinition: NodeDefinition = {
       return { geometry: null };
     }
 
+    console.log('Transform node input:', {
+      hasGeometry: !!geometry,
+      hasInputMaterial: !!((geometry as any).material),
+      inputUserDataMaterials: geometry.userData?.materials?.length || 0,
+      geometryVertices: geometry.attributes?.position?.count || 0
+    });
+
     // Clone the geometry and apply transform
     const transformedGeometry = geometry.clone();
+    
+    // Preserve materials when cloning
+    const originalMaterial = (geometry as any).material;
+    const originalMaterials = geometry.userData?.materials;
+    
+    if (originalMaterial) {
+      (transformedGeometry as any).material = originalMaterial;
+      console.log('Transform: Preserved direct material:', originalMaterial.type);
+    }
+    
+    if (originalMaterials) {
+      if (!transformedGeometry.userData) {
+        transformedGeometry.userData = {};
+      }
+      transformedGeometry.userData.materials = [...originalMaterials];
+      
+      console.log('Transform: Preserved userData materials:', originalMaterials.length);
+      
+      // Preserve material groups if they exist
+      if (geometry.groups && geometry.groups.length > 0) {
+        transformedGeometry.clearGroups();
+        geometry.groups.forEach((group: { start: number; count: number; materialIndex?: number }) => {
+          transformedGeometry.addGroup(group.start, group.count, group.materialIndex);
+        });
+        console.log('Transform: Preserved material groups:', geometry.groups.length);
+      }
+    }
     
     // Apply transformations via matrix
     const matrix = new THREE.Matrix4();
@@ -80,6 +114,11 @@ export const transformNodeDefinition: NodeDefinition = {
     );
     
     transformedGeometry.applyMatrix4(matrix);
+    
+    console.log('Transform node output:', {
+      hasOutputMaterial: !!((transformedGeometry as any).material),
+      outputUserDataMaterials: transformedGeometry.userData?.materials?.length || 0
+    });
     
     return { geometry: transformedGeometry };
   }
