@@ -1,0 +1,372 @@
+{
+  "version": "1.0.0",
+  "created": "2024-01-01T00:00:00.000Z",
+  "modified": "2024-01-01T00:00:00.000Z",
+  "nodes": [
+    {
+      "type": "l-system-tree",
+      "name": "L-System Tree",
+      "description": "Generates tree structures using L-system grammar rules",
+      "category": "geometry",
+      "color": {
+        "primary": "#059669",
+        "secondary": "#047857"
+      },
+      "inputs": [
+        {
+          "id": "iterations",
+          "name": "Iterations",
+          "type": "integer",
+          "defaultValue": 4,
+          "min": 1,
+          "max": 8,
+          "description": "Grammar expansion iterations"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "vertices",
+          "name": "Vertices",
+          "type": "vertices",
+          "description": "Tree structure vertices"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "axiom",
+          "name": "Axiom",
+          "type": "string",
+          "defaultValue": "F",
+          "description": "Starting rule (F=forward, +=turn left, -=turn right)"
+        },
+        {
+          "id": "rule",
+          "name": "Grammar Rule",
+          "type": "string",
+          "defaultValue": "F=F[+F]F[-F]F",
+          "description": "L-system production rule"
+        },
+        {
+          "id": "angle",
+          "name": "Branch Angle",
+          "type": "number",
+          "defaultValue": 25,
+          "min": 10,
+          "max": 90,
+          "description": "Branching angle in degrees"
+        },
+        {
+          "id": "length",
+          "name": "Segment Length",
+          "type": "number",
+          "defaultValue": 1,
+          "min": 0.1,
+          "max": 5,
+          "description": "Length of each segment"
+        }
+      ],
+      "executeCode": "const iterations = Math.min(inputs.iterations || 4, 8);\nconst axiom = parameters.axiom || 'F';\nconst rule = parameters.rule || 'F=F[+F]F[-F]F';\nconst angle = (parameters.angle || 25) * Math.PI / 180;\nconst segmentLength = parameters.length || 1;\n\n// Parse rule\nconst rules = {};\nconst ruleParts = rule.split('=');\nif (ruleParts.length === 2) {\n  rules[ruleParts[0]] = ruleParts[1];\n}\n\n// Generate L-system string\nlet current = axiom;\nfor (let i = 0; i < iterations; i++) {\n  let next = '';\n  for (const char of current) {\n    next += rules[char] || char;\n  }\n  current = next;\n}\n\n// Interpret string as turtle graphics\nconst vertices = [];\nconst stack = [];\nlet x = 0, y = 0, heading = Math.PI / 2;\n\nfor (const char of current) {\n  switch (char) {\n    case 'F':\n      const newX = x + Math.cos(heading) * segmentLength;\n      const newY = y + Math.sin(heading) * segmentLength;\n      vertices.push(x, 0, y);\n      vertices.push(newX, 0, newY);\n      x = newX;\n      y = newY;\n      break;\n    case '+':\n      heading += angle;\n      break;\n    case '-':\n      heading -= angle;\n      break;\n    case '[':\n      stack.push({ x, y, heading });\n      break;\n    case ']':\n      if (stack.length > 0) {\n        const state = stack.pop();\n        x = state.x;\n        y = state.y;\n        heading = state.heading;\n      }\n      break;\n  }\n}\n\nreturn { vertices };",
+      "ui": {
+        "width": 280,
+        "icon": "code",
+        "advanced": ["axiom", "rule"]
+      },
+      "version": "1.0.0",
+      "author": "GeometryScript",
+      "created": "2024-01-01T00:00:00.000Z",
+      "tags": ["l-system", "tree", "fractal", "botanical"]
+    },
+    {
+      "type": "fluid-simulation",
+      "name": "Fluid Surface",
+      "description": "Simulates 2D fluid dynamics and generates surface mesh",
+      "category": "geometry",
+      "color": {
+        "primary": "#0ea5e9",
+        "secondary": "#0284c7"
+      },
+      "inputs": [
+        {
+          "id": "time",
+          "name": "Time",
+          "type": "number",
+          "defaultValue": 0,
+          "description": "Simulation time"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "vertices",
+          "name": "Vertices",
+          "type": "vertices",
+          "description": "Fluid surface vertices"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "gridSize",
+          "name": "Grid Size",
+          "type": "integer",
+          "defaultValue": 32,
+          "min": 16,
+          "max": 128,
+          "description": "Simulation grid resolution"
+        },
+        {
+          "id": "viscosity",
+          "name": "Viscosity",
+          "type": "number",
+          "defaultValue": 0.1,
+          "min": 0.01,
+          "max": 1,
+          "step": 0.01,
+          "description": "Fluid viscosity"
+        },
+        {
+          "id": "waveSpeed",
+          "name": "Wave Speed",
+          "type": "number",
+          "defaultValue": 1,
+          "min": 0.1,
+          "max": 5,
+          "description": "Wave propagation speed"
+        },
+        {
+          "id": "amplitude",
+          "name": "Wave Amplitude",
+          "type": "number",
+          "defaultValue": 0.5,
+          "min": 0.1,
+          "max": 2,
+          "description": "Wave height scaling"
+        }
+      ],
+      "executeCode": "const time = inputs.time || 0;\nconst gridSize = Math.min(parameters.gridSize || 32, 128);\nconst viscosity = parameters.viscosity || 0.1;\nconst waveSpeed = parameters.waveSpeed || 1;\nconst amplitude = parameters.amplitude || 0.5;\n\nconst vertices = [];\nconst size = 10;\n\n// Simple wave equation simulation\nfor (let i = 0; i < gridSize; i++) {\n  for (let j = 0; j < gridSize; j++) {\n    const x = (i / gridSize - 0.5) * size;\n    const z = (j / gridSize - 0.5) * size;\n    \n    // Multiple wave sources\n    const dist1 = Math.sqrt((x - 2) ** 2 + (z - 2) ** 2);\n    const dist2 = Math.sqrt((x + 2) ** 2 + (z + 2) ** 2);\n    const dist3 = Math.sqrt(x ** 2 + z ** 2);\n    \n    // Wave interference pattern\n    const wave1 = Math.sin(dist1 * waveSpeed - time * 2) * amplitude;\n    const wave2 = Math.sin(dist2 * waveSpeed - time * 1.5) * amplitude * 0.7;\n    const wave3 = Math.sin(dist3 * waveSpeed - time * 2.5) * amplitude * 0.5;\n    \n    // Apply viscosity damping\n    const damping = Math.exp(-viscosity * Math.max(dist1, dist2, dist3));\n    const height = (wave1 + wave2 + wave3) * damping;\n    \n    // Add some ripple effects\n    const ripple = Math.sin(x * 0.5 + time) * Math.cos(z * 0.5 + time) * 0.1 * amplitude;\n    \n    vertices.push(x, height + ripple, z);\n  }\n}\n\nreturn { vertices };",
+      "ui": {
+        "width": 240,
+        "icon": "zap",
+        "advanced": ["viscosity", "waveSpeed"]
+      },
+      "version": "1.0.0",
+      "author": "GeometryScript",
+      "created": "2024-01-01T00:00:00.000Z",
+      "tags": ["fluid", "waves", "simulation", "physics"]
+    },
+    {
+      "type": "gothic-arch",
+      "name": "Gothic Architecture",
+      "description": "Generates Gothic cathedral arches and columns",
+      "category": "geometry",
+      "color": {
+        "primary": "#6366f1",
+        "secondary": "#4f46e5"
+      },
+      "inputs": [
+        {
+          "id": "height",
+          "name": "Height",
+          "type": "number",
+          "defaultValue": 10,
+          "min": 5,
+          "max": 30,
+          "description": "Cathedral height"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "vertices",
+          "name": "Vertices",
+          "type": "vertices",
+          "description": "Gothic architecture vertices"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "archType",
+          "name": "Arch Type",
+          "type": "select",
+          "defaultValue": "pointed",
+          "options": ["pointed", "lancet", "equilateral", "drop"],
+          "description": "Gothic arch style"
+        },
+        {
+          "id": "columns",
+          "name": "Column Count",
+          "type": "integer",
+          "defaultValue": 3,
+          "min": 1,
+          "max": 7,
+          "description": "Number of columns"
+        },
+        {
+          "id": "detail",
+          "name": "Detail Level",
+          "type": "integer",
+          "defaultValue": 2,
+          "min": 1,
+          "max": 5,
+          "description": "Ornamental detail complexity"
+        }
+      ],
+      "executeCode": "const height = inputs.height || 10;\nconst archType = parameters.archType || 'pointed';\nconst columns = Math.min(parameters.columns || 3, 7);\nconst detail = parameters.detail || 2;\n\nconst vertices = [];\n\n// Gothic arch generation\nfunction createArch(centerX, centerZ, width, height, type) {\n  const points = [];\n  const segments = 32 * detail;\n  \n  for (let i = 0; i <= segments; i++) {\n    const t = i / segments;\n    let x, y;\n    \n    switch (type) {\n      case 'pointed':\n        if (t <= 0.5) {\n          const angle = t * Math.PI;\n          x = centerX - width/2 + (width/2) * Math.sin(angle);\n          y = height * (1 - Math.cos(angle));\n        } else {\n          const angle = (1 - t) * Math.PI;\n          x = centerX + (width/2) * Math.sin(angle);\n          y = height * (1 - Math.cos(angle));\n        }\n        break;\n      case 'lancet':\n        const lanceAngle = (t - 0.5) * Math.PI * 1.2;\n        x = centerX + (width/2) * Math.sin(lanceAngle);\n        y = height * (1 + Math.cos(lanceAngle)) / 2;\n        break;\n      case 'equilateral':\n        const eqAngle = t * Math.PI;\n        x = centerX + (width/2) * (t - 0.5) * 2;\n        y = height * Math.sin(eqAngle);\n        break;\n      default: // drop\n        const dropAngle = t * Math.PI;\n        x = centerX + (width/2) * Math.sin(dropAngle);\n        y = height * (Math.sin(dropAngle) + 0.2 * Math.sin(dropAngle * 3));\n    }\n    \n    points.push([x, y, centerZ]);\n  }\n  \n  return points;\n}\n\n// Generate columns with Gothic styling\nfor (let col = 0; col < columns; col++) {\n  const x = (col - (columns - 1) / 2) * 6;\n  const archWidth = 4;\n  \n  // Main arch\n  const archPoints = createArch(x, 0, archWidth, height, archType);\n  for (const point of archPoints) {\n    vertices.push(...point);\n  }\n  \n  // Column shaft with detail\n  const columnSegments = 16 * detail;\n  for (let i = 0; i <= columnSegments; i++) {\n    const y = (i / columnSegments) * height;\n    const radius = 0.3 + 0.1 * Math.sin(y * 0.5); // Varying column thickness\n    \n    // Add spiral details\n    const spiralDetail = detail > 1 ? 0.05 * Math.sin(y * 2 + col) : 0;\n    const finalRadius = radius + spiralDetail;\n    \n    // Create column cross-section\n    for (let j = 0; j < 8; j++) {\n      const angle = (j / 8) * Math.PI * 2;\n      const colX = x + finalRadius * Math.cos(angle);\n      const colZ = finalRadius * Math.sin(angle);\n      vertices.push(colX, y, colZ);\n    }\n  }\n  \n  // Capital (column top decoration)\n  if (detail >= 2) {\n    const capHeight = height * 0.9;\n    for (let i = 0; i < 12; i++) {\n      const angle = (i / 12) * Math.PI * 2;\n      const capRadius = 0.6;\n      const leafX = x + capRadius * Math.cos(angle);\n      const leafZ = capRadius * Math.sin(angle);\n      \n      // Leaf-like capital ornaments\n      vertices.push(x, capHeight, 0);\n      vertices.push(leafX, capHeight + 0.3, leafZ);\n      vertices.push(leafX * 0.8, capHeight + 0.5, leafZ * 0.8);\n    }\n  }\n}\n\n// Flying buttresses\nif (detail >= 3 && columns > 1) {\n  for (let i = 0; i < columns - 1; i++) {\n    const x1 = (i - (columns - 1) / 2) * 6;\n    const x2 = (i + 1 - (columns - 1) / 2) * 6;\n    const buttressHeight = height * 0.7;\n    \n    // Curved buttress\n    for (let j = 0; j <= 16; j++) {\n      const t = j / 16;\n      const x = x1 + (x2 - x1) * t;\n      const y = buttressHeight + Math.sin(t * Math.PI) * 2;\n      const z = -3 + Math.sin(t * Math.PI) * 1;\n      vertices.push(x, y, z);\n    }\n  }\n}\n\nreturn { vertices };",
+      "ui": {
+        "width": 260,
+        "icon": "code",
+        "advanced": ["detail"]
+      },
+      "version": "1.0.0",
+      "author": "GeometryScript",
+      "created": "2024-01-01T00:00:00.000Z",
+      "tags": ["architecture", "gothic", "historical", "decorative"]
+    },
+    {
+      "type": "dna-helix",
+      "name": "DNA Double Helix",
+      "description": "Generates accurate DNA double helix structure with base pairs",
+      "category": "geometry",
+      "color": {
+        "primary": "#ef4444",
+        "secondary": "#dc2626"
+      },
+      "inputs": [
+        {
+          "id": "time",
+          "name": "Rotation",
+          "type": "number",
+          "defaultValue": 0,
+          "description": "Helix rotation animation"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "vertices",
+          "name": "Vertices",
+          "type": "vertices",
+          "description": "DNA helix structure vertices"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "turns",
+          "name": "Helix Turns",
+          "type": "number",
+          "defaultValue": 3,
+          "min": 1,
+          "max": 10,
+          "description": "Number of complete helix turns"
+        },
+        {
+          "id": "basePairs",
+          "name": "Base Pairs",
+          "type": "integer",
+          "defaultValue": 30,
+          "min": 10,
+          "max": 100,
+          "description": "Number of base pairs"
+        },
+        {
+          "id": "radius",
+          "name": "Helix Radius",
+          "type": "number",
+          "defaultValue": 1,
+          "min": 0.5,
+          "max": 3,
+          "description": "DNA strand radius"
+        },
+        {
+          "id": "showBases",
+          "name": "Show Bases",
+          "type": "boolean",
+          "defaultValue": true,
+          "description": "Display base pair connections"
+        }
+      ],
+      "executeCode": "const time = inputs.time || 0;\nconst turns = parameters.turns || 3;\nconst basePairs = Math.min(parameters.basePairs || 30, 100);\nconst radius = parameters.radius || 1;\nconst showBases = parameters.showBases !== false;\n\nconst vertices = [];\nconst height = turns * 3.4; // 3.4 units per turn (DNA pitch)\nconst anglePerPair = (turns * 2 * Math.PI) / basePairs;\n\n// DNA consists of two antiparallel strands\nfor (let i = 0; i < basePairs; i++) {\n  const y = (i / basePairs) * height;\n  const angle1 = i * anglePerPair + time;\n  const angle2 = angle1 + Math.PI; // 180° offset for second strand\n  \n  // First strand (sugar-phosphate backbone)\n  const x1 = radius * Math.cos(angle1);\n  const z1 = radius * Math.sin(angle1);\n  \n  // Second strand\n  const x2 = radius * Math.cos(angle2);\n  const z2 = radius * Math.sin(angle2);\n  \n  // Add backbone points\n  vertices.push(x1, y, z1);\n  vertices.push(x2, y, z2);\n  \n  // Connect adjacent backbone points\n  if (i > 0) {\n    const prevY = ((i-1) / basePairs) * height;\n    const prevAngle1 = (i-1) * anglePerPair + time;\n    const prevAngle2 = prevAngle1 + Math.PI;\n    \n    const prevX1 = radius * Math.cos(prevAngle1);\n    const prevZ1 = radius * Math.sin(prevAngle1);\n    const prevX2 = radius * Math.cos(prevAngle2);\n    const prevZ2 = radius * Math.sin(prevAngle2);\n    \n    // Connect current to previous for strand continuity\n    vertices.push(prevX1, prevY, prevZ1);\n    vertices.push(x1, y, z1);\n    vertices.push(prevX2, prevY, prevZ2);\n    vertices.push(x2, y, z2);\n  }\n  \n  // Base pairs (horizontal connections)\n  if (showBases) {\n    // Major groove positioning\n    const baseOffset1 = 0.7; // Distance from backbone to base\n    const baseOffset2 = 0.7;\n    \n    const baseX1 = x1 + baseOffset1 * Math.cos(angle1 + Math.PI/2);\n    const baseZ1 = z1 + baseOffset1 * Math.sin(angle1 + Math.PI/2);\n    const baseX2 = x2 + baseOffset2 * Math.cos(angle2 - Math.PI/2);\n    const baseZ2 = z2 + baseOffset2 * Math.sin(angle2 - Math.PI/2);\n    \n    // Connect bases across the helix\n    vertices.push(baseX1, y, baseZ1);\n    vertices.push(baseX2, y, baseZ2);\n    \n    // Add base representations (small perpendicular segments)\n    const baseLength = 0.2;\n    \n    // Base on strand 1\n    const perpAngle1 = angle1 + Math.PI/2;\n    vertices.push(\n      baseX1 - baseLength * Math.cos(perpAngle1), y, baseZ1 - baseLength * Math.sin(perpAngle1),\n      baseX1 + baseLength * Math.cos(perpAngle1), y, baseZ1 + baseLength * Math.sin(perpAngle1)\n    );\n    \n    // Base on strand 2\n    const perpAngle2 = angle2 + Math.PI/2;\n    vertices.push(\n      baseX2 - baseLength * Math.cos(perpAngle2), y, baseZ2 - baseLength * Math.sin(perpAngle2),\n      baseX2 + baseLength * Math.cos(perpAngle2), y, baseZ2 + baseLength * Math.sin(perpAngle2)\n    );\n  }\n  \n  // Add minor groove details\n  if (i % 3 === 0) { // Every third base pair\n    const grooveRadius = radius * 0.8;\n    const grooveX = grooveRadius * Math.cos(angle1 + Math.PI/4);\n    const grooveZ = grooveRadius * Math.sin(angle1 + Math.PI/4);\n    vertices.push(grooveX, y, grooveZ);\n  }\n}\n\nreturn { vertices };",
+      "ui": {
+        "width": 240,
+        "icon": "code",
+        "advanced": ["showBases"]
+      },
+      "version": "1.0.0",
+      "author": "GeometryScript",
+      "created": "2024-01-01T00:00:00.000Z",
+      "tags": ["biology", "dna", "helix", "molecular"]
+    },
+    {
+      "type": "maze-generator",
+      "name": "3D Maze Generator",
+      "description": "Generates 3D maze structures using recursive backtracking",
+      "category": "geometry",
+      "color": {
+        "primary": "#78716c",
+        "secondary": "#57534e"
+      },
+      "inputs": [
+        {
+          "id": "seed",
+          "name": "Seed",
+          "type": "integer",
+          "defaultValue": 456,
+          "description": "Maze generation seed"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "vertices",
+          "name": "Vertices",
+          "type": "vertices",
+          "description": "Maze wall vertices"
+        }
+      ],
+      "parameters": [
+        {
+          "id": "width",
+          "name": "Maze Width",
+          "type": "integer",
+          "defaultValue": 15,
+          "min": 5,
+          "max": 31,
+          "description": "Maze width (odd numbers)"
+        },
+        {
+          "id": "height",
+          "name": "Maze Height",
+          "type": "integer",
+          "defaultValue": 15,
+          "min": 5,
+          "max": 31,
+          "description": "Maze height (odd numbers)"
+        },
+        {
+          "id": "wallHeight",
+          "name": "Wall Height",
+          "type": "number",
+          "defaultValue": 3,
+          "min": 1,
+          "max": 10,
+          "description": "Height of maze walls"
+        },
+        {
+          "id": "complexity",
+          "name": "Complexity",
+          "type": "number",
+          "defaultValue": 0.5,
+          "min": 0,
+          "max": 1,
+          "step": 0.1,
+          "description": "Maze complexity (0=simple, 1=complex)"
+        }
+      ],
+      "executeCode": "const seed = inputs.seed || 456;\nlet width = parameters.width || 15;\nlet height = parameters.height || 15;\nconst wallHeight = parameters.wallHeight || 3;\nconst complexity = parameters.complexity || 0.5;\n\n// Ensure odd dimensions for proper maze generation\nwidth = width % 2 === 0 ? width + 1 : width;\nheight = height % 2 === 0 ? height + 1 : height;\n\nwidth = Math.min(width, 31);\nheight = Math.min(height, 31);\n\n// Seeded random function\nlet randomSeed = seed;\nfunction seededRandom() {\n  randomSeed = (randomSeed * 9301 + 49297) % 233280;\n  return randomSeed / 233280;\n}\n\n// Initialize maze grid (true = wall, false = path)\nconst maze = [];\nfor (let y = 0; y < height; y++) {\n  maze[y] = [];\n  for (let x = 0; x < width; x++) {\n    maze[y][x] = true; // Start with all walls\n  }\n}\n\n// Recursive backtracking maze generation\nfunction carvePath(x, y) {\n  maze[y][x] = false; // Create path\n  \n  // Directions: up, right, down, left\n  const directions = [\n    {dx: 0, dy: -2},\n    {dx: 2, dy: 0},\n    {dx: 0, dy: 2},\n    {dx: -2, dy: 0}\n  ];\n  \n  // Shuffle directions\n  for (let i = directions.length - 1; i > 0; i--) {\n    const j = Math.floor(seededRandom() * (i + 1));\n    [directions[i], directions[j]] = [directions[j], directions[i]];\n  }\n  \n  for (const dir of directions) {\n    const nx = x + dir.dx;\n    const ny = y + dir.dy;\n    \n    // Check bounds and if cell is unvisited\n    if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx]) {\n      // Carve through the wall between current and next cell\n      maze[y + dir.dy / 2][x + dir.dx / 2] = false;\n      carvePath(nx, ny);\n    }\n  }\n}\n\n// Start maze generation from (1,1)\ncarvePath(1, 1);\n\n// Add some random complexity\nconst extraPaths = Math.floor(complexity * width * height * 0.1);\nfor (let i = 0; i < extraPaths; i++) {\n  const x = Math.floor(seededRandom() * width);\n  const y = Math.floor(seededRandom() * height);\n  if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {\n    maze[y][x] = false;\n  }\n}\n\n// Ensure entrance and exit\nmaze[1][0] = false; // Entrance\nmaze[height - 2][width - 1] = false; // Exit\n\n// Generate 3D vertices for walls\nconst vertices = [];\nconst cellSize = 2;\n\nfor (let y = 0; y < height; y++) {\n  for (let x = 0; x < width; x++) {\n    if (maze[y][x]) { // This is a wall\n      const worldX = (x - width / 2) * cellSize;\n      const worldZ = (y - height / 2) * cellSize;\n      \n      // Create wall cube vertices\n      const positions = [\n        // Bottom face\n        [worldX - cellSize/2, 0, worldZ - cellSize/2],\n        [worldX + cellSize/2, 0, worldZ - cellSize/2],\n        [worldX + cellSize/2, 0, worldZ + cellSize/2],\n        [worldX - cellSize/2, 0, worldZ + cellSize/2],\n        // Top face\n        [worldX - cellSize/2, wallHeight, worldZ - cellSize/2],\n        [worldX + cellSize/2, wallHeight, worldZ - cellSize/2],\n        [worldX + cellSize/2, wallHeight, worldZ + cellSize/2],\n        [worldX - cellSize/2, wallHeight, worldZ + cellSize/2]\n      ];\n      \n      // Add all cube vertices\n      for (const pos of positions) {\n        vertices.push(...pos);\n      }\n      \n      // Add edges for wireframe representation\n      const edges = [\n        [0,1], [1,2], [2,3], [3,0], // Bottom edges\n        [4,5], [5,6], [6,7], [7,4], // Top edges\n        [0,4], [1,5], [2,6], [3,7]  // Vertical edges\n      ];\n      \n      for (const edge of edges) {\n        vertices.push(...positions[edge[0]], ...positions[edge[1]]);\n      }\n    }\n  }\n}\n\nreturn { vertices };",
+      "ui": {
+        "width": 260,
+        "icon": "code",
+        "advanced": ["complexity"]
+      },
+      "version": "1.0.0",
+      "author": "GeometryScript",
+      "created": "2024-01-01T00:00:00.000Z",
+      "tags": ["maze", "procedural", "algorithm", "game"]
+    }
+  ]
+} 

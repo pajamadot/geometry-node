@@ -147,6 +147,223 @@ The system includes automatic type checking for connections:
 - Number sockets connect to number and integer inputs
 - Time sockets connect to time and number inputs
 
+## Custom Node System
+
+Geometry Script now supports a powerful JSON-based custom node system that allows you to create and extend nodes without modifying the core codebase.
+
+### Creating Custom Nodes
+
+#### JSON Node Definition Structure
+```json
+{
+  "type": "my-custom-node",
+  "name": "My Custom Node", 
+  "description": "Description of what this node does",
+  "category": "utilities",
+  "color": {
+    "primary": "#6366f1",
+    "secondary": "#4f46e5"
+  },
+  "inputs": [
+    {
+      "id": "input1",
+      "name": "Input 1",
+      "type": "number",
+      "defaultValue": 0,
+      "description": "First input"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output1", 
+      "name": "Output 1",
+      "type": "number",
+      "description": "First output"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "factor",
+      "name": "Factor",
+      "type": "number",
+      "defaultValue": 2,
+      "min": 0,
+      "max": 10,
+      "description": "Multiplication factor"
+    }
+  ],
+  "executeCode": "const input1 = inputs.input1 || 0;\nconst factor = parameters.factor || 2;\nreturn { output1: input1 * factor };",
+  "ui": {
+    "width": 200,
+    "icon": "calculator"
+  },
+  "version": "1.0.0",
+  "author": "Your Name"
+}
+```
+
+#### Key Components
+
+**Basic Information:**
+- `type`: Unique identifier for the node
+- `name`: Display name in the interface
+- `description`: Brief description of functionality
+- `category`: Category for organization (geometry, math, utilities, etc.)
+- `color`: Primary and secondary colors for the node
+
+**Inputs/Outputs:**
+- `inputs`: Array of input sockets the node accepts
+- `outputs`: Array of output sockets the node produces
+- Each socket has `id`, `name`, `type`, and optional properties
+
+**Parameters:**
+- `parameters`: Array of controllable properties
+- Support for various types: number, boolean, string, select, etc.
+- Min/max values, step sizes, and option lists
+
+**Execution Code:**
+- `executeCode`: JavaScript function body as string
+- Access inputs via `inputs.inputId`
+- Access parameters via `parameters.parameterId`
+- Return object with outputs: `{ outputId: value }`
+
+### Managing Custom Nodes
+
+#### Access Custom Node Manager
+1. Right-click in the node editor to open context menu
+2. Click the settings icon (⚙️) in the context menu header
+3. Or press `Ctrl+Shift+N` (future enhancement)
+
+#### Custom Node Manager Features
+
+**Add New Nodes:**
+- Click "Add Node" to create from template
+- Edit JSON definition in the built-in editor
+- Real-time validation with error reporting
+
+**Import/Export:**
+- **Export All**: Download all custom nodes as JSON file
+- **Import**: Load nodes from JSON file
+- **From Clipboard**: Import nodes from clipboard text
+- Automatic backup to localStorage
+
+**Node Management:**
+- **Edit**: Modify existing custom nodes
+- **Copy**: Copy node definition to clipboard
+- **Delete**: Remove custom nodes
+- **Validation**: Real-time error checking
+
+### Supported Parameter Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `number` | Floating point number | 3.14 |
+| `integer` | Whole number | 42 |
+| `boolean` | True/false value | true |
+| `string` | Text input | "Hello" |
+| `select` | Dropdown selection | ["option1", "option2"] |
+| `color` | Color picker | "#ff0000" |
+| `vector` | 3D vector | {x: 1, y: 2, z: 3} |
+| `geometry` | 3D mesh data | Three.js geometry |
+| `material` | Material properties | Material object |
+
+### Socket Type Compatibility
+
+Custom nodes integrate seamlessly with the existing type system:
+- Number sockets connect to number/integer inputs
+- Vector sockets connect to vector inputs  
+- Geometry sockets connect to geometry inputs
+- All type checking and validation applies
+
+### Example Custom Nodes
+
+The system includes several example nodes demonstrating common patterns:
+
+**Double Number**: Simple math operation
+```javascript
+const value = inputs.value || 0;
+return { result: value * 2 };
+```
+
+**Random Position**: Vector generation with parameters
+```javascript
+const seed = inputs.seed || 0;
+const minX = parameters.minX || -5;
+// ... seeded random generation
+return { position: { x, y, z } };
+```
+
+**Wave Generator**: Animation and parameter selection
+```javascript
+const time = inputs.time || 0;
+const waveType = parameters.waveType || 'sine';
+// ... wave generation logic
+return { value: generatedValue };
+```
+
+### Security & Limitations
+
+**Safe Execution:**
+- Code runs in restricted context
+- Limited global access (Math, console only)
+- No file system or network access
+- Automatic error handling and recovery
+
+**Performance:**
+- Nodes execute in main thread
+- Keep execution code simple and fast
+- Avoid infinite loops or heavy computation
+
+### Storage & Persistence
+
+**Automatic Storage:**
+- Custom nodes saved to browser localStorage
+- Automatic backup on changes
+- Survives browser restarts
+
+**File Management:**
+- Export collections as `.json` files
+- Share node libraries between projects
+- Version control friendly JSON format
+
+### Best Practices
+
+1. **Naming**: Use descriptive, unique node types
+2. **Documentation**: Provide clear descriptions for all inputs/outputs
+3. **Validation**: Test with various input combinations
+4. **Performance**: Keep execution code lightweight
+5. **Modularity**: Create focused, single-purpose nodes
+6. **Compatibility**: Follow existing socket type conventions
+
+### Advanced Features
+
+**Parameter Categories:**
+```json
+"parameters": [
+  {
+    "id": "advanced",
+    "category": "advanced"
+  }
+]
+```
+
+**UI Customization:**
+```json
+"ui": {
+  "width": 250,
+  "icon": "calculator",
+  "advanced": ["advancedParam1", "advancedParam2"]
+}
+```
+
+**Versioning:**
+```json
+"version": "1.2.0",
+"author": "Your Name",
+"created": "2024-01-01T00:00:00.000Z",
+"tags": ["math", "utility"]
+```
+
 ## Development
 
 ### Project Structure

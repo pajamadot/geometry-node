@@ -26,6 +26,8 @@ import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
+import CustomNodeManager from './CustomNodeManager';
+import { RefreshCw } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
 
@@ -806,6 +808,9 @@ export default function GeometryNodeEditor() {
   } | null>(null);
   const [disabledNodes, setDisabledNodes] = useState<Set<string>>(new Set());
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  const [customNodeManagerOpen, setCustomNodeManagerOpen] = useState(false);
+  const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
+  const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
 
   // Auto-save scene to localStorage when nodes or edges change
   useEffect(() => {
@@ -815,6 +820,14 @@ export default function GeometryNodeEditor() {
 
     return () => clearTimeout(timer);
   }, [nodes, edges]);
+
+  // Subscribe to registry updates
+  useEffect(() => {
+    const unsubscribe = nodeRegistry.onUpdate(() => {
+      setRegistryUpdateKey(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
 
     // Helper function to enhance programmatic edges with proper metadata
   const enhanceEdgesWithMetadata = useCallback((edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
@@ -1153,6 +1166,28 @@ export default function GeometryNodeEditor() {
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const closeNodeContextMenu = useCallback(() => setNodeContextMenu(null), []);
 
+  // Handle refreshing nodes from server
+  const handleRefreshNodes = useCallback(async () => {
+    setIsRefreshingNodes(true);
+    try {
+      const result = await nodeRegistry.refreshNodeSystem();
+      
+      if (result.success > 0) {
+        console.log(`✅ Refreshed ${result.success} nodes from server`);
+        console.log('Registry now has definitions:', nodeRegistry.getAllDefinitions().map(d => d.type));
+        // Registry update callback will automatically trigger nodeTypes re-creation
+      }
+      
+      if (result.failed.length > 0) {
+        console.warn(`⚠️ ${result.failed.length} nodes failed to load:`, result.failed);
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh nodes:', error);
+    } finally {
+      setIsRefreshingNodes(false);
+    }
+  }, []);
+
   // Handle edge click for deletion with Alt key
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: any) => {
     if (event.altKey) {
@@ -1239,6 +1274,7 @@ export default function GeometryNodeEditor() {
     const types: Record<string, any> = {};
     
     const definitions = nodeRegistry.getAllDefinitions();
+    console.log('Creating nodeTypes for definitions:', definitions.map(d => d.type));
     
     definitions.forEach(definition => {
       types[definition.type] = ({ id, data, selected }: any) => {
@@ -1274,8 +1310,9 @@ export default function GeometryNodeEditor() {
       };
     });
     
+    console.log('Created nodeTypes:', Object.keys(types));
     return types;
-  }, [updateNodeData]);
+  }, [updateNodeData, registryUpdateKey]); // Add registryUpdateKey as dependency
 
   // Handle right-click for context menu
   const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
@@ -1732,6 +1769,24 @@ export default function GeometryNodeEditor() {
         position={contextMenu}
         onClose={closeContextMenu}
         onAddNode={addNode}
+        onOpenCustomNodeManager={() => setCustomNodeManagerOpen(true)}
+        onRefreshNodes={handleRefreshNodes}
+      />
+
+      {/* Refresh indicator */}
+      {isRefreshingNodes && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-900/90 backdrop-blur-sm border border-blue-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <RefreshCw size={16} className="animate-spin text-blue-400" />
+            <span>Refreshing nodes from server...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Node Manager */}
+      <CustomNodeManager
+        isOpen={customNodeManagerOpen}
+        onClose={() => setCustomNodeManagerOpen(false)}
       />
 
       {/* Node Context Menu */}

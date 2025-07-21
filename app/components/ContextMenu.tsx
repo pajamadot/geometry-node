@@ -4,12 +4,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NodeType } from '../types/nodes';
 import { nodeRegistry } from '../registry/NodeRegistry';
 import { CATEGORY_METADATA } from '../types/nodeSystem';
-import { Search } from 'lucide-react';
+import { Search, Settings, RefreshCw } from 'lucide-react';
 
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
   onClose: () => void;
   onAddNode: (type: string, position: { x: number; y: number }, primitiveType?: string) => void;
+  onOpenCustomNodeManager?: () => void;
+  onRefreshNodes?: () => void;
 }
 
 interface NodeMenuItem {
@@ -23,11 +25,19 @@ interface NodeMenuItem {
 
 
 
-export default function ContextMenu({ position, onClose, onAddNode }: ContextMenuProps) {
+export default function ContextMenu({ position, onClose, onAddNode, onOpenCustomNodeManager, onRefreshNodes }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Generate menu items from registry
+  // Force refresh when context menu opens to get latest nodes
+  useEffect(() => {
+    if (position) {
+      setRefreshKey(prev => prev + 1);
+    }
+  }, [position]);
+
+  // Generate menu items from registry - refreshes when refreshKey changes
   const nodeMenuItems: NodeMenuItem[] = React.useMemo(() => {
     return nodeRegistry.getAllDefinitions().map(definition => {
       const categoryMeta = CATEGORY_METADATA[definition.category];
@@ -40,7 +50,7 @@ export default function ContextMenu({ position, onClose, onAddNode }: ContextMen
         icon: definition.ui?.icon || categoryMeta?.icon
       };
     });
-  }, []);
+  }, [refreshKey]); // Depend on refreshKey to update when context menu opens
 
   // Filter items based on search query
   const filteredItems = React.useMemo(() => {
@@ -119,8 +129,34 @@ export default function ContextMenu({ position, onClose, onAddNode }: ContextMen
         }}
       >
         {/* Header */}
-        <div className="px-4 py-3 text-xs font-semibold text-gray-200 border-b border-gray-600/50 bg-gray-800/50 rounded-t-lg">
-          Add Node
+        <div className="px-4 py-3 text-xs font-semibold text-gray-200 border-b border-gray-600/50 bg-gray-800/50 rounded-t-lg flex items-center justify-between">
+          <span>Add Node</span>
+          <div className="flex items-center gap-1">
+            {onRefreshNodes && (
+              <button
+                onClick={() => {
+                  onRefreshNodes();
+                  onClose();
+                }}
+                className="p-1 hover:bg-gray-600/50 rounded transition-colors"
+                title="Refresh Nodes from Server"
+              >
+                <RefreshCw size={14} className="text-blue-400" />
+              </button>
+            )}
+            {onOpenCustomNodeManager && (
+              <button
+                onClick={() => {
+                  onOpenCustomNodeManager();
+                  onClose();
+                }}
+                className="p-1 hover:bg-gray-600/50 rounded transition-colors"
+                title="Manage Custom Nodes"
+              >
+                <Settings size={14} className="text-gray-400" />
+              </button>
+            )}
+          </div>
         </div>
         
         {/* Search bar */}
