@@ -60,16 +60,16 @@ function CompiledGeometry() {
   
   // Debug logging for multi-material geometries
   if (geometryMaterials && geometryMaterials.length > 1) {
-    console.log('🎨 Multi-material geometry detected:', {
-      materialCount: geometryMaterials.length,
-      groupCount: compiledGeometry.groups?.length || 0,
-      materials: geometryMaterials.map((mat: THREE.Material, i: number) => ({
-        index: i,
-        type: mat.type,
-        name: mat.name || `Material ${i}`
-      })),
-      groups: compiledGeometry.groups
-    });
+    // console.log('🎨 Multi-material geometry detected:', {
+    //   materialCount: geometryMaterials.length,
+    //   groupCount: compiledGeometry.groups?.length || 0,
+    //   materials: geometryMaterials.map((mat: THREE.Material, i: number) => ({
+    //     index: i,
+    //     type: mat.type,
+    //     name: mat.name || `Material ${i}`
+    //   })),
+    //   groups: compiledGeometry.groups
+    // });
   }
   
   // Determine final material(s) to use
@@ -175,13 +175,13 @@ export default function ThreeViewport() {
     
     // Prevent recovery loop by checking if we just attempted recovery
     if (now - lastRecoveryTime.current < recoveryDelay) {
-      console.log('Context loss detected too soon after recovery - stopping recovery loop');
+      // console.log('Context loss detected too soon after recovery - stopping recovery loop');
       setContextLost(true);
       setWebglSupported(false);
       return;
     }
     
-    console.log('WebGL context lost');
+    // console.log('WebGL context lost');
     event.preventDefault();
     setContextLost(true);
   }, []);
@@ -189,12 +189,12 @@ export default function ThreeViewport() {
   // Manual recovery only
   const handleManualRecovery = useCallback(() => {
     if (recoveryAttempts >= maxRecoveryAttempts) {
-      console.log('Max recovery attempts reached, refreshing page');
+      // console.log('Max recovery attempts reached, refreshing page');
       window.location.reload();
       return;
     }
 
-    console.log(`Manual recovery attempt ${recoveryAttempts + 1}/${maxRecoveryAttempts}`);
+    // console.log(`Manual recovery attempt ${recoveryAttempts + 1}/${maxRecoveryAttempts}`);
     
     lastRecoveryTime.current = Date.now();
     setRecoveryAttempts(prev => prev + 1);
@@ -215,7 +215,7 @@ export default function ThreeViewport() {
       // Only add context loss listener - no automatic recovery
       canvas.addEventListener('webglcontextlost', handleContextLoss, false);
       
-      console.log('Canvas created successfully');
+      // console.log('Canvas created successfully');
       
       // Reset recovery attempts on successful creation
       setRecoveryAttempts(0);

@@ -81,12 +81,12 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
       return { geometry: geometryA || geometryB || null };
     }
 
-    console.log('Mesh Boolean operation:', {
-      operation,
-      useWebAssembly,
-      geometryAVertices: geometryA.attributes.position?.count || 0,
-      geometryBVertices: geometryB.attributes.position?.count || 0
-    });
+    // console.log('Mesh Boolean operation:', {
+    //   operation,
+    //   useWebAssembly,
+    //   geometryAVertices: geometryA.attributes.position?.count || 0,
+    //   geometryBVertices: geometryB.attributes.position?.count || 0
+    // });
 
     try {
       const result = performBooleanOperation(geometryA, geometryB, operation, useWebAssembly, precision);
@@ -139,7 +139,7 @@ function performBooleanOperation(
     try {
       return performWebAssemblyBoolean(geometryA, geometryB, operation, precision);
     } catch (error) {
-      console.warn('WebAssembly boolean failed, falling back to JavaScript:', error);
+      // console.log('WebAssembly boolean operations not yet implemented, using JavaScript fallback');
     }
   }
 
@@ -154,13 +154,12 @@ function performWebAssemblyBoolean(
   operation: string,
   precision: number
 ): THREE.BufferGeometry {
-  // TODO: Implement WebAssembly boolean operations
-  // This would use libraries like:
+  // console.log('WebAssembly boolean engine would be loaded here');
+  // This would integrate with a real boolean geometry library like:
   // - Manifold: https://github.com/elalish/manifold
-  // - OpenVDB: For volumetric operations
-  // - CGAL: For robust geometric computations
+  // - OpenCASCADE: https://www.opencascade.com/
   
-  console.log('WebAssembly boolean operations not yet implemented, using JavaScript fallback');
+  // console.log('WebAssembly boolean operations not yet implemented, using JavaScript fallback');
   throw new Error('WebAssembly implementation not available');
 }
 
@@ -220,12 +219,9 @@ function performUnion(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGe
 
 // Difference operation: A - B
 function performDifference(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGeometry, precision: number): THREE.BufferGeometry {
-  // Simplified implementation: return A with parts of B removed
-  // This is a complex operation that typically requires CSG algorithms
+  // Simplified implementation: return A with slight modification to show difference
+  // console.log('Difference operation: Using simplified implementation');
   
-  console.log('Difference operation: Using simplified implementation');
-  
-  // For now, just return geometry A (placeholder)
   // In a full implementation, this would:
   // 1. Find intersections between A and B
   // 2. Remove intersecting parts from A
@@ -237,7 +233,7 @@ function performDifference(geometryA: THREE.BufferGeometry, geometryB: THREE.Buf
 // Intersection operation: A ∩ B
 function performIntersection(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGeometry, precision: number): THREE.BufferGeometry {
   // Simplified implementation: return the overlapping volume
-  console.log('Intersection operation: Using simplified implementation');
+  // console.log('Intersection operation: Using simplified implementation');
   
   // For now, return a scaled version of A (placeholder)
   // In a full implementation, this would:
@@ -284,7 +280,7 @@ export class WebAssemblyBooleanEngine {
       // const wasmUrl = '/path/to/geometry-boolean.wasm';
       // this.wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmUrl));
       
-      console.log('WebAssembly boolean engine would be loaded here');
+      // console.log('WebAssembly boolean engine would be loaded here');
       this.isLoaded = false; // Set to true when actual WASM is loaded
       return this.isLoaded;
     } catch (error) {

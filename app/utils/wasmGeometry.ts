@@ -43,7 +43,7 @@ export class WebAssemblyGeometryManager {
       const loaded = await engine.loadModule();
       if (loaded) {
         this.engines.set(engine.name, engine);
-        console.log(`WebAssembly engine ${engine.name} registered successfully`);
+        // console.log(`WebAssembly engine ${engine.name} registered successfully`);
         return true;
       }
     } catch (error) {
@@ -252,8 +252,8 @@ export class ManifoldEngine implements WasmGeometryEngine {
       // const manifoldWasm = await import('manifold-3d');
       // this.wasmModule = await manifoldWasm.default();
       
-      console.log('Manifold WASM module would be loaded here');
-      console.log('See: https://github.com/elalish/manifold for the actual library');
+      // console.log('Manifold WASM module would be loaded here');
+      // console.log('See: https://github.com/elalish/manifold for the actual library');
       
       // this.isLoaded = true;
       return false; // Set to true when actual module is loaded
@@ -318,7 +318,7 @@ export async function initializeWasmGeometry(): Promise<void> {
   // await manager.registerEngine(new CGALEngine());
   // await manager.registerEngine(new OpenVDBEngine());
   
-  console.log('Available WASM geometry engines:', manager.getAvailableEngines());
+  // console.log('Available WASM geometry engines:', manager.getAvailableEngines());
 }
 
 // Export the singleton instance for easy access

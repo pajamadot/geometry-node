@@ -107,8 +107,8 @@ export class NodeRegistry {
     templateNodes.forEach(node => this.register(node));
     
     // Debug: Log all registered nodes
-    console.log('Registered nodes:', Array.from(this.definitions.keys()));
-    console.log('Total nodes registered:', this.definitions.size);
+    // console.log('Registered nodes:', Array.from(this.definitions.keys()));
+    // console.log('Total nodes registered:', this.definitions.size);
   }
 
   // Register a new node definition

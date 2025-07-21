@@ -56,14 +56,14 @@ export const joinNodeDefinition: NodeDefinition = {
     const geometryB = inputs.geometryB;
     const operation = inputs.operation || 'merge';
     
-    console.log('Join node inputs:', {
-      geometryA: geometryA?.type || 'undefined',
-      geometryB: geometryB?.type || 'undefined',
-      geometryAVertices: geometryA?.attributes?.position?.count || 0,
-      geometryBVertices: geometryB?.attributes?.position?.count || 0,
-      geometryAIndexed: !!geometryA?.index,
-      geometryBIndexed: !!geometryB?.index
-    });
+    // console.log('Join node inputs:', {
+    //   geometryA: geometryA?.type || 'undefined',
+    //   geometryB: geometryB?.type || 'undefined',
+    //   geometryAVertices: geometryA?.attributes?.position?.count || 0,
+    //   geometryBVertices: geometryB?.attributes?.position?.count || 0,
+    //   geometryAIndexed: !!geometryA?.index,
+    //   geometryBIndexed: !!geometryB?.index
+    // });
     
     const geometries = [geometryA, geometryB].filter(Boolean);
     
@@ -82,15 +82,15 @@ export const joinNodeDefinition: NodeDefinition = {
     geometries.forEach((geometry, geomIndex) => {
       if (!geometry) return;
       
-      console.log(`Processing geometry ${geomIndex}:`, {
-        type: geometry.type,
-        hasPosition: !!geometry.attributes.position,
-        positionCount: geometry.attributes.position?.count || 0,
-        hasIndex: !!geometry.index,
-        indexCount: geometry.index?.count || 0,
-        isBufferGeometry: geometry.isBufferGeometry,
-        hasMaterial: !!((geometry as any).material || geometry.userData?.materials?.[0])
-      });
+      // console.log(`Processing geometry ${geomIndex}:`, {
+      //   type: geometry.type,
+      //   hasPosition: !!geometry.attributes.position,
+      //   positionCount: geometry.attributes.position?.count || 0,
+      //   hasIndex: !!geometry.index,
+      //   indexCount: geometry.index?.count || 0,
+      //   isBufferGeometry: geometry.isBufferGeometry,
+      //   hasMaterial: !!((geometry as any).material || geometry.userData?.materials?.[0])
+      // });
       
       const positions = geometry.attributes.position;
       const indices = geometry.index;
@@ -144,7 +144,7 @@ export const joinNodeDefinition: NodeDefinition = {
       
       // If geometry has multiple materials (from previous joins), collect them all
       if (geometryMaterials.length > 0) {
-        console.log(`Geometry ${geomIndex} has ${geometryMaterials.length} existing materials`);
+        // console.log(`Geometry ${geomIndex} has ${geometryMaterials.length} existing materials`);
         
         // Add all existing materials
         const materialIndexOffset = allMaterials.length;
@@ -161,7 +161,7 @@ export const joinNodeDefinition: NodeDefinition = {
               materialIndex: materialIndexOffset + (group.materialIndex || 0)
             });
           });
-          console.log(`Preserved ${geometryGroups.length} material groups for geometry ${geomIndex}`);
+          // console.log(`Preserved ${geometryGroups.length} material groups for geometry ${geomIndex}`);
         } else {
           // No existing groups, so assign all faces to first material
           if (indexCount > 0) {
@@ -184,7 +184,7 @@ export const joinNodeDefinition: NodeDefinition = {
             materialIndex
           });
         }
-        console.log(`Added single material for geometry ${geomIndex}`);
+        // console.log(`Added single material for geometry ${geomIndex}`);
       }
       
       vertexOffset += positions ? positions.count : 0;
@@ -217,20 +217,20 @@ export const joinNodeDefinition: NodeDefinition = {
       (mergedGeometry as any).material = allMaterials.length === 1 ? 
         allMaterials[0] : allMaterials;
       
-      console.log('Join result with materials:', {
-        totalMaterials: allMaterials.length,
-        materialGroups: materialGroups.length
-      });
+      // console.log('Join result with materials:', {
+      //   totalMaterials: allMaterials.length,
+      //   materialGroups: materialGroups.length
+      // });
     }
-    
-    console.log('Join result:', {
-      totalPositions: allPositions.length / 3,
-      totalIndices: allIndices.length,
-      hasPosition: !!mergedGeometry.attributes.position,
-      hasIndex: !!mergedGeometry.index,
-      finalVertexCount: mergedGeometry.attributes.position?.count || 0,
-      hasMaterials: allMaterials.length > 0
-    });
+
+    // console.log('Join result:', {
+    //   totalPositions: allPositions.length / 3,
+    //   totalIndices: allIndices.length,
+    //   hasPosition: !!mergedGeometry.attributes.position,
+    //   hasIndex: !!mergedGeometry.index,
+    //   finalVertexCount: mergedGeometry.attributes.position?.count || 0,
+    //   hasMaterials: allMaterials.length > 0
+    // });
     
     return { geometry: mergedGeometry };
   }

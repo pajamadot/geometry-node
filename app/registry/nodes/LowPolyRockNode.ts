@@ -118,11 +118,11 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
     if (!geometry.index) {
       // IcosahedronGeometry should already be indexed, but ensure it's properly formatted
       const positionCount = geometry.attributes.position.count;
-      console.log('Rock geometry validation:', {
-        hasIndex: !!geometry.index,
-        vertexCount: positionCount,
-        hasNormals: !!geometry.attributes.normal
-      });
+      // console.log('Rock geometry validation:', {
+      //   hasIndex: !!geometry.index,
+      //   vertexCount: positionCount,
+      //   hasNormals: !!geometry.attributes.normal
+      // });
     }
     
     // Create material
@@ -137,16 +137,16 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
     (geometry as any).material = material;
 
     // Debug geometry structure
-    console.log('Low poly rock geometry:', {
-      type: geometry.type,
-      hasPosition: !!geometry.attributes.position,
-      positionCount: geometry.attributes.position?.count || 0,
-      hasIndex: !!geometry.index,
-      indexCount: geometry.index?.count || 0,
-      isBufferGeometry: geometry.isBufferGeometry,
-      boundingBox: geometry.boundingBox,
-      hasNormals: !!geometry.attributes.normal
-    });
+    // console.log('Low poly rock geometry:', {
+    //   type: geometry.type,
+    //   hasPosition: !!geometry.attributes.position,
+    //   positionCount: geometry.attributes.position?.count || 0,
+    //   hasIndex: !!geometry.index,
+    //   indexCount: geometry.index?.count || 0,
+    //   isBufferGeometry: geometry.isBufferGeometry,
+    //   boundingBox: geometry.boundingBox,
+    //   hasNormals: !!geometry.attributes.normal
+    // });
 
     return { geometry };
   }

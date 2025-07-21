@@ -216,23 +216,23 @@ export class TemplateSystem {
     const nodes: NodeDefinition[] = [];
     const templates = this.getAllTemplates();
 
-    console.log('TemplateSystem: Generating nodes for templates:', Object.keys(templates));
+    // console.log('TemplateSystem: Generating nodes for templates:', Object.keys(templates));
 
     Object.keys(templates).forEach(templateName => {
       const makeNode = this.generateMakeNode(templateName);
       const breakNode = this.generateBreakNode(templateName);
       
       if (makeNode) {
-        console.log('TemplateSystem: Generated Make node:', makeNode.type);
+        // console.log('TemplateSystem: Generated Make node:', makeNode.type);
         nodes.push(makeNode);
       }
       if (breakNode) {
-        console.log('TemplateSystem: Generated Break node:', breakNode.type);
+        // console.log('TemplateSystem: Generated Break node:', breakNode.type);
         nodes.push(breakNode);
       }
     });
 
-    console.log('TemplateSystem: Total generated nodes:', nodes.length);
+    // console.log('TemplateSystem: Total generated nodes:', nodes.length);
     return nodes;
   }
 }

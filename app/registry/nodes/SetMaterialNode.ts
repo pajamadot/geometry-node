@@ -56,14 +56,14 @@ export const setMaterialNodeDefinition: NodeDefinition = {
     const material = inputs.material;
     const materialIndex = inputs.materialIndex ?? 0;
 
-    console.log('Set Material node execution:', {
-      hasGeometry: !!geometry,
-      hasMaterial: !!material,
-      materialIndex,
-      geometryType: geometry?.type,
-      materialType: material?.type,
-      geometryVertices: geometry?.attributes?.position?.count || 0
-    });
+    // console.log('Set Material node execution:', {
+    //   hasGeometry: !!geometry,
+    //   hasMaterial: !!material,
+    //   materialIndex,
+    //   geometryType: geometry?.type,
+    //   materialType: material?.type,
+    //   geometryVertices: geometry?.attributes?.position?.count || 0
+    // });
 
     if (!geometry || !material) {
       console.warn('Set Material: Missing geometry or material input', {
@@ -94,11 +94,11 @@ export const setMaterialNodeDefinition: NodeDefinition = {
       (outputGeometry as any).material = material;
     }
 
-    console.log('Set Material result:', {
-      hasOutputMaterial: !!((outputGeometry as any).material),
-      userDataMaterials: outputGeometry.userData.materials?.length || 0,
-      materialSet: !!outputGeometry.userData.materials[materialIndex]
-    });
+    // console.log('Set Material result:', {
+    //   hasOutputMaterial: !!((outputGeometry as any).material),
+    //   userDataMaterials: outputGeometry.userData.materials?.length || 0,
+    //   materialSet: !!outputGeometry.userData.materials[materialIndex]
+    // });
 
     return { geometry: outputGeometry };
   }

@@ -122,16 +122,16 @@ export const standardMaterialNodeDefinition: NodeDefinition = {
     const emissiveIntensity = inputs.emissiveIntensity ?? 1.0;
     const transparency = inputs.transparency ?? 0.0;
 
-    console.log('Standard Material inputs:', {
-      colorInput,
-      emissiveInput,
-      parsedColor: color,
-      parsedEmissive: emissive,
-      metalness,
-      roughness,
-      emissiveIntensity,
-      transparency
-    });
+    // console.log('Standard Material inputs:', {
+    //   colorInput,
+    //   emissiveInput,
+    //   parsedColor: color,
+    //   parsedEmissive: emissive,
+    //   metalness,
+    //   roughness,
+    //   emissiveIntensity,
+    //   transparency
+    // });
 
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(color.r, color.g, color.b),
@@ -144,12 +144,12 @@ export const standardMaterialNodeDefinition: NodeDefinition = {
       side: THREE.DoubleSide
     });
 
-    console.log('Created Standard Material:', {
-      color: material.color.getHexString(),
-      emissive: material.emissive.getHexString(),
-      metalness: material.metalness,
-      roughness: material.roughness
-    });
+    // console.log('Created Standard Material:', {
+    //   color: material.color.getHexString(),
+    //   emissive: material.emissive.getHexString(),
+    //   metalness: material.metalness,
+    //   roughness: material.roughness
+    // });
 
     return { material };
   }
@@ -211,12 +211,12 @@ export const basicMaterialNodeDefinition: NodeDefinition = {
     const transparency = inputs.transparency ?? 0.0;
     const wireframe = inputs.wireframe ?? false;
 
-    console.log('Basic Material inputs:', {
-      colorInput,
-      parsedColor: color,
-      transparency,
-      wireframe
-    });
+    // console.log('Basic Material inputs:', {
+    //   colorInput,
+    //   parsedColor: color,
+    //   transparency,
+    //   wireframe
+    // });
 
     const material = new THREE.MeshBasicMaterial({
       color: new THREE.Color(color.r, color.g, color.b),
@@ -334,14 +334,14 @@ export const physicalMaterialNodeDefinition: NodeDefinition = {
     const transmission = inputs.transmission ?? 0.0;
     const thickness = inputs.thickness ?? 0.0;
 
-    console.log('Physical Material inputs:', {
-      colorInput,
-      parsedColor: color,
-      metalness,
-      roughness,
-      clearcoat,
-      transmission
-    });
+    // console.log('Physical Material inputs:', {
+    //   colorInput,
+    //   parsedColor: color,
+    //   metalness,
+    //   roughness,
+    //   clearcoat,
+    //   transmission
+    // });
 
     const material = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(color.r, color.g, color.b),
@@ -415,13 +415,13 @@ export const emissiveMaterialNodeDefinition: NodeDefinition = {
     const baseColor = parseColorInput(baseColorInput);
     const intensity = inputs.intensity ?? 1.0;
 
-    console.log('Emissive Material inputs:', {
-      colorInput,
-      baseColorInput,
-      parsedEmissive: color,
-      parsedBase: baseColor,
-      intensity
-    });
+    // console.log('Emissive Material inputs:', {
+    //   colorInput,
+    //   baseColorInput,
+    //   parsedEmissive: color,
+    //   parsedBase: baseColor,
+    //   intensity
+    // });
 
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(baseColor.r, baseColor.g, baseColor.b),

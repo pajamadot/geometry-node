@@ -40,41 +40,26 @@ export function LoggingProvider({ children }: LoggingProviderProps) {
 
   const addLog = useCallback((level: LogLevel, message: string, details?: any, category?: string) => {
     const newLog: LogEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: Date.now().toString(),
       timestamp: new Date(),
       level,
       message,
       details,
-      category
+      category: category || 'general'
     };
 
-    setLogs(prevLogs => {
-      const updatedLogs = [newLog, ...prevLogs];
-      // Keep only the last 100 logs to prevent memory issues
-      return updatedLogs.slice(0, 100);
-    });
+    setLogs(prev => [...prev.slice(-99), newLog]); // Keep last 100 logs
 
-    // Console logging disabled for clean output
-    // Uncomment the following lines for development debugging:
-    /*
-    const consoleMessage = category ? `[${category}] ${message}` : message;
+    // Also log to console for development
+    const consoleMessage = `[${category || 'general'}] ${message}`;
     switch (level) {
-      case 'error':
-        console.error(consoleMessage, details);
-        break;
-      case 'warning':
-        console.warn(consoleMessage, details);
-        break;
-      case 'debug':
-        console.debug(consoleMessage, details);
-        break;
       case 'success':
-        console.log(`✅ ${consoleMessage}`, details);
+        // console.log(`✅ ${consoleMessage}`, details);
         break;
       default:
-        console.log(consoleMessage, details);
+        // console.log(consoleMessage, details);
+        break;
     }
-    */
   }, []);
 
   const clearLogs = useCallback(() => {

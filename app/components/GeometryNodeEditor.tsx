@@ -160,35 +160,35 @@ export default function GeometryNodeEditor() {
     const sourceSocketName = params.sourceHandle?.replace('-out', '');
     const targetSocketName = params.targetHandle?.replace('-in', '');
     
-    console.log('Connection validation:', {
-      sourceNode: sourceNode.data.type,
-      targetNode: targetNode.data.type,
-      sourceHandle: params.sourceHandle,
-      targetHandle: params.targetHandle,
-      sourceSocketName,
-      targetSocketName
-    });
+    // console.log('Connection validation:', {
+    //   sourceNode: sourceNode.data.type,
+    //   targetNode: targetNode.data.type,
+    //   sourceHandle: params.sourceHandle,
+    //   targetHandle: params.targetHandle,
+    //   sourceSocketName,
+    //   targetSocketName
+    // });
     
     // Find socket definitions
     const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
     const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
     
-    console.log('Socket definitions:', {
-      sourceSocket: sourceSocket?.type,
-      targetSocket: targetSocket?.type,
-      sourceDefOutputs: sourceDef.outputs.map(s => ({ id: s.id, type: s.type })),
-      targetDefInputs: targetDef.inputs.map(s => ({ id: s.id, type: s.type }))
-    });
+    // console.log('Socket definitions:', {
+    //   sourceSocket: sourceSocket?.type,
+    //   targetSocket: targetSocket?.type,
+    //   sourceDefOutputs: sourceDef.outputs.map(s => ({ id: s.id, type: s.type })),
+    //   targetDefInputs: targetDef.inputs.map(s => ({ id: s.id, type: s.type }))
+    // });
     
     if (!sourceSocket || !targetSocket) return false;
     
     // Check type compatibility
     const isCompatible = nodeRegistry.areSocketsCompatible(sourceSocket.type, targetSocket.type);
-    console.log('Type compatibility:', {
-      sourceType: sourceSocket.type,
-      targetType: targetSocket.type,
-      isCompatible
-    });
+    // console.log('Type compatibility:', {
+    //   sourceType: sourceSocket.type,
+    //   targetType: targetSocket.type,
+    //   isCompatible
+    // });
     
     return isCompatible;
   }, [nodes]);
@@ -212,7 +212,7 @@ export default function GeometryNodeEditor() {
     
     // Check type compatibility
     if (!areTypesCompatible(sourceType, targetType)) {
-      console.log(`Type mismatch: ${sourceType} -> ${targetType}`);
+      // console.log(`Type mismatch: ${sourceType} -> ${targetType}`);
       return false;
     }
 
@@ -478,7 +478,7 @@ export default function GeometryNodeEditor() {
             definition={definition}
             parameters={data.parameters || {}}
             inputConnections={data.inputConnections || {}}
-            liveParameterValues={data.liveParameterValues || {}}
+            liveParameterValues={(liveParameterValues as Record<string, Record<string, any>>)[id] || {}}
             socketValues={data.socketValues || {}}
             selected={selected}
             disabled={data.disabled}
@@ -504,7 +504,7 @@ export default function GeometryNodeEditor() {
     });
     
     return types;
-  }, [updateNodeData]);
+  }, [updateNodeData, liveParameterValues]);
 
   // Handle right-click for context menu
   const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
@@ -582,21 +582,14 @@ export default function GeometryNodeEditor() {
   }, [nodes, setNodes]);
 
   const copyNode = useCallback((nodeId: string) => {
-    const nodeToCopy = nodes.find(n => n.id === nodeId);
-    if (!nodeToCopy) return;
-
-    // Copy to clipboard as JSON
-    const nodeData = {
-      type: nodeToCopy.type,
-      data: nodeToCopy.data,
-      position: nodeToCopy.position
-    };
-    
-    navigator.clipboard.writeText(JSON.stringify(nodeData, null, 2)).then(() => {
-      console.log('Node copied to clipboard');
-    }).catch(() => {
-      console.log('Failed to copy node to clipboard');
-    });
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      navigator.clipboard.writeText(JSON.stringify(node.data)).then(() => {
+        // console.log('Node copied to clipboard');
+      }).catch(() => {
+        // console.log('Failed to copy node to clipboard');
+      });
+    }
   }, [nodes]);
 
   const toggleNodeDisabled = useCallback((nodeId: string) => {

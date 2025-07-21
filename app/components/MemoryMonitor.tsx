@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface MemoryInfo {
   usedJSHeapSize: number;
@@ -100,9 +100,21 @@ export default function MemoryMonitor() {
     // Force a more aggressive cleanup
     setTimeout(() => {
       // Clear any cached geometries (this would need to be implemented in the geometry cache)
-      console.log('Attempting memory cleanup...');
+      // console.log('Attempting memory cleanup...');
     }, 100);
   };
+
+  const performCleanup = useCallback(() => {
+    // console.log('Attempting memory cleanup...');
+    
+    if ('gc' in window && typeof (window as any).gc === 'function') {
+      try {
+        (window as any).gc();
+      } catch (error) {
+        // Ignore errors
+      }
+    }
+  }, []);
 
   if (!memoryInfo) {
     return null;

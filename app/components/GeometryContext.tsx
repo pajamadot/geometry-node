@@ -48,17 +48,17 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
     const hasTimeNodes = nodes.some(node => node.data.type === 'time');
     const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50;
     
-    console.log('📅 Compilation requested:', {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      isTimeUpdate,
-      hasTimeNodes,
-      debounceTime,
-      currentTime: currentTime || 0
-    });
+    // console.log('📅 Compilation requested:', {
+    //   nodeCount: nodes.length,
+    //   edgeCount: edges.length,
+    //   isTimeUpdate,
+    //   hasTimeNodes,
+    //   debounceTime,
+    //   currentTime: currentTime || 0
+    // });
     
     compilationTimeoutRef.current = setTimeout(() => {
-      console.log('🔨 Starting compilation...');
+      // console.log('🔨 Starting compilation...');
       setIsCompiling(true);
       setError(null);
 
@@ -126,11 +126,11 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
               animate();
             }
             
-            console.log('✅ Compilation successful, geometry updated', {
-              hasWaterMaterials,
-              hasShaderMaterials,
-              materialCount: (geometry.userData?.materials?.length || 0) + ((geometry as any).material ? 1 : 0)
-            });
+            // console.log('✅ Compilation successful, geometry updated', {
+            //   hasWaterMaterials,
+            //   hasShaderMaterials,
+            //   materialCount: (geometry.userData?.materials?.length || 0) + ((geometry as any).material ? 1 : 0)
+            // });
           } else {
             const errorMsg = 'No geometry was produced by compilation';
             setError(errorMsg);

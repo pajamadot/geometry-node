@@ -227,14 +227,14 @@ export const waterMaterialNodeDefinition: NodeDefinition = {
     const reflectivity = inputs.reflectivity ?? 0.8;
     const fresnelPower = inputs.fresnelPower ?? 3.0;
 
-    console.log('Water Material inputs:', {
-      shallowColor: inputs.shallowColor,
-      deepColor: inputs.deepColor,
-      waveHeight,
-      waveSpeed,
-      transparency,
-      reflectivity
-    });
+    // console.log('Water Material inputs:', {
+    //   shallowColor: inputs.shallowColor,
+    //   deepColor: inputs.deepColor,
+    //   waveHeight,
+    //   waveSpeed,
+    //   transparency,
+    //   reflectivity
+    // });
 
     // Create shader material with custom uniforms
     const material = new THREE.ShaderMaterial({
@@ -265,7 +265,7 @@ export const waterMaterialNodeDefinition: NodeDefinition = {
       }
     };
 
-    console.log('Created Water Material with', Object.keys(material.uniforms).length, 'uniforms');
+    // console.log('Created Water Material with', Object.keys(material.uniforms).length, 'uniforms');
 
     return { material };
   }
