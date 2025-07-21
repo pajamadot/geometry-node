@@ -145,29 +145,7 @@ export default function ThreeViewport() {
   const lastRecoveryTime = React.useRef<number>(0);
   const maxRecoveryAttempts = 3;
   const recoveryDelay = 5000; // 5 seconds between attempts
-
-  // Check WebGL support once
-  const checkWebGLSupport = useCallback(() => {
-    try {
-      const testCanvas = document.createElement('canvas');
-      const testContext = testCanvas.getContext('webgl', { failIfMajorPerformanceCaveat: false });
-      
-      if (!testContext) {
-        console.warn('WebGL not supported');
-        setWebglSupported(false);
-        return false;
-      }
-      
-      // Clean up test canvas immediately
-      testCanvas.remove();
-      setWebglSupported(true);
-      return true;
-    } catch (error) {
-      console.error('WebGL support check failed:', error);
-      setWebglSupported(false);
-      return false;
-    }
-  }, []);
+  const hasInitialized = React.useRef(false);
 
   // Simplified context loss handler - NO automatic recovery
   const handleContextLoss = useCallback((event: Event) => {
@@ -206,7 +184,7 @@ export default function ThreeViewport() {
     }
   }, [recoveryAttempts, maxRecoveryAttempts]);
 
-  // Minimal canvas setup - let R3F handle most of the context management
+  // Let React Three Fiber handle WebGL context creation entirely
   const onCanvasCreated = useCallback((state: any) => {
     try {
       const canvas = state.gl.domElement;
@@ -215,21 +193,27 @@ export default function ThreeViewport() {
       // Only add context loss listener - no automatic recovery
       canvas.addEventListener('webglcontextlost', handleContextLoss, false);
       
-      // console.log('Canvas created successfully');
+      // Mark as successfully initialized
+      hasInitialized.current = true;
       
       // Reset recovery attempts on successful creation
       setRecoveryAttempts(0);
       setContextLost(false);
+      setWebglSupported(true);
+      
+      console.log('🎮 WebGL context created successfully');
     } catch (error) {
       console.error('Error in canvas creation:', error);
       setContextLost(true);
     }
   }, [handleContextLoss]);
 
-  // Check WebGL support on mount only
-  React.useEffect(() => {
-    checkWebGLSupport();
-  }, [checkWebGLSupport]);
+  // Handle Canvas creation errors
+  const onCanvasError = useCallback((error: any) => {
+    console.error('🚨 Canvas/WebGL creation failed:', error);
+    setWebglSupported(false);
+    setContextLost(true);
+  }, []);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -243,8 +227,8 @@ export default function ThreeViewport() {
     };
   }, [handleContextLoss]);
 
-  // WebGL not supported fallback
-  if (!webglSupported) {
+  // WebGL not supported fallback - only show after Canvas creation fails
+  if (!webglSupported && hasInitialized.current) {
     return <FallbackViewport />;
   }
 
@@ -305,10 +289,7 @@ export default function ThreeViewport() {
                 toneMapping: THREE.ACESFilmicToneMapping
               }}
               onCreated={onCanvasCreated}
-              onError={(error) => {
-                console.error('Canvas error:', error);
-                setContextLost(true);
-              }}
+              onError={onCanvasError}
               frameloop={(isCompiling || isPlaying) ? "always" : "demand"}
             >
               <Scene />
