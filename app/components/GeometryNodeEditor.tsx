@@ -504,7 +504,7 @@ export default function GeometryNodeEditor() {
     });
     
     return types;
-  }, [updateNodeData, liveParameterValues]);
+  }, [updateNodeData]);
 
   // Handle right-click for context menu
   const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
