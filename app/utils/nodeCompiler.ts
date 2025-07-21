@@ -1276,6 +1276,211 @@ function cleanupCache() {
   }
 }
 
+// ===== NODE GRAPH CLEANUP OPTIMIZATION =====
+
+/**
+ * Find all nodes that contribute to the final output by traversing backwards from output nodes
+ * @param nodes All nodes in the graph
+ * @param edges All edges in the graph
+ * @returns Set of node IDs that contribute to the output
+ */
+export function findNodesContributingToOutput(
+  nodes: Node<GeometryNodeData>[], 
+  edges: Edge[]
+): Set<string> {
+  const contributingNodes = new Set<string>();
+  
+  // Find all output nodes (there can be multiple output nodes in complex graphs)
+  const outputNodes = nodes.filter(node => node.data.type === 'output');
+  
+  if (outputNodes.length === 0) {
+    // If no output nodes, return empty set (no nodes contribute)
+    return contributingNodes;
+  }
+  
+  // Build reverse dependency graph (which nodes depend on which)
+  const reverseDependencies = new Map<string, string[]>();
+  edges.forEach(edge => {
+    if (!reverseDependencies.has(edge.source)) {
+      reverseDependencies.set(edge.source, []);
+    }
+    reverseDependencies.get(edge.source)!.push(edge.target);
+  });
+  
+  // Traverse backwards from output nodes using BFS
+  const queue: string[] = outputNodes.map(node => node.id);
+  const visited = new Set<string>();
+  
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    
+    if (visited.has(currentNodeId)) {
+      continue;
+    }
+    
+    visited.add(currentNodeId);
+    contributingNodes.add(currentNodeId);
+    
+    // Find all nodes that this node depends on (input dependencies)
+    const inputEdges = edges.filter(edge => edge.target === currentNodeId);
+    inputEdges.forEach(edge => {
+      if (!visited.has(edge.source)) {
+        queue.push(edge.source);
+      }
+    });
+  }
+  
+  return contributingNodes;
+}
+
+/**
+ * Analyze the node graph to identify unused nodes and provide cleanup statistics
+ * @param nodes All nodes in the graph
+ * @param edges All edges in the graph
+ * @returns Analysis object with cleanup information
+ */
+export function analyzeNodeGraphForCleanup(
+  nodes: Node<GeometryNodeData>[], 
+  edges: Edge[]
+): {
+  totalNodes: number;
+  contributingNodes: Set<string>;
+  unusedNodes: Node<GeometryNodeData>[];
+  unusedCount: number;
+  canCleanup: boolean;
+  outputNodes: Node<GeometryNodeData>[];
+} {
+  const contributingNodes = findNodesContributingToOutput(nodes, edges);
+  const unusedNodes = nodes.filter(node => !contributingNodes.has(node.id));
+  const outputNodes = nodes.filter(node => node.data.type === 'output');
+  
+  return {
+    totalNodes: nodes.length,
+    contributingNodes,
+    unusedNodes,
+    unusedCount: unusedNodes.length,
+    canCleanup: unusedNodes.length > 0,
+    outputNodes
+  };
+}
+
+/**
+ * Remove unused nodes and their associated edges from the graph
+ * @param nodes All nodes in the graph
+ * @param edges All edges in the graph
+ * @returns Object with cleaned nodes and edges
+ */
+export function cleanupNodeGraph(
+  nodes: Node<GeometryNodeData>[], 
+  edges: Edge[]
+): {
+  cleanedNodes: Node<GeometryNodeData>[];
+  cleanedEdges: Edge[];
+  removedNodes: Node<GeometryNodeData>[];
+  removedEdges: Edge[];
+  stats: {
+    totalNodesBefore: number;
+    totalNodesAfter: number;
+    nodesRemoved: number;
+    edgesRemoved: number;
+  };
+} {
+  const analysis = analyzeNodeGraphForCleanup(nodes, edges);
+  const contributingNodeIds = analysis.contributingNodes;
+  
+  // Filter nodes to keep only contributing ones
+  const cleanedNodes = nodes.filter(node => contributingNodeIds.has(node.id));
+  
+  // Filter edges to keep only those between contributing nodes
+  const cleanedEdges = edges.filter(edge => 
+    contributingNodeIds.has(edge.source) && contributingNodeIds.has(edge.target)
+  );
+  
+  // Track what was removed
+  const removedNodes = nodes.filter(node => !contributingNodeIds.has(node.id));
+  const removedEdges = edges.filter(edge => 
+    !contributingNodeIds.has(edge.source) || !contributingNodeIds.has(edge.target)
+  );
+  
+  return {
+    cleanedNodes,
+    cleanedEdges,
+    removedNodes,
+    removedEdges,
+    stats: {
+      totalNodesBefore: nodes.length,
+      totalNodesAfter: cleanedNodes.length,
+      nodesRemoved: removedNodes.length,
+      edgesRemoved: removedEdges.length
+    }
+  };
+}
+
+/**
+ * Enhanced compilation function that only processes nodes contributing to output
+ * @param nodes All nodes in the graph
+ * @param edges All edges in the graph
+ * @param currentTime Current animation time
+ * @param frameRate Animation frame rate
+ * @param addLog Optional logging function
+ * @param optimizeGraph Whether to automatically exclude unused nodes from compilation
+ * @returns Compilation result with optimization info
+ */
+export function compileNodeGraphOptimized(
+  nodes: Node<GeometryNodeData>[],
+  edges: Edge[],
+  currentTime: number = 0,
+  frameRate: number = 30,
+  addLog?: (level: 'error' | 'warning' | 'info' | 'debug' | 'success', message: string, details?: any, category?: string) => void,
+  optimizeGraph: boolean = true
+): GraphCompilationResult & { 
+  liveParameterValues?: Record<string, any>;
+  optimizationStats?: {
+    totalNodes: number;
+    processedNodes: number;
+    skippedNodes: number;
+    optimizationEnabled: boolean;
+  };
+} {
+  let effectiveNodes = nodes;
+  let effectiveEdges = edges;
+  let optimizationStats = {
+    totalNodes: nodes.length,
+    processedNodes: nodes.length,
+    skippedNodes: 0,
+    optimizationEnabled: optimizeGraph
+  };
+  
+  if (optimizeGraph) {
+    const analysis = analyzeNodeGraphForCleanup(nodes, edges);
+    if (analysis.canCleanup) {
+      effectiveNodes = nodes.filter(node => analysis.contributingNodes.has(node.id));
+      effectiveEdges = edges.filter(edge => 
+        analysis.contributingNodes.has(edge.source) && analysis.contributingNodes.has(edge.target)
+      );
+      
+      optimizationStats = {
+        totalNodes: nodes.length,
+        processedNodes: effectiveNodes.length,
+        skippedNodes: analysis.unusedCount,
+        optimizationEnabled: true
+      };
+      
+      if (addLog) {
+        addLog('info', `Graph optimization: Processing ${effectiveNodes.length}/${nodes.length} nodes (skipped ${analysis.unusedCount} unused)`, optimizationStats, 'optimization');
+      }
+    }
+  }
+  
+  // Call the existing compilation function with optimized node set
+  const result = compileNodeGraph(effectiveNodes, effectiveEdges, currentTime, frameRate, addLog);
+  
+  return {
+    ...result,
+    optimizationStats
+  };
+}
+
 // Main compilation function
 export function compileNodeGraph(
   nodes: Node<GeometryNodeData>[],

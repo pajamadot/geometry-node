@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
 import * as THREE from 'three';
 import { Node, Edge } from 'reactflow';
 import { GeometryNodeData } from '../types/nodes';
-import { compileNodeGraph, createDefaultMaterial } from '../utils/nodeCompiler';
+import { compileNodeGraph, compileNodeGraphOptimized, createDefaultMaterial } from '../utils/nodeCompiler';
 import { useTime } from './TimeContext';
 import { useLogging } from './LoggingContext';
 
@@ -63,12 +63,19 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
       setError(null);
 
       try {
-        const result = compileNodeGraph(nodes, edges, currentTime || 0, frameRate || 30, undefined);
+        // Use optimized compilation that automatically excludes unused nodes
+        const result = compileNodeGraphOptimized(nodes, edges, currentTime || 0, frameRate || 30, undefined, true);
         
         if (result.success) {
           // Get the compiled geometry from the result
           const geometry = (result as any).compiledGeometry as THREE.BufferGeometry;
           const liveValues = (result as any).liveParameterValues || {};
+          const optimizationStats = (result as any).optimizationStats;
+          
+          // Log optimization stats for debugging
+          if (optimizationStats && optimizationStats.skippedNodes > 0) {
+            console.log(`🚀 Compilation optimization: processed ${optimizationStats.processedNodes}/${optimizationStats.totalNodes} nodes (skipped ${optimizationStats.skippedNodes} unused)`);
+          }
           
           // Update live parameter values
           setLiveParameterValues(liveValues);

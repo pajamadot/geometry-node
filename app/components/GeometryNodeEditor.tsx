@@ -27,9 +27,9 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
-import { clearNodeCache } from '../utils/nodeCompiler';
+import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
 
 
 
@@ -1434,6 +1434,53 @@ export default function GeometryNodeEditor() {
     });
   }, []);
 
+  // Cleanup unused nodes
+  const cleanupUnusedNodes = useCallback(() => {
+    const analysis = analyzeNodeGraphForCleanup(nodes, edges);
+    
+    if (!analysis.canCleanup) {
+      // Show a notification that there are no unused nodes to clean up
+      console.log('No unused nodes to clean up');
+      return;
+    }
+    
+    // Show confirmation dialog with statistics
+    const confirmMessage = `This will remove ${analysis.unusedCount} unused node${analysis.unusedCount === 1 ? '' : 's'} that don't contribute to the output.\n\nNodes to be removed:\n${analysis.unusedNodes.map(n => `- ${n.data.label || n.data.type}`).join('\n')}\n\nContinue?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    // Perform the cleanup
+    const cleanupResult = cleanupNodeGraph(nodes, edges);
+    
+    // Update the graph with cleaned nodes and edges
+    setNodes(cleanupResult.cleanedNodes);
+    setEdges(cleanupResult.cleanedEdges);
+    
+    // Clear any disabled nodes that were removed
+    setDisabledNodes((disabled) => {
+      const newDisabled = new Set(disabled);
+      cleanupResult.removedNodes.forEach(node => {
+        newDisabled.delete(node.id);
+        // Clear cache for removed nodes
+        clearNodeCache(node.id);
+      });
+      return newDisabled;
+    });
+    
+    // Clear selection of removed nodes
+    setSelectedNodes((selected) => {
+      const newSelected = new Set(selected);
+      cleanupResult.removedNodes.forEach(node => {
+        newSelected.delete(node.id);
+      });
+      return newSelected;
+    });
+    
+    console.log(`🧹 Cleanup complete: Removed ${cleanupResult.stats.nodesRemoved} nodes and ${cleanupResult.stats.edgesRemoved} edges`);
+  }, [nodes, edges, setNodes, setEdges]);
+
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
     const newId = `${Date.now()}`;
@@ -1659,6 +1706,14 @@ export default function GeometryNodeEditor() {
           title="Save current scene to local storage"
         >
           💾 Save Scene
+        </button>
+        <button
+          onClick={cleanupUnusedNodes}
+          className="bg-red-600/80 hover:bg-red-700/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs border border-red-500/30 shadow-lg transition-colors font-medium flex items-center gap-1"
+          title="Remove nodes that don't contribute to the final output"
+        >
+          <Trash2 size={12} />
+          🧹 Cleanup
         </button>
       </div>
 
