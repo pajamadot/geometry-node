@@ -21,7 +21,19 @@ export default function ResizableLayout({
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load from localStorage after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -50,7 +62,7 @@ export default function ResizableLayout({
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
+    if (!isDragging || !containerRef.current || isMobile) return;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
@@ -58,7 +70,7 @@ export default function ResizableLayout({
     // Clamp the width between min and max
     const clampedWidth = Math.max(minLeftWidth, Math.min(maxLeftWidth, newLeftWidth));
     setLeftWidth(clampedWidth);
-  }, [isDragging, minLeftWidth, maxLeftWidth]);
+  }, [isDragging, minLeftWidth, maxLeftWidth, isMobile]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -67,6 +79,8 @@ export default function ResizableLayout({
   // Keyboard shortcuts for quick layout adjustments
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
+      if (isMobile) return; // Disable shortcuts on mobile
+      
       // Ctrl/Cmd + [ for smaller left panel
       if ((e.ctrlKey || e.metaKey) && e.key === '[') {
         e.preventDefault();
@@ -86,10 +100,10 @@ export default function ResizableLayout({
 
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
-  }, [minLeftWidth, maxLeftWidth]);
+  }, [minLeftWidth, maxLeftWidth, isMobile]);
 
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging && !isMobile) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'col-resize';
@@ -102,8 +116,36 @@ export default function ResizableLayout({
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp, isMobile]);
 
+  // Mobile layout - vertical stacking
+  if (isMobile) {
+    return (
+      <div 
+        ref={containerRef}
+        className="flex flex-col h-full w-full"
+      >
+        {/* Top Panel - Viewport */}
+        <div className="h-1/2 w-full relative">
+          {leftPanel}
+        </div>
+
+        {/* Horizontal Splitter */}
+        <div className="w-full h-1 bg-gray-700 flex-shrink-0">
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="h-0.5 w-8 rounded-full bg-gray-500 opacity-50"></div>
+          </div>
+        </div>
+
+        {/* Bottom Panel - Geometry Nodes */}
+        <div className="h-1/2 w-full relative">
+          {rightPanel}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout - horizontal side by side
   return (
     <div 
       ref={containerRef}
