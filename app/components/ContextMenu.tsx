@@ -37,6 +37,17 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
     }
   }, [position]);
 
+  // Subscribe to registry updates to automatically refresh menu
+  useEffect(() => {
+    const updateCallback = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+    
+    const unsubscribe = nodeRegistry.onUpdate(updateCallback);
+    
+    return unsubscribe;
+  }, []);
+
   // Generate menu items from registry - refreshes when refreshKey changes
   const nodeMenuItems: NodeMenuItem[] = React.useMemo(() => {
     return nodeRegistry.getAllDefinitions().map(definition => {

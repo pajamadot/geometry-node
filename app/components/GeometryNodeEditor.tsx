@@ -27,7 +27,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache } from '../utils/nodeCompiler';
 
@@ -810,6 +810,7 @@ export default function GeometryNodeEditor() {
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [customNodeManagerOpen, setCustomNodeManagerOpen] = useState(false);
   const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
+  const [serverNodesStatus, setServerNodesStatus] = useState<'loading' | 'loaded' | 'error' | null>(null);
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
 
   // Auto-save scene to localStorage when nodes or edges change
@@ -825,8 +826,40 @@ export default function GeometryNodeEditor() {
   useEffect(() => {
     const unsubscribe = nodeRegistry.onUpdate(() => {
       setRegistryUpdateKey(prev => prev + 1);
+      
+      // Check if server nodes are now loaded
+      const definitions = nodeRegistry.getAllDefinitions();
+      const hasServerNodes = definitions.some(def => 
+        ['mandelbrot-surface', 'holographic-material', 'lava-material'].includes(def.type)
+      );
+      
+      if (hasServerNodes && serverNodesStatus !== 'loaded') {
+        setServerNodesStatus('loaded');
+        setTimeout(() => setServerNodesStatus(null), 3000); // Hide after 3 seconds
+      } else if (serverNodesStatus === 'loading') {
+        // Check if we've been loading for a while and still no server nodes
+        setTimeout(() => {
+          const updatedDefinitions = nodeRegistry.getAllDefinitions();
+          const stillHasNoServerNodes = !updatedDefinitions.some(def => 
+            ['mandelbrot-surface', 'holographic-material', 'lava-material'].includes(def.type)
+          );
+          if (stillHasNoServerNodes && serverNodesStatus === 'loading') {
+            setServerNodesStatus('error');
+            setTimeout(() => setServerNodesStatus(null), 5000); // Hide error after 5 seconds
+          }
+        }, 3000); // Wait 3 seconds before considering it an error
+      }
     });
     return unsubscribe;
+  }, [serverNodesStatus]);
+
+  // Monitor initial server node loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setServerNodesStatus('loading');
+    }, 500); // Show loading after 500ms to avoid flash
+
+    return () => clearTimeout(timer);
   }, []);
 
     // Helper function to enhance programmatic edges with proper metadata
@@ -1779,6 +1812,34 @@ export default function GeometryNodeEditor() {
           <div className="flex items-center gap-2">
             <RefreshCw size={16} className="animate-spin text-blue-400" />
             <span>Refreshing nodes from server...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Server nodes loading status */}
+      {serverNodesStatus === 'loading' && (
+        <div className="fixed top-4 right-4 z-50 bg-purple-900/90 backdrop-blur-sm border border-purple-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <Download size={16} className="animate-pulse text-purple-400" />
+            <span>Loading server nodes...</span>
+          </div>
+        </div>
+      )}
+
+      {serverNodesStatus === 'loaded' && (
+        <div className="fixed top-4 right-4 z-50 bg-green-900/90 backdrop-blur-sm border border-green-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-green-400" />
+            <span>Server nodes loaded successfully!</span>
+          </div>
+        </div>
+      )}
+
+      {serverNodesStatus === 'error' && (
+        <div className="fixed top-4 right-4 z-50 bg-red-900/90 backdrop-blur-sm border border-red-700 rounded-lg px-4 py-2 text-sm text-white">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-400" />
+            <span>Failed to load server nodes</span>
           </div>
         </div>
       )}
