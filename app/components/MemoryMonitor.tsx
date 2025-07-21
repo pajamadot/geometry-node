@@ -130,6 +130,7 @@ export default function MemoryMonitor() {
         onClick={handleToggleVisibility}
         className={`
           fixed top-4 right-4 z-30 w-8 h-8 rounded-full border-2 text-xs font-bold transition-all duration-200
+          flex items-center justify-center
           ${isWarning 
             ? 'bg-red-500/80 border-red-400 text-white animate-pulse' 
             : 'bg-gray-700/80 border-gray-600 text-gray-300 hover:bg-gray-600/80'
