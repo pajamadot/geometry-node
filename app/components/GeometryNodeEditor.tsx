@@ -29,7 +29,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2 } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2, LayoutGrid } from 'lucide-react';
 import Button from './ui/Button';
 import Dropdown, { DropdownOption } from './ui/Dropdown';
 import Tooltip from './ui/Tooltip';
@@ -862,6 +862,133 @@ export default function GeometryNodeEditor() {
       duration: 300 // Smooth animation
     });
   }, [nodes, fitView]);
+
+  // Auto-layout nodes using hierarchical flow algorithm
+  const autoLayoutNodes = useCallback(async () => {
+    if (nodes.length === 0) {
+      showToast('warning', 'No nodes to layout');
+      return;
+    }
+
+    showToast('info', 'Organizing nodes...');
+
+    // Step 1: Analyze the graph structure
+    const nodeMap = new Map(nodes.map(node => [node.id, node]));
+    const incomingEdges = new Map<string, Edge[]>();
+    const outgoingEdges = new Map<string, Edge[]>();
+
+    // Build edge maps
+    edges.forEach(edge => {
+      if (!incomingEdges.has(edge.target)) incomingEdges.set(edge.target, []);
+      if (!outgoingEdges.has(edge.source)) outgoingEdges.set(edge.source, []);
+      incomingEdges.get(edge.target)!.push(edge);
+      outgoingEdges.get(edge.source)!.push(edge);
+    });
+
+    // Step 2: Determine node layers using topological sort
+    const layers: string[][] = [];
+    const nodeDepths = new Map<string, number>();
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    const calculateDepth = (nodeId: string): number => {
+      if (visiting.has(nodeId)) return 0; // Cycle detection
+      if (nodeDepths.has(nodeId)) return nodeDepths.get(nodeId)!;
+
+      visiting.add(nodeId);
+      
+      const incoming = incomingEdges.get(nodeId) || [];
+      const maxParentDepth = incoming.length > 0 
+        ? Math.max(...incoming.map(edge => calculateDepth(edge.source)))
+        : -1;
+      
+      const depth = maxParentDepth + 1;
+      nodeDepths.set(nodeId, depth);
+      visiting.delete(nodeId);
+      
+      return depth;
+    };
+
+    // Calculate depths for all nodes
+    nodes.forEach(node => calculateDepth(node.id));
+
+    // Group nodes by depth
+    const maxDepth = Math.max(...Array.from(nodeDepths.values()));
+    for (let i = 0; i <= maxDepth; i++) {
+      layers[i] = [];
+    }
+
+    nodeDepths.forEach((depth, nodeId) => {
+      layers[depth].push(nodeId);
+    });
+
+    // Step 3: Sort nodes within each layer by type and connections
+    const getNodeTypeOrder = (node: Node<GeometryNodeData>) => {
+      const type = node.data.type;
+      if (type === 'time') return 0;
+      if (type.includes('input') || type.includes('Input')) return 2;
+      if (type === 'math' || type === 'vector-math') return 5;
+      if (type.includes('vector') || type.includes('Vector')) return 6;
+      if (type === 'transform') return 7;
+      if (type.includes('primitive') || type.includes('geometry')) return 8;
+      if (type.includes('material')) return 9;
+      if (type === 'output') return 10;
+      return 4; // Default
+    };
+
+    layers.forEach(layer => {
+      layer.sort((a, b) => {
+        const nodeA = nodeMap.get(a)!;
+        const nodeB = nodeMap.get(b)!;
+        const orderA = getNodeTypeOrder(nodeA);
+        const orderB = getNodeTypeOrder(nodeB);
+        if (orderA !== orderB) return orderA - orderB;
+        return nodeA.data.label.localeCompare(nodeB.data.label);
+      });
+    });
+
+    // Step 4: Calculate positions with proper vertical spacing
+    const LAYER_WIDTH = 350; // Horizontal spacing between layers
+    const NODE_SPACING_Y = 180; // Vertical spacing between nodes (increased)
+    const NODE_SPACING_X = 350; // Horizontal spacing between layers
+    const START_X = 150;
+    const BASE_Y = 50; // Base Y position
+
+    // Calculate total height needed and find the largest layer
+    const maxLayerSize = Math.max(...layers.map(layer => layer.length));
+    const totalHeight = maxLayerSize * NODE_SPACING_Y;
+
+    const newNodes = nodes.map(node => {
+      const depth = nodeDepths.get(node.id) || 0;
+      const layerIndex = layers[depth].indexOf(node.id);
+      const layerSize = layers[depth].length;
+      
+      // Center each layer vertically within the total space
+      const layerCenterOffset = (maxLayerSize - layerSize) * NODE_SPACING_Y / 2;
+      const nodeY = BASE_Y + layerCenterOffset + (layerIndex * NODE_SPACING_Y);
+      
+      return {
+        ...node,
+        position: {
+          x: START_X + depth * NODE_SPACING_X,
+          y: nodeY
+        }
+      };
+    });
+
+    // Step 5: Apply the new layout
+    setNodes(newNodes);
+
+    // Step 6: Fit view to show the new layout
+    setTimeout(async () => {
+      await fitView({ 
+        padding: 100,
+        duration: 600
+      });
+      showToast('success', `Organized ${nodes.length} nodes in ${layers.length} layers! ✨`);
+    }, 100);
+
+  }, [nodes, edges, setNodes, fitView, showToast]);
 
   // Auto-save scene to localStorage when nodes or edges change
   useEffect(() => {
@@ -2007,6 +2134,16 @@ export default function GeometryNodeEditor() {
             size="sm"
             icon={Maximize2}
             onClick={fitAllNodes}
+            className="h-[32px] w-[32px] !px-0"
+          />
+        </Tooltip>
+
+        <Tooltip content="Auto-layout nodes by data flow" placement="bottom">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={LayoutGrid}
+            onClick={autoLayoutNodes}
             className="h-[32px] w-[32px] !px-0"
           />
         </Tooltip>
