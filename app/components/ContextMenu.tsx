@@ -55,6 +55,7 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
   useEffect(() => {
     if (position) {
       setRefreshKey(prev => prev + 1);
+      setSearchQuery('');
     }
   }, [position]);
 
