@@ -10,6 +10,7 @@ export interface TypeRendererProps {
   type: ParameterType;
   isConnected: boolean;
   isInput: boolean; // true for input, false for output
+  isParameter?: boolean; // true if this is a parameter, not a direct input
   value?: any;
   defaultValue?: any;
   onValueChange?: (value: any) => void;

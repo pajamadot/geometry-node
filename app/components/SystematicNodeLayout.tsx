@@ -417,6 +417,7 @@ export default function SystematicNodeLayout({
                         type={component.type}
                         isConnected={false}
                         isInput={true}
+                        isParameter={true}
                         value={parameters[component.id]}
                         defaultValue={component.defaultValue}
                         onValueChange={(value) => onParameterChange(component.id, value)}
