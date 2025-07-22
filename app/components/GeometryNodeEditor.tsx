@@ -723,65 +723,51 @@ export default function GeometryNodeEditor() {
     showToast('success', 'Scene saved to local storage! 💾');
   }, [nodes, edges, showToast]);
 
-    // Export current graph as image
-  const exportCurrentGraph = useCallback(async () => {
-    try {
-      await exportGraphAsImage('geometry-graph');
-    } catch (error) {
-      console.error('Export failed:', error);
-      showToast('error', `Export failed: ${error}`);
-    }
-  }, [showToast]);
-
-  // Export current graph as image with visible fit animation first
+    // Export current graph as image with dynamic resolution
   const exportGraphAsImage = useCallback(async (filename: string = 'node-graph') => {
+    const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
+    const viewportElement = document.querySelector('.react-flow__viewport') as HTMLElement;
+
+    if (!reactFlowElement || !viewportElement) {
+      showToast('error', 'Could not find React Flow elements for export.');
+      return;
+    }
+
+    if (nodes.length === 0) {
+      showToast('warning', 'No nodes to export');
+      return;
+    }
+    
+    showToast('info', 'Calculating graph dimensions for high-res export...');
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const originalTransform = viewportElement.style.transform;
+
     try {
       const { toPng } = await import('html-to-image');
-      const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
-      
-      if (!reactFlowElement) {
-        throw new Error('React Flow element not found');
-      }
+      const padding = 100;
 
-      if (nodes.length === 0) {
-        showToast('warning', 'No nodes to export');
-        return;
-      }
+      const nodesBounds = getNodesBounds(nodes);
+      
+      const imageWidth = Math.round(nodesBounds.width + padding * 2);
+      const imageHeight = Math.round(nodesBounds.height + padding * 2);
 
-      // Store current viewport to restore later
-      const originalViewport = getViewport();
-      
-      // Step 1: Show the user what will be exported with animated fit
-      showToast('info', 'Framing all nodes for export...');
-      await fitView({ 
-        padding: 100, // 100px padding around all nodes
-        duration: 600 // Show smooth animation to user
-      });
-      
-      // Step 2: Wait for user to see the framing
-      await new Promise(resolve => setTimeout(resolve, 800));
+      viewportElement.style.transform = `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px) scale(1)`;
+      viewportElement.style.transition = 'none';
 
-      // Step 3: Now capture the same view instantly (no animation) 
-      await fitView({ 
-        padding: 100, // Same padding as above
-        duration: 0 // No animation for capture
-      });
-      
-      // Wait for instant fit to complete
+      showToast('info', `Capturing ${imageWidth}x${imageHeight} image...`);
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Step 4: Capture the image
       const dataUrl = await toPng(reactFlowElement, {
         backgroundColor: '#000000',
-        width: reactFlowElement.offsetWidth,
-        height: reactFlowElement.offsetHeight,
+        width: imageWidth,
+        height: imageHeight,
         style: {
-          width: reactFlowElement.offsetWidth + 'px',
-          height: reactFlowElement.offsetHeight + 'px',
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
         },
-        pixelRatio: 2, // Higher resolution
+        pixelRatio: 2,
         filter: (node) => {
-          // Hide controls, attribution, and other UI elements during export
           if (
             node?.classList?.contains('react-flow__controls') ||
             node?.classList?.contains('react-flow__attribution') ||
@@ -794,10 +780,6 @@ export default function GeometryNodeEditor() {
         },
       });
 
-      // Step 5: Restore original viewport
-      setViewport(originalViewport, { duration: 0 });
-
-      // Step 6: Download the image
       const link = document.createElement('a');
       link.download = `${filename}.png`;
       link.href = dataUrl;
@@ -810,8 +792,11 @@ export default function GeometryNodeEditor() {
     } catch (error) {
       console.error('Export failed:', error);
       showToast('error', `Export failed: ${error}`);
+    } finally {
+      viewportElement.style.transform = originalTransform;
+      viewportElement.style.transition = '';
     }
-  }, [nodes, getViewport, setViewport, fitView, showToast]);
+  }, [nodes, showToast]);
 
   // Export graph as JSON
   const exportToJSON = useCallback(() => {
@@ -1744,7 +1729,7 @@ export default function GeometryNodeEditor() {
               variant="secondary"
               size="sm"
               icon={Camera}
-              onClick={exportCurrentGraph}
+              onClick={() => exportGraphAsImage('geometry-graph')}
               className="h-[32px] w-[32px] !px-0"
             />
           </Tooltip>
