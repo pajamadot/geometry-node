@@ -29,7 +29,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2, LayoutGrid } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2, LayoutGrid, Trash2 } from 'lucide-react';
 import Button from './ui/Button';
 import Dropdown, { DropdownOption } from './ui/Dropdown';
 import Tooltip from './ui/Tooltip';
@@ -1474,6 +1474,43 @@ export default function GeometryNodeEditor() {
     console.log(`🧹 Cleanup complete: Removed ${cleanupResult.stats.nodesRemoved} nodes and ${cleanupResult.stats.edgesRemoved} edges`);
   }, [nodes, edges, setNodes, setEdges, showConfirm, showToast]);
 
+  // Delete all nodes
+  const deleteAllNodes = useCallback(async () => {
+    if (nodes.length === 0) {
+      showToast('info', 'No nodes to delete');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = await showConfirm(
+      'Delete All Nodes',
+      `This will permanently delete all ${nodes.length} node${nodes.length === 1 ? '' : 's'} from the graph.`,
+      'This action cannot be undone.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // Clear all nodes and edges
+    setNodes([]);
+    setEdges([]);
+    
+    // Clear disabled nodes set
+    setDisabledNodes(new Set());
+    
+    // Clear selected nodes set
+    setSelectedNodes(new Set());
+
+    // Clear node caches
+    nodes.forEach(node => {
+      clearNodeCache(node.id);
+    });
+
+    // Show success message
+    showToast('success', `Deleted all ${nodes.length} node${nodes.length === 1 ? '' : 's'}! 🗑️`);
+  }, [nodes, setNodes, setEdges, setDisabledNodes, setSelectedNodes, showToast, showConfirm]);
+
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
     const newId = `${Date.now()}`;
@@ -1720,6 +1757,16 @@ export default function GeometryNodeEditor() {
               size="sm"
               icon={Paintbrush}
               onClick={cleanupUnusedNodes}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+          
+          <Tooltip content="Delete all nodes from the graph" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Trash2}
+              onClick={deleteAllNodes}
               className="h-[32px] w-[32px] !px-0"
             />
           </Tooltip>
