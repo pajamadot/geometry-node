@@ -949,9 +949,12 @@ export default function GeometryNodeEditor() {
   }, []);
 
   // Type-based connection validation (NEW SYSTEM)
-  const validateTypeBasedConnection = useCallback((params: Connection): boolean => {
-    const sourceNode = nodes.find(n => n.id === params.source);
-    const targetNode = nodes.find(n => n.id === params.target);
+  const validateTypeBasedConnection = useCallback((params: Connection, updatedNodes?: Node[]): boolean => {
+    // Use updated nodes if provided, otherwise use current state
+    const nodesToCheck = updatedNodes || nodes;
+    
+    const sourceNode = nodesToCheck.find(n => n.id === params.source);
+    const targetNode = nodesToCheck.find(n => n.id === params.target);
     
     if (!sourceNode || !targetNode) return false;
     
@@ -965,35 +968,14 @@ export default function GeometryNodeEditor() {
     const sourceSocketName = params.sourceHandle?.replace('-out', '');
     const targetSocketName = params.targetHandle?.replace('-in', '');
     
-    // console.log('Connection validation:', {
-    //   sourceNode: sourceNode.data.type,
-    //   targetNode: targetNode.data.type,
-    //   sourceHandle: params.sourceHandle,
-    //   targetHandle: params.targetHandle,
-    //   sourceSocketName,
-    //   targetSocketName
-    // });
-    
     // Find socket definitions
     const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
     const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
-    
-    // console.log('Socket definitions:', {
-    //   sourceSocket: sourceSocket?.type,
-    //   targetSocket: targetSocket?.type,
-    //   sourceDefOutputs: sourceDef.outputs.map(s => ({ id: s.id, type: s.type })),
-    //   targetDefInputs: targetDef.inputs.map(s => ({ id: s.id, type: s.type }))
-    // });
     
     if (!sourceSocket || !targetSocket) return false;
     
     // Check type compatibility
     const isCompatible = nodeRegistry.areSocketsCompatible(sourceSocket.type, targetSocket.type);
-    // console.log('Type compatibility:', {
-    //   sourceType: sourceSocket.type,
-    //   targetType: targetSocket.type,
-    //   isCompatible
-    // });
     
     return isCompatible;
   }, [nodes]);
@@ -1584,9 +1566,10 @@ export default function GeometryNodeEditor() {
     sourceNodeId: string;
     sourceSocketId: string;
     sourceSocketType: string;
-  }) => {
+  }, newNode?: Node) => {
     setTimeout(() => {
       const targetDef = nodeRegistry.getDefinition(nodeType);
+      
       if (targetDef) {
         // Find compatible input socket
         const compatibleInput = targetDef.inputs.find(input => 
@@ -1603,7 +1586,11 @@ export default function GeometryNodeEditor() {
           };
           
           // Validate and add the connection
-          if (validateTypeBasedConnection(newConnection)) {
+          // Create updated nodes array that includes the new node
+          const updatedNodes = newNode ? [...nodes, newNode] : nodes;
+          const isValid = validateTypeBasedConnection(newConnection, updatedNodes);
+          
+          if (isValid) {
             setEdges((eds) => {
               // Remove existing connection to the same target handle
               const filteredEdges = eds.filter(edge => 
@@ -1627,7 +1614,7 @@ export default function GeometryNodeEditor() {
         }
       }
     }, 100); // Small delay to ensure node is added first
-  }, [validateTypeBasedConnection, setEdges]);
+  }, [validateTypeBasedConnection, setEdges, nodes]);
 
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string, connectionInfo?: {
@@ -1655,7 +1642,7 @@ export default function GeometryNodeEditor() {
       
       // Auto-connect if connection info is provided
       if (connectionInfo) {
-        handleAutoConnection(newId, type, connectionInfo);
+        handleAutoConnection(newId, type, connectionInfo, newNode as any);
       }
     } catch (error) {
       console.warn(`Failed to create node of type "${type}" using registry, creating fallback`, error);
@@ -1677,7 +1664,7 @@ export default function GeometryNodeEditor() {
       
       // Auto-connect if connection info is provided
       if (connectionInfo) {
-        handleAutoConnection(newId, type, connectionInfo);
+        handleAutoConnection(newId, type, connectionInfo, fallbackNode);
       }
     }
   }, [setNodes, screenToFlowPosition, handleAutoConnection]);
