@@ -12,6 +12,7 @@ export const SocketRenderer: React.FC<SocketRendererProps> = ({
   type,
   isConnected,
   isInput,
+  isParameter,
   children,
   onValueChange
 }) => {
@@ -62,17 +63,19 @@ export const SocketRenderer: React.FC<SocketRendererProps> = ({
     // Input pattern: PIN → LABEL → WIDGET (when unwired) or PIN → LABEL (when wired)
     return (
       <div className="flex items-center gap-2">
-        {/* Pin */}
-        <Handle
-          type="target"
-          position={position}
-          id={handleId}
-          className={`${metadata.className} border-2 border-white cursor-pointer`}
-          style={{
-            backgroundColor: metadata.color,
-            ...getSocketShape()
-          }}
-        />
+        {/* Pin: Show for inputs, but not for parameters */}
+        {!isParameter && (
+          <Handle
+            type="target"
+            position={position}
+            id={handleId}
+            className={`${metadata.className} border-2 border-white cursor-pointer`}
+            style={{
+              backgroundColor: metadata.color,
+              ...getSocketShape()
+            }}
+          />
+        )}
         
         {/* Spacing - increased from w-2 to w-4 */}
         <div className="w-4" />
