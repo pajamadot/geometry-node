@@ -795,3 +795,45 @@ body[data-alt-pressed="true"] .react-flow__handle:hover {
   opacity: 0.5 !important;
   filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.2)) !important;
 }
+
+/* ===========================
+   REACTFLOW CONTROLS STYLING
+   =========================== */
+
+/* Style the main controls container */
+.react-flow__controls {
+  background-color: rgba(17, 24, 39, 0.8) !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid #4b5563 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 4px !important;
+}
+
+/* Style individual control buttons */
+.react-flow__controls-button {
+  background-color: #374151 !important;
+  color: #d1d5db !important;
+  border: none !important;
+  border-bottom: 1px solid #4b5563 !important;
+  transition: all 0.2s ease-in-out !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* Remove border from last button */
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+/* Hover state for buttons */
+.react-flow__controls-button:hover {
+  background-color: #4b5563 !important;
+  color: #ffffff !important;
+}
+
+/* SVG icons inside buttons */
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  width: 16px !important;
+  height: 16px !important;
+}

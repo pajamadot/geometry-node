@@ -36,7 +36,8 @@ import Tooltip from './ui/Tooltip';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
 import { useModal } from './ModalContext';
-
+import { getDefaultScene, getLighthouseScene } from '../data/scenes';
+import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 
 
 // Define default edge options outside component
@@ -62,558 +63,6 @@ const backgroundProps = {
   size: 0.8,
   color: "#1f2937",
 };
-
-// Scene configurations
-const getDefaultScene = () => ({
-  nodes: [
-    {
-      id: 'time-1',
-      type: 'time',
-      position: { x: 50, y: 150 },
-      data: {
-        id: 'time-1',
-        type: 'time',
-        label: 'Time',
-        parameters: { speed: 1, outputType: 'sine', frequency: 1, amplitude: 1 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'math-1',
-      type: 'math',
-      position: { x: 400, y: 150 },
-      data: {
-        id: 'math-1',
-        type: 'math',
-        label: 'Math (× π)',
-        parameters: { operation: 'multiply', valueB: 30 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'make-vector-1',
-      type: 'make-vector',
-      position: { x: 750, y: 150 },
-      data: {
-        id: 'make-vector-1',
-        type: 'make-vector',
-        label: 'Make Vector',
-        parameters: { z: 0 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'cube-1',
-    type: 'cube',
-      position: { x: 50, y: 500 },
-    data: {
-        id: 'cube-1',
-      type: 'cube',
-      label: 'Cube',
-      parameters: { width: 1, height: 1, depth: 1 },
-      inputConnections: {},
-      liveParameterValues: {}
-    }
-  },
-  {
-      id: 'math-normalize',
-      type: 'math',
-      position: { x: 750, y: 300 },
-      data: {
-        id: 'math-normalize',
-        type: 'math',
-        label: 'Math (×0.5)',
-        parameters: { operation: 'multiply', valueB: 0.5 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'math-add',
-      type: 'math',
-      position: { x: 1100, y: 300 },
-      data: {
-        id: 'math-add',
-        type: 'math',
-        label: 'Math (+ 0.5)',
-        parameters: { operation: 'add', valueB: 0.5 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'standard-material-1',
-      type: 'standard-material',
-      position: { x: 400, y: 500 },
-      data: {
-        id: 'standard-material-1',
-        type: 'standard-material',
-        label: 'Animated Material',
-        parameters: { roughness: 0.3, metalness: 0.1 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'set-material-1',
-      type: 'set-material',
-      position: { x: 750, y: 600 },
-      data: {
-        id: 'set-material-1',
-        type: 'set-material',
-        label: 'Set Material',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'transform-1', 
-    type: 'transform',
-      position: { x: 1100, y: 500 },
-    data: {
-        id: 'transform-1',
-      type: 'transform',
-      label: 'Transform',
-      parameters: { 
-        position: { x: 0, y: 0, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 }
-      },
-      inputConnections: {},
-      liveParameterValues: {}
-    }
-  },
-  {
-      id: 'output-1',
-    type: 'output', 
-      position: { x: 1450, y: 500 },
-    data: {
-        id: 'output-1',
-      type: 'output',
-      label: 'Output',
-      parameters: {},
-      inputConnections: {},
-      liveParameterValues: {}
-    }
-  }
-  ],
-  edges: [
-    {
-      id: 'e-time-math',
-      source: 'time-1',
-      target: 'math-1',
-      sourceHandle: 'time-out',
-      targetHandle: 'valueA-in',
-    },
-    {
-      id: 'e-math-makevector-x',
-      source: 'math-1',
-      target: 'make-vector-1',
-      sourceHandle: 'result-out',
-      targetHandle: 'x-in',
-    },
-    {
-      id: 'e-math-makevector-y',
-      source: 'math-1',
-      target: 'make-vector-1',
-      sourceHandle: 'result-out',
-      targetHandle: 'y-in',
-    },
-    {
-      id: 'e-makevector-transform',
-      source: 'make-vector-1',
-      target: 'transform-1',
-      sourceHandle: 'result-out',
-      targetHandle: 'rotation-in',
-    },
-    {
-      id: 'e-math-normalize',
-      source: 'math-1',
-      target: 'math-normalize',
-      sourceHandle: 'result-out',
-      targetHandle: 'valueA-in',
-    },
-    {
-      id: 'e-normalize-add',
-      source: 'math-normalize',
-      target: 'math-add',
-      sourceHandle: 'result-out',
-      targetHandle: 'valueA-in',
-    },
-    {
-      id: 'e-add-material',
-      source: 'math-add',
-      target: 'standard-material-1',
-      sourceHandle: 'result-out',
-      targetHandle: 'redChannel-in',
-    },
-    {
-      id: 'e-cube-setmaterial',
-      source: 'cube-1',
-      target: 'set-material-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-    {
-      id: 'e-material-setmaterial',
-      source: 'standard-material-1',
-      target: 'set-material-1',
-      sourceHandle: 'material-out',
-      targetHandle: 'material-in',
-    },
-    {
-      id: 'e-setmaterial-transform',
-      source: 'set-material-1',
-      target: 'transform-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-    {
-      id: 'e-transform-output',
-      source: 'transform-1',
-      target: 'output-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-  ]
-});
-
-const getLighthouseScene = () => ({
-  nodes: [
-    // Time node - top left
-    {
-      id: 'time-1',
-      type: 'time',
-      position: { x: 50, y: 100 },
-      data: {
-        id: 'time-1',
-        type: 'time',
-        label: 'Time',
-        parameters: { speed: 1 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    
-    // Water row - top
-    {
-      id: 'gesner-wave-1',
-      type: 'gesner-wave',
-      position: { x: 500, y: 100 },
-      data: {
-        id: 'gesner-wave-1',
-        type: 'gesner-wave',
-        label: 'Gesner Wave',
-        parameters: { 
-          width: 100, 
-          height: 100, 
-          amplitude: 0.5, 
-          segments: 8,
-          waveType: 'multiple',
-          waveCount: 4
-        },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'water-material-1',
-      type: 'water-material',
-      position: { x: 950, y: 50 },
-      data: {
-        id: 'water-material-1',
-        type: 'water-material',
-        label: 'Water Material',
-        parameters: { shallowColor: '#40e0d0', deepColor: '#006994' },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'set-material-1',
-      type: 'set-material',
-      position: { x: 1350, y: 100 },
-      data: {
-        id: 'set-material-1',
-        type: 'set-material',
-        label: 'Set Material (Water)',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-
-    // Lighthouse row - middle
-    {
-      id: 'lighthouse-1',
-      type: 'lighthouse',
-      position: { x: 500, y: 450 },
-      data: {
-        id: 'lighthouse-1',
-        type: 'lighthouse',
-        label: 'Lighthouse',
-        parameters: { towerHeight: 15, towerRadius: 2.5, baseRadius: 3.5 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'transform-lighthouse',
-      type: 'transform',
-      position: { x: 900, y: 450 },
-      data: {
-        id: 'transform-lighthouse',
-        type: 'transform',
-        label: 'Transform Lighthouse',
-        parameters: { 
-          position: { x: 0, y: 3.5, z: 0 },
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 1, y: 1, z: 1 }
-        },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'standard-material-1',
-      type: 'standard-material',
-      position: { x: 950, y: 350 },
-      data: {
-        id: 'standard-material-1',
-        type: 'standard-material',
-        label: 'Standard Material (Yellow)',
-        parameters: { color: '#ffeb3b', roughness: 0.7, metalness: 0.1 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'set-material-2',
-      type: 'set-material',
-      position: { x: 1350, y: 450 },
-      data: {
-        id: 'set-material-2',
-        type: 'set-material',
-        label: 'Set Material (Lighthouse)',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-
-    // Rock row - bottom
-    {
-      id: 'rock-1',
-      type: 'lowPolyRock',
-      position: { x: 500, y: 800 },
-      data: {
-        id: 'rock-1',
-        type: 'lowPolyRock',
-        label: 'Low Poly Rock',
-        parameters: { radius: 2, detail: 2, noise: 0.8 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'transform-rock',
-      type: 'transform',
-      position: { x: 900, y: 800 },
-      data: {
-        id: 'transform-rock',
-        type: 'transform',
-        label: 'Transform Rock',
-        parameters: { 
-          position: { x: 0, y: 0, z: 0 },
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 5, y: 0.4, z: 3 }
-        },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'standard-material-2',
-      type: 'standard-material',
-      position: { x: 950, y: 700 },
-      data: {
-        id: 'standard-material-2',
-        type: 'standard-material',
-        label: 'Standard Material (Brown)',
-        parameters: { color: '#8d5524', roughness: 0.9, metalness: 0.05 },
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'set-material-3',
-      type: 'set-material',
-      position: { x: 1350, y: 800 },
-      data: {
-        id: 'set-material-3',
-        type: 'set-material',
-        label: 'Set Material (Rock)',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-
-    // Join nodes - right side
-    {
-      id: 'join-1',
-      type: 'join',
-      position: { x: 1700, y: 275 },
-      data: {
-        id: 'join-1',
-        type: 'join',
-        label: 'Join Water & Lighthouse',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'join-2',
-      type: 'join',
-      position: { x: 2050, y: 525 },
-      data: {
-        id: 'join-2',
-        type: 'join',
-        label: 'Join All',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    },
-    {
-      id: 'output-1',
-      type: 'output',
-      position: { x: 2400, y: 525 },
-      data: {
-        id: 'output-1',
-        type: 'output',
-        label: 'Output',
-        parameters: {},
-        inputConnections: {},
-        liveParameterValues: {}
-      }
-    }
-  ],
-  edges: [
-    // Time to gesner wave
-    {
-      id: 'e-time-wave',
-      source: 'time-1',
-      target: 'gesner-wave-1',
-      sourceHandle: 'time-out',
-      targetHandle: 'time-in',
-    },
-    
-    // Water material setup
-    {
-      id: 'e-wave-setmat1',
-      source: 'gesner-wave-1',
-      target: 'set-material-1',
-    sourceHandle: 'geometry-out',
-    targetHandle: 'geometry-in',
-  },
-  {
-      id: 'e-watermat-setmat1',
-      source: 'water-material-1',
-      target: 'set-material-1',
-      sourceHandle: 'material-out',
-      targetHandle: 'material-in',
-    },
-    
-    // Lighthouse with transform and material setup
-    {
-      id: 'e-lighthouse-transform',
-      source: 'lighthouse-1',
-      target: 'transform-lighthouse',
-    sourceHandle: 'geometry-out',
-    targetHandle: 'geometry-in',
-  },
-    {
-      id: 'e-transform-lighthouse-setmat2',
-      source: 'transform-lighthouse',
-      target: 'set-material-2',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-    {
-      id: 'e-yellowmat-setmat2',
-      source: 'standard-material-1',
-      target: 'set-material-2',
-      sourceHandle: 'material-out',
-      targetHandle: 'material-in',
-    },
-    
-    // Rock with transform and material setup
-    {
-      id: 'e-rock-transform',
-      source: 'rock-1',
-      target: 'transform-rock',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-    {
-      id: 'e-transform-rock-setmat3',
-      source: 'transform-rock',
-      target: 'set-material-3',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    },
-    {
-      id: 'e-brownmat-setmat3',
-      source: 'standard-material-2',
-      target: 'set-material-3',
-      sourceHandle: 'material-out',
-      targetHandle: 'material-in',
-    },
-    
-    // Join everything
-    {
-      id: 'e-water-join1',
-      source: 'set-material-1',
-      target: 'join-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometryA-in',
-    },
-    {
-      id: 'e-lighthouse-join1',
-      source: 'set-material-2',
-      target: 'join-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometryB-in',
-    },
-    {
-      id: 'e-join1-join2',
-      source: 'join-1',
-      target: 'join-2',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometryA-in',
-    },
-    {
-      id: 'e-rock-join2',
-      source: 'set-material-3',
-      target: 'join-2',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometryB-in',
-    },
-    {
-      id: 'e-join2-output',
-      source: 'join-2',
-      target: 'output-1',
-      sourceHandle: 'geometry-out',
-      targetHandle: 'geometry-in',
-    }
-  ]
-});
 
 // Scene management functions
 const saveSceneToLocalStorage = (nodes: Node<GeometryNodeData>[], edges: Edge[]) => {
@@ -821,11 +270,7 @@ export default function GeometryNodeEditor() {
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
   const [selectedScenePreset, setSelectedScenePreset] = useState<string>('');
   const [isLoadingScene, setIsLoadingScene] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    message: string;
-  }>>([]);
+  const { notifications, showNotification: showToast } = useNotifications();
 
   // Scene preset options
   const scenePresets: DropdownOption[] = [
@@ -842,26 +287,6 @@ export default function GeometryNodeEditor() {
       description: 'Animated water, lighthouse, and rock'
     }
   ];
-
-  // Toast notification system
-  const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
-    const id = Date.now().toString();
-    setNotifications(prev => [...prev, { id, type, message }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 4000); // Show for 4 seconds
-  }, []);
-
-  // Function to fit all nodes in view with padding
-  const fitAllNodes = useCallback(async () => {
-    if (nodes.length === 0) return;
-    
-    // Use React Flow's fitView to show all nodes with padding
-    await fitView({ 
-      padding: 100, // 100px padding around all nodes
-      duration: 300 // Smooth animation
-    });
-  }, [nodes, fitView]);
 
   // Auto-layout nodes using hierarchical flow algorithm
   const autoLayoutNodes = useCallback(async () => {
@@ -1039,167 +464,101 @@ export default function GeometryNodeEditor() {
     }
 
     // Step 4: Calculate positions with smart spacing and node size consideration
-    const BASE_NODE_WIDTH = 200;
-    const BASE_NODE_HEIGHT = 100;
-    const MIN_NODE_SPACING_X = 400; // More generous horizontal spacing
-    const MIN_NODE_SPACING_Y = 150; // Base vertical spacing
-    const LAYER_PADDING = 100; // Extra padding between layers
+    const BASE_NODE_WIDTH = 220;
+    const BASE_NODE_HEIGHT = 120;
+    const MIN_NODE_SPACING_X = 350; // Generous horizontal spacing
+    const MIN_NODE_SPACING_Y = 40; // Vertical spacing between nodes in a layer
     const START_X = 100;
     const START_Y = 100;
 
-    // Estimate node dimensions based on type and content
+    // Get node dimensions, using actual sizes if available
     const getNodeDimensions = (node: Node<GeometryNodeData>) => {
+      // Use actual dimensions if available (most reliable)
+      if (node.width && node.height && node.width > 1 && node.height > 1) {
+        return { width: node.width, height: node.height };
+      }
+
+      // Fallback to estimation if dimensions are not yet available
       const type = node.data.type;
       let width = BASE_NODE_WIDTH;
       let height = BASE_NODE_HEIGHT;
       
-      // Adjust for complex nodes
-      if (type.includes('material') || type.includes('parametric')) {
-        height += 50; // Taller for complex parameter nodes
+      const definition = nodeRegistry.getDefinition(type);
+      if (definition) {
+        // Estimate based on: base height + sockets + parameters
+        const numSockets = Math.max(definition.inputs.length, definition.outputs.length);
+        const numParams = definition.parameters.length;
+        height = 80 + (numSockets * 24) + (numParams * 28);
+        width = 240;
+      } else if (type.includes('material') || type.includes('parametric')) {
+        height += 50;
       }
-      if (node.data.label && node.data.label.length > 12) {
-        width += 20; // Wider for long labels
+
+      if (node.data.label && node.data.label.length > 15) {
+        width += (node.data.label.length - 15) * 7;
       }
       
       return { width, height };
     };
 
-    // Calculate better vertical spacing for each layer
-    const layerSpacing = layers.map(layer => {
-      const layerNodes = layer.map(nodeId => nodeMap.get(nodeId)!);
-      const maxHeight = Math.max(...layerNodes.map(node => getNodeDimensions(node).height));
-      return maxHeight + MIN_NODE_SPACING_Y;
-    });
-
-    // Calculate horizontal positions with variable spacing
+    // Calculate horizontal positions for each layer
     const layerXPositions: number[] = [];
     let currentX = START_X;
     
     for (let i = 0; i < layers.length; i++) {
       layerXPositions[i] = currentX;
       
-      // Calculate width needed for this layer
       const layerNodes = layers[i].map(nodeId => nodeMap.get(nodeId)!);
-      const maxWidth = Math.max(...layerNodes.map(node => getNodeDimensions(node).width));
+      if (layerNodes.length === 0) continue;
       
-      // Next layer starts after this layer's width + spacing
+      const maxWidth = Math.max(...layerNodes.map(node => getNodeDimensions(node).width));
       currentX += maxWidth + MIN_NODE_SPACING_X;
     }
 
-    const newNodes = nodes.map(node => {
-      const depth = nodeDepths.get(node.id) || 0;
-      const layerIndex = layers[depth].indexOf(node.id);
-      const layerSize = layers[depth].length;
+    // Position nodes within each layer vertically
+    const nodePositions = new Map<string, { x: number; y: number }>();
+
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      const layerNodes = layer.map(nodeId => nodeMap.get(nodeId)!);
+      const nodeDims = layerNodes.map(node => getNodeDimensions(node));
+
+      // Calculate total height of the layer to center it vertically
+      const totalLayerHeight = nodeDims.reduce((sum, dim) => sum + dim.height, 0) + 
+                                Math.max(0, layer.length - 1) * MIN_NODE_SPACING_Y;
       
-      // Calculate Y position with better centering
-      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
-      const totalLayerHeight = (layerSize - 1) * spacing;
-      const layerStartY = START_Y - totalLayerHeight / 2;
-      const nodeY = layerStartY + layerIndex * spacing;
-      
-      return {
-        ...node,
-        position: {
-          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
-          y: Math.max(50, nodeY) // Ensure minimum Y position
-        }
-      };
-    });
+      let layerCurrentY = START_Y - totalLayerHeight / 2;
 
-    // Step 5: Refine layout to minimize edge crossings
-    const refinedNodes = newNodes.map(node => ({ ...node })); // Copy for refinement
-
-    // For each layer (except first and last), try to minimize crossings
-    for (let layerIdx = 1; layerIdx < layers.length - 1; layerIdx++) {
-      const currentLayer = layers[layerIdx];
-      if (currentLayer.length <= 1) continue;
-
-      // Calculate crossing score for each possible arrangement
-      const calculateCrossings = (arrangement: string[]) => {
-        let crossings = 0;
-        const nodePositions = new Map<string, number>();
-        arrangement.forEach((nodeId, idx) => nodePositions.set(nodeId, idx));
-
-        // Check crossings with previous layer
-        const prevLayerEdges = edges.filter(edge => 
-          layers[layerIdx - 1].includes(edge.source) && arrangement.includes(edge.target)
-        );
+      // Position each node, stacking them vertically
+      for (let j = 0; j < layerNodes.length; j++) {
+        const node = layerNodes[j];
+        const { height } = nodeDims[j];
         
-        for (let i = 0; i < prevLayerEdges.length; i++) {
-          for (let j = i + 1; j < prevLayerEdges.length; j++) {
-            const edge1 = prevLayerEdges[i];
-            const edge2 = prevLayerEdges[j];
-            
-            const source1Pos = layers[layerIdx - 1].indexOf(edge1.source);
-            const source2Pos = layers[layerIdx - 1].indexOf(edge2.source);
-            const target1Pos = nodePositions.get(edge1.target) || 0;
-            const target2Pos = nodePositions.get(edge2.target) || 0;
-            
-            // Check if edges cross
-            if ((source1Pos < source2Pos && target1Pos > target2Pos) ||
-                (source1Pos > source2Pos && target1Pos < target2Pos)) {
-              crossings++;
-            }
-          }
-        }
-        
-        return crossings;
-      };
+        nodePositions.set(node.id, {
+          x: layerXPositions[i],
+          y: layerCurrentY
+        });
 
-      // Try different arrangements to minimize crossings
-      let bestArrangement = [...currentLayer];
-      let bestCrossings = calculateCrossings(bestArrangement);
-
-      // Simple bubble sort optimization for small layers
-      if (currentLayer.length <= 8) {
-        for (let i = 0; i < currentLayer.length - 1; i++) {
-          for (let j = 0; j < currentLayer.length - 1 - i; j++) {
-            const testArrangement = [...currentLayer];
-            [testArrangement[j], testArrangement[j + 1]] = [testArrangement[j + 1], testArrangement[j]];
-            
-            const crossings = calculateCrossings(testArrangement);
-            if (crossings < bestCrossings) {
-              bestCrossings = crossings;
-              bestArrangement = testArrangement;
-            }
-          }
-        }
+        layerCurrentY += height + MIN_NODE_SPACING_Y;
       }
-
-      // Update layer order
-      layers[layerIdx] = bestArrangement;
     }
-
-    // Recalculate positions with optimized arrangement
-    const finalNodes = nodes.map(node => {
-      const depth = nodeDepths.get(node.id) || 0;
-      const layerIndex = layers[depth].indexOf(node.id);
-      const layerSize = layers[depth].length;
-      
-      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
-      const totalLayerHeight = (layerSize - 1) * spacing;
-      const layerStartY = START_Y - totalLayerHeight / 2;
-      const nodeY = layerStartY + layerIndex * spacing;
-      
-      return {
-        ...node,
-        position: {
-          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
-          y: Math.max(50, nodeY)
-        }
-      };
+    
+    // Create new nodes with calculated positions
+    const newNodes = nodes.map(node => {
+      const position = nodePositions.get(node.id);
+      return position ? { ...node, position } : node;
     });
 
-    // Step 6: Apply the refined layout
-    setNodes(finalNodes);
+    // Step 5: Apply the new layout
+    setNodes(newNodes);
 
-    // Step 7: Fit view to show the new layout
+    // Step 6: Fit view to show the new layout
     setTimeout(async () => {
       await fitView({ 
         padding: 120,
-        duration: 800 // Slightly longer for better visual feedback
+        duration: 800
       });
-      showToast('success', `Organized ${nodes.length} nodes in ${layers.length} layers with ${bestCrossings} crossings using barycenter optimization! ✨`);
+      showToast('success', `Organized ${nodes.length} nodes into ${layers.length} layers. ✨`);
     }, 150);
 
   }, [nodes, edges, setNodes, fitView, showToast]);
@@ -1364,65 +723,51 @@ export default function GeometryNodeEditor() {
     showToast('success', 'Scene saved to local storage! 💾');
   }, [nodes, edges, showToast]);
 
-    // Export current graph as image
-  const exportCurrentGraph = useCallback(async () => {
-    try {
-      await exportGraphAsImage('geometry-graph');
-    } catch (error) {
-      console.error('Export failed:', error);
-      showToast('error', `Export failed: ${error}`);
-    }
-  }, [showToast]);
-
-  // Export current graph as image with visible fit animation first
+    // Export current graph as image with dynamic resolution
   const exportGraphAsImage = useCallback(async (filename: string = 'node-graph') => {
+    const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
+    const viewportElement = document.querySelector('.react-flow__viewport') as HTMLElement;
+
+    if (!reactFlowElement || !viewportElement) {
+      showToast('error', 'Could not find React Flow elements for export.');
+      return;
+    }
+
+    if (nodes.length === 0) {
+      showToast('warning', 'No nodes to export');
+      return;
+    }
+    
+    showToast('info', 'Calculating graph dimensions for high-res export...');
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const originalTransform = viewportElement.style.transform;
+
     try {
       const { toPng } = await import('html-to-image');
-      const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
-      
-      if (!reactFlowElement) {
-        throw new Error('React Flow element not found');
-      }
+      const padding = 100;
 
-      if (nodes.length === 0) {
-        showToast('warning', 'No nodes to export');
-        return;
-      }
+      const nodesBounds = getNodesBounds(nodes);
+      
+      const imageWidth = Math.round(nodesBounds.width + padding * 2);
+      const imageHeight = Math.round(nodesBounds.height + padding * 2);
 
-      // Store current viewport to restore later
-      const originalViewport = getViewport();
-      
-      // Step 1: Show the user what will be exported with animated fit
-      showToast('info', 'Framing all nodes for export...');
-      await fitView({ 
-        padding: 100, // 100px padding around all nodes
-        duration: 600 // Show smooth animation to user
-      });
-      
-      // Step 2: Wait for user to see the framing
-      await new Promise(resolve => setTimeout(resolve, 800));
+      viewportElement.style.transform = `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px) scale(1)`;
+      viewportElement.style.transition = 'none';
 
-      // Step 3: Now capture the same view instantly (no animation) 
-      await fitView({ 
-        padding: 100, // Same padding as above
-        duration: 0 // No animation for capture
-      });
-      
-      // Wait for instant fit to complete
+      showToast('info', `Capturing ${imageWidth}x${imageHeight} image...`);
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Step 4: Capture the image
       const dataUrl = await toPng(reactFlowElement, {
         backgroundColor: '#000000',
-        width: reactFlowElement.offsetWidth,
-        height: reactFlowElement.offsetHeight,
+        width: imageWidth,
+        height: imageHeight,
         style: {
-          width: reactFlowElement.offsetWidth + 'px',
-          height: reactFlowElement.offsetHeight + 'px',
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
         },
-        pixelRatio: 2, // Higher resolution
+        pixelRatio: 2,
         filter: (node) => {
-          // Hide controls, attribution, and other UI elements during export
           if (
             node?.classList?.contains('react-flow__controls') ||
             node?.classList?.contains('react-flow__attribution') ||
@@ -1435,10 +780,6 @@ export default function GeometryNodeEditor() {
         },
       });
 
-      // Step 5: Restore original viewport
-      setViewport(originalViewport, { duration: 0 });
-
-      // Step 6: Download the image
       const link = document.createElement('a');
       link.download = `${filename}.png`;
       link.href = dataUrl;
@@ -1451,8 +792,11 @@ export default function GeometryNodeEditor() {
     } catch (error) {
       console.error('Export failed:', error);
       showToast('error', `Export failed: ${error}`);
+    } finally {
+      viewportElement.style.transform = originalTransform;
+      viewportElement.style.transition = '';
     }
-  }, [nodes, getViewport, setViewport, fitView, showToast]);
+  }, [nodes, showToast]);
 
   // Export graph as JSON
   const exportToJSON = useCallback(() => {
@@ -1524,8 +868,11 @@ export default function GeometryNodeEditor() {
           setNodes(importedNodes);
           setEdges(importedEdges);
           
-                      // Save to localStorage
+            // Save to localStorage
             saveSceneToLocalStorage(importedNodes, importedEdges);
+
+            // Fit view to new content
+            setTimeout(() => fitView({ padding: 100, duration: 500 }), 100);
 
             showToast('success', 'Graph imported successfully! 📥');
                   } catch (error) {
@@ -1536,7 +883,7 @@ export default function GeometryNodeEditor() {
         reader.readAsText(file);
       };
       input.click();
-    }, [setNodes, setEdges, showToast]);
+    }, [setNodes, setEdges, showToast, fitView]);
 
   // Handle scene preset selection
   const handleScenePresetChange = useCallback(async (presetValue: string) => {
@@ -1558,6 +905,9 @@ export default function GeometryNodeEditor() {
           break;
       }
       
+      // Fit view to the newly loaded scene
+      setTimeout(() => fitView({ padding: 100, duration: 500 }), 100);
+      
       // Show success feedback
       showToast('success', `${presetValue === 'default' ? 'Default' : 'Lighthouse'} scene loaded! 🎬`);
       
@@ -1570,7 +920,7 @@ export default function GeometryNodeEditor() {
         setSelectedScenePreset('');
       }, 1000);
     }
-  }, [loadDefaultScene, loadLighthouseScene, showAlert]);
+  }, [loadDefaultScene, loadLighthouseScene, showAlert, fitView]);
   
   // Track connection drag state for Blender-style disconnect
   const [connectionDragState, setConnectionDragState] = useState<{
@@ -2341,16 +1691,6 @@ export default function GeometryNodeEditor() {
           disabled={isLoadingScene}
           className="h-[32px]"
         />
-        
-        <Tooltip content="Fit all nodes in view" placement="bottom">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={Maximize2}
-            onClick={fitAllNodes}
-            className="h-[32px] w-[32px] !px-0"
-          />
-        </Tooltip>
 
         <Tooltip content="Auto-layout nodes by data flow" placement="bottom">
           <Button
@@ -2389,7 +1729,7 @@ export default function GeometryNodeEditor() {
               variant="secondary"
               size="sm"
               icon={Camera}
-              onClick={exportCurrentGraph}
+              onClick={() => exportGraphAsImage('geometry-graph')}
               className="h-[32px] w-[32px] !px-0"
             />
           </Tooltip>
@@ -2526,6 +1866,7 @@ export default function GeometryNodeEditor() {
             zIndex: -1
           }}
           fitView
+          minZoom={0.1}
           attributionPosition="bottom-left"
           className="bg-black"
           multiSelectionKeyCode="Shift"
@@ -2604,25 +1945,7 @@ export default function GeometryNodeEditor() {
       />
 
       {/* Toast Notifications */}
-      <div className="fixed top-4 right-4 space-y-2 z-50">
-        {notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border transition-all duration-300 ${
-              notification.type === 'success' ? 'bg-green-900/90 text-green-300 border-green-700' :
-              notification.type === 'error' ? 'bg-red-900/90 text-red-300 border-red-700' :
-              notification.type === 'warning' ? 'bg-yellow-900/90 text-yellow-300 border-yellow-700' :
-              'bg-blue-900/90 text-blue-300 border-blue-700'
-            }`}
-          >
-            {notification.type === 'success' ? <CheckCircle2 size={16} /> :
-             notification.type === 'error' ? <AlertCircle size={16} /> :
-             notification.type === 'warning' ? <AlertCircle size={16} /> :
-             <RefreshCw size={16} />}
-            <span className="text-sm font-medium">{notification.message}</span>
-          </div>
-        ))}
-      </div>
+      <NotificationPanel notifications={notifications} />
     </div>
   );
 } 
