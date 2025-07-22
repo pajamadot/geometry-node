@@ -9,9 +9,20 @@ import { Search, Settings, RefreshCw } from 'lucide-react';
 interface ContextMenuProps {
   position: { x: number; y: number } | null;
   onClose: () => void;
-  onAddNode: (type: string, position: { x: number; y: number }, primitiveType?: string) => void;
+  onAddNode: (type: string, position: { x: number; y: number }, primitiveType?: string, connectionInfo?: {
+    sourceNodeId: string;
+    sourceSocketId: string;
+    sourceSocketType: string;
+  }) => void;
   onOpenCustomNodeManager?: () => void;
   onRefreshNodes?: () => void;
+  // Connection filtering (when dragged from output pin)
+  filterBySocketType?: string;
+  connectionInfo?: {
+    sourceNodeId: string;
+    sourceSocketId: string;
+    sourceSocketType: string;
+  };
 }
 
 interface NodeMenuItem {
@@ -25,9 +36,11 @@ interface NodeMenuItem {
 
 
 
-export default function ContextMenu({ position, onClose, onAddNode, onOpenCustomNodeManager, onRefreshNodes }: ContextMenuProps) {
+export default function ContextMenu({ position, onClose, onAddNode, onOpenCustomNodeManager, onRefreshNodes, filterBySocketType, connectionInfo }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Force refresh when context menu opens to get latest nodes
@@ -50,7 +63,19 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
 
   // Generate menu items from registry - refreshes when refreshKey changes
   const nodeMenuItems: NodeMenuItem[] = React.useMemo(() => {
-    return nodeRegistry.getAllDefinitions().map(definition => {
+    const allDefinitions = nodeRegistry.getAllDefinitions();
+    
+    // Filter by socket compatibility if we're in connection mode
+    const filteredDefinitions = filterBySocketType ? 
+      allDefinitions.filter(definition => {
+        // Find compatible input sockets for the dragged output socket type
+        return definition.inputs.some(input => 
+          nodeRegistry.areSocketsCompatible(filterBySocketType, input.type)
+        );
+      }) : 
+      allDefinitions;
+    
+    return filteredDefinitions.map(definition => {
       const categoryMeta = CATEGORY_METADATA[definition.category];
       return {
         type: definition.type,
@@ -61,7 +86,7 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
         icon: definition.ui?.icon || categoryMeta?.icon
       };
     });
-  }, [refreshKey]); // Depend on refreshKey to update when context menu opens
+  }, [refreshKey, filterBySocketType]); // Depend on refreshKey and filterBySocketType
 
   // Filter items based on search query
   const filteredItems = React.useMemo(() => {
@@ -89,10 +114,19 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
     };
 
     if (position) {
-      // Add multiple event listeners to ensure reliable closing
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('click', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
+      // Delay adding event listeners to prevent immediate closure from drag release
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('click', handleClickOutside);
+        document.addEventListener('keydown', handleKeyDown);
+      }, 100); // Small delay to let the drag event finish
+
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
     }
 
     return () => {
@@ -105,7 +139,7 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
   if (!position) return null;
 
   const handleAddNode = (item: NodeMenuItem) => {
-    onAddNode(item.type, position);
+    onAddNode(item.type, position, undefined, connectionInfo);
     onClose();
   };
 
@@ -141,7 +175,12 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
       >
         {/* Header */}
         <div className="px-4 py-3 text-xs font-semibold text-gray-200 border-b border-gray-600/50 bg-gray-800/50 rounded-t-lg flex items-center justify-between">
-          <span>Add Node</span>
+          <span>
+            {filterBySocketType ? 
+              `Connect ${filterBySocketType.charAt(0).toUpperCase() + filterBySocketType.slice(1)}` : 
+              'Add Node'
+            }
+          </span>
           <div className="flex items-center gap-1">
             {onRefreshNodes && (
               <button
