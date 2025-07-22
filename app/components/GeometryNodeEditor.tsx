@@ -288,17 +288,6 @@ export default function GeometryNodeEditor() {
     }
   ];
 
-  // Function to fit all nodes in view with padding
-  const fitAllNodes = useCallback(async () => {
-    if (nodes.length === 0) return;
-    
-    // Use React Flow's fitView to show all nodes with padding
-    await fitView({ 
-      padding: 100, // 100px padding around all nodes
-      duration: 300 // Smooth animation
-    });
-  }, [nodes, fitView]);
-
   // Auto-layout nodes using hierarchical flow algorithm
   const autoLayoutNodes = useCallback(async () => {
     if (nodes.length === 0) {
@@ -894,8 +883,11 @@ export default function GeometryNodeEditor() {
           setNodes(importedNodes);
           setEdges(importedEdges);
           
-                      // Save to localStorage
+            // Save to localStorage
             saveSceneToLocalStorage(importedNodes, importedEdges);
+
+            // Fit view to new content
+            setTimeout(() => fitView({ padding: 100, duration: 500 }), 100);
 
             showToast('success', 'Graph imported successfully! 📥');
                   } catch (error) {
@@ -906,7 +898,7 @@ export default function GeometryNodeEditor() {
         reader.readAsText(file);
       };
       input.click();
-    }, [setNodes, setEdges, showToast]);
+    }, [setNodes, setEdges, showToast, fitView]);
 
   // Handle scene preset selection
   const handleScenePresetChange = useCallback(async (presetValue: string) => {
@@ -928,6 +920,9 @@ export default function GeometryNodeEditor() {
           break;
       }
       
+      // Fit view to the newly loaded scene
+      setTimeout(() => fitView({ padding: 100, duration: 500 }), 100);
+      
       // Show success feedback
       showToast('success', `${presetValue === 'default' ? 'Default' : 'Lighthouse'} scene loaded! 🎬`);
       
@@ -940,7 +935,7 @@ export default function GeometryNodeEditor() {
         setSelectedScenePreset('');
       }, 1000);
     }
-  }, [loadDefaultScene, loadLighthouseScene, showAlert]);
+  }, [loadDefaultScene, loadLighthouseScene, showAlert, fitView]);
   
   // Track connection drag state for Blender-style disconnect
   const [connectionDragState, setConnectionDragState] = useState<{
@@ -1711,16 +1706,6 @@ export default function GeometryNodeEditor() {
           disabled={isLoadingScene}
           className="h-[32px]"
         />
-        
-        <Tooltip content="Fit all nodes in view" placement="bottom">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={Maximize2}
-            onClick={fitAllNodes}
-            className="h-[32px] w-[32px] !px-0"
-          />
-        </Tooltip>
 
         <Tooltip content="Auto-layout nodes by data flow" placement="bottom">
           <Button
@@ -1896,6 +1881,7 @@ export default function GeometryNodeEditor() {
             zIndex: -1
           }}
           fitView
+          minZoom={0.1}
           attributionPosition="bottom-left"
           className="bg-black"
           multiSelectionKeyCode="Shift"
