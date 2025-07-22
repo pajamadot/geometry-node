@@ -257,9 +257,13 @@ export default function GeometryNodeEditor() {
   const { showConfirm, showAlert } = useModal();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [connectionInfo, setConnectionInfo] = useState<{
-    sourceNodeId: string;
-    sourceSocketId: string;
-    sourceSocketType: string;
+    sourceNodeId?: string;
+    sourceSocketId?: string;
+    sourceSocketType?: string;
+    targetNodeId?: string;
+    targetSocketId?: string;
+    targetSocketType?: string;
+    isReverse?: boolean;
   } | null>(null);
   const [nodeContextMenu, setNodeContextMenu] = useState<{ 
     x: number; 
@@ -932,8 +936,9 @@ export default function GeometryNodeEditor() {
     nodeId: string;
     handleId: string;
     handleType: 'source' | 'target';
-    socketType?: string; // For source handles, to filter context menu
-    socketId?: string; // For source handles, for auto-connection
+    socketType?: string; // Socket type for filtering context menu
+    socketId?: string; // Socket ID for auto-connection
+    isConnected?: boolean; // For target handles, whether already connected
   } | null>(null);
   const [connectionWasMade, setConnectionWasMade] = useState(false);
   const [lastMousePosition, setLastMousePosition] = useState({ x: 0, y: 0 });
@@ -1075,13 +1080,31 @@ export default function GeometryNodeEditor() {
     setConnectionWasMade(false);
     
     if (handleType === 'target') {
-      // Only track TARGET handles (inputs) for drag-to-disconnect
+      // Track TARGET handles for both disconnect and context menu
       const isConnected = edges.some(edge => 
         edge.target === nodeId && edge.targetHandle === handleId
       );
       
-      if (isConnected) {
-        setConnectionDragState({ nodeId, handleId, handleType });
+      const targetNode = nodes.find(n => n.id === nodeId);
+      
+      if (targetNode) {
+        const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
+        
+        if (targetDef) {
+          const socketId = handleId.replace('-in', '');
+          const targetSocket = targetDef.inputs.find(s => s.id === socketId);
+          
+          setConnectionDragState({ 
+            nodeId, 
+            handleId, 
+            handleType,
+            socketType: targetSocket?.type,
+            socketId: socketId,
+            isConnected
+          });
+        } else {
+          setConnectionDragState(null);
+        }
       } else {
         setConnectionDragState(null);
       }
@@ -1141,17 +1164,50 @@ export default function GeometryNodeEditor() {
         setConnectionInfo({
           sourceNodeId: nodeId,
           sourceSocketId: socketId || '',
-          sourceSocketType: socketType
+          sourceSocketType: socketType,
+          isReverse: false
         });
         
         // Show context menu
         setContextMenu({ x: clientX, y: clientY });
         
-      } else if (handleType === 'target') {
-        // Dragging from connected target handle - disconnect it
-        setEdges((eds) => eds.filter(edge => 
-          !(edge.target === nodeId && edge.targetHandle === handleId)
-        ));
+      } else if (handleType === 'target' && socketType) {
+        const { isConnected } = connectionDragState;
+        
+        if (isConnected) {
+          // Dragging from connected target handle - disconnect it
+          setEdges((eds) => eds.filter(edge => 
+            !(edge.target === nodeId && edge.targetHandle === handleId)
+          ));
+        } else {
+          // Dragging from unconnected target handle to empty space - show filtered context menu
+          let clientX, clientY;
+          
+          // Try to get coordinates from event
+          if (event) {
+            clientX = event.clientX || 
+                     (event.nativeEvent && event.nativeEvent.clientX);
+            clientY = event.clientY || 
+                     (event.nativeEvent && event.nativeEvent.clientY);
+          }
+          
+          // Fallback to last known mouse position
+          if (!clientX || !clientY) {
+            clientX = lastMousePosition.x;
+            clientY = lastMousePosition.y;
+          }
+          
+          // Store connection info for reverse auto-connect (input looking for output)
+          setConnectionInfo({
+            targetNodeId: nodeId,
+            targetSocketId: socketId || '',
+            targetSocketType: socketType,
+            isReverse: true
+          });
+          
+          // Show context menu
+          setContextMenu({ x: clientX, y: clientY });
+        }
       }
     }
     
@@ -1563,54 +1619,87 @@ export default function GeometryNodeEditor() {
 
   // Handle auto-connection for newly created nodes
   const handleAutoConnection = useCallback((newNodeId: string, nodeType: string, connectionInfo: {
-    sourceNodeId: string;
-    sourceSocketId: string;
-    sourceSocketType: string;
+    sourceNodeId?: string;
+    sourceSocketId?: string;
+    sourceSocketType?: string;
+    targetNodeId?: string;
+    targetSocketId?: string;
+    targetSocketType?: string;
+    isReverse?: boolean;
   }, newNode?: Node) => {
     setTimeout(() => {
-      const targetDef = nodeRegistry.getDefinition(nodeType);
+      const newNodeDef = nodeRegistry.getDefinition(nodeType);
       
-      if (targetDef) {
-        // Find compatible input socket
-        const compatibleInput = targetDef.inputs.find(input => 
-          nodeRegistry.areSocketsCompatible(connectionInfo.sourceSocketType, input.type)
+      if (!newNodeDef) return;
+      
+      let newConnection: any = null;
+      let connectionType: string = '';
+      
+      if (connectionInfo.isReverse) {
+        // Reverse connection: connect FROM new node TO existing input
+        if (!connectionInfo.targetNodeId || !connectionInfo.targetSocketId || !connectionInfo.targetSocketType) return;
+        
+        // Find compatible output socket in new node
+        const compatibleOutput = newNodeDef.outputs.find(output => 
+          nodeRegistry.areSocketsCompatible(output.type, connectionInfo.targetSocketType!)
+        );
+        
+        if (compatibleOutput) {
+          newConnection = {
+            source: newNodeId,
+            target: connectionInfo.targetNodeId,
+            sourceHandle: `${compatibleOutput.id}-out`,
+            targetHandle: `${connectionInfo.targetSocketId}-in`,
+            id: `e${newNodeId}-${connectionInfo.targetNodeId}`,
+          };
+          connectionType = compatibleOutput.type;
+        }
+      } else {
+        // Forward connection: connect FROM existing output TO new node
+        if (!connectionInfo.sourceNodeId || !connectionInfo.sourceSocketId || !connectionInfo.sourceSocketType) return;
+        
+        // Find compatible input socket in new node
+        const compatibleInput = newNodeDef.inputs.find(input => 
+          nodeRegistry.areSocketsCompatible(connectionInfo.sourceSocketType!, input.type)
         );
         
         if (compatibleInput) {
-          const newConnection = {
+          newConnection = {
             source: connectionInfo.sourceNodeId,
             target: newNodeId,
             sourceHandle: `${connectionInfo.sourceSocketId}-out`,
             targetHandle: `${compatibleInput.id}-in`,
             id: `e${connectionInfo.sourceNodeId}-${newNodeId}`,
           };
-          
-          // Validate and add the connection
-          // Create updated nodes array that includes the new node
-          const updatedNodes = newNode ? [...nodes, newNode] : nodes;
-          const isValid = validateTypeBasedConnection(newConnection, updatedNodes);
-          
-          if (isValid) {
-            setEdges((eds) => {
-              // Remove existing connection to the same target handle
-              const filteredEdges = eds.filter(edge => 
-                !(edge.target === newNodeId && edge.targetHandle === newConnection.targetHandle)
-              );
-              
-              const newEdge = {
-                ...newConnection,
-                animated: true,
-                data: { connectionType: connectionInfo.sourceSocketType },
-                style: getEdgeStyle(connectionInfo.sourceSocketType),
-                className: `connection-${connectionInfo.sourceSocketType}`,
-                'data-connection-type': connectionInfo.sourceSocketType,
-                'data-target-handle': newConnection.targetHandle,
-                'data-source-handle': newConnection.sourceHandle
-              };
-              
-              return addEdge(newEdge, filteredEdges);
-            });
-          }
+          connectionType = connectionInfo.sourceSocketType;
+        }
+      }
+      
+      if (newConnection) {
+        // Validate and add the connection
+        const updatedNodes = newNode ? [...nodes, newNode] : nodes;
+        const isValid = validateTypeBasedConnection(newConnection, updatedNodes);
+        
+        if (isValid) {
+          setEdges((eds) => {
+            // Remove existing connection to the same target handle
+            const filteredEdges = eds.filter(edge => 
+              !(edge.target === newConnection.target && edge.targetHandle === newConnection.targetHandle)
+            );
+            
+            const newEdge = {
+              ...newConnection,
+              animated: true,
+              data: { connectionType },
+              style: getEdgeStyle(connectionType),
+              className: `connection-${connectionType}`,
+              'data-connection-type': connectionType,
+              'data-target-handle': newConnection.targetHandle,
+              'data-source-handle': newConnection.sourceHandle
+            };
+            
+            return addEdge(newEdge, filteredEdges);
+          });
         }
       }
     }, 100); // Small delay to ensure node is added first
@@ -1618,9 +1707,13 @@ export default function GeometryNodeEditor() {
 
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string, connectionInfo?: {
-    sourceNodeId: string;
-    sourceSocketId: string;
-    sourceSocketType: string;
+    sourceNodeId?: string;
+    sourceSocketId?: string;
+    sourceSocketType?: string;
+    targetNodeId?: string;
+    targetSocketId?: string;
+    targetSocketType?: string;
+    isReverse?: boolean;
   }) => {
     const newId = `${Date.now()}`;
     
@@ -2052,7 +2145,7 @@ export default function GeometryNodeEditor() {
         onAddNode={addNode}
         onOpenCustomNodeManager={() => setCustomNodeManagerOpen(true)}
         onRefreshNodes={handleRefreshNodes}
-        filterBySocketType={connectionInfo?.sourceSocketType}
+        filterBySocketType={connectionInfo?.isReverse ? connectionInfo?.targetSocketType : connectionInfo?.sourceSocketType}
         connectionInfo={connectionInfo || undefined}
       />
 

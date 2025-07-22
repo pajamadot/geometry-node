@@ -10,18 +10,26 @@ interface ContextMenuProps {
   position: { x: number; y: number } | null;
   onClose: () => void;
   onAddNode: (type: string, position: { x: number; y: number }, primitiveType?: string, connectionInfo?: {
-    sourceNodeId: string;
-    sourceSocketId: string;
-    sourceSocketType: string;
+    sourceNodeId?: string;
+    sourceSocketId?: string;
+    sourceSocketType?: string;
+    targetNodeId?: string;
+    targetSocketId?: string;
+    targetSocketType?: string;
+    isReverse?: boolean;
   }) => void;
   onOpenCustomNodeManager?: () => void;
   onRefreshNodes?: () => void;
   // Connection filtering (when dragged from output pin)
   filterBySocketType?: string;
   connectionInfo?: {
-    sourceNodeId: string;
-    sourceSocketId: string;
-    sourceSocketType: string;
+    sourceNodeId?: string;
+    sourceSocketId?: string;
+    sourceSocketType?: string;
+    targetNodeId?: string;
+    targetSocketId?: string;
+    targetSocketType?: string;
+    isReverse?: boolean;
   };
 }
 
@@ -68,10 +76,17 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
     // Filter by socket compatibility if we're in connection mode
     const filteredDefinitions = filterBySocketType ? 
       allDefinitions.filter(definition => {
-        // Find compatible input sockets for the dragged output socket type
-        return definition.inputs.some(input => 
-          nodeRegistry.areSocketsCompatible(filterBySocketType, input.type)
-        );
+        if (connectionInfo?.isReverse) {
+          // Reverse connection: find compatible output sockets for the dragged input socket type
+          return definition.outputs.some(output => 
+            nodeRegistry.areSocketsCompatible(output.type, filterBySocketType)
+          );
+        } else {
+          // Forward connection: find compatible input sockets for the dragged output socket type
+          return definition.inputs.some(input => 
+            nodeRegistry.areSocketsCompatible(filterBySocketType, input.type)
+          );
+        }
       }) : 
       allDefinitions;
     
@@ -86,7 +101,7 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
         icon: definition.ui?.icon || categoryMeta?.icon
       };
     });
-  }, [refreshKey, filterBySocketType]); // Depend on refreshKey and filterBySocketType
+  }, [refreshKey, filterBySocketType, connectionInfo?.isReverse]); // Add isReverse dependency
 
   // Filter items based on search query
   const filteredItems = React.useMemo(() => {
@@ -177,7 +192,9 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
         <div className="px-4 py-3 text-xs font-semibold text-gray-200 border-b border-gray-600/50 bg-gray-800/50 rounded-t-lg flex items-center justify-between">
           <span>
             {filterBySocketType ? 
-              `Connect ${filterBySocketType.charAt(0).toUpperCase() + filterBySocketType.slice(1)}` : 
+              connectionInfo?.isReverse ? 
+                `Find ${filterBySocketType.charAt(0).toUpperCase() + filterBySocketType.slice(1)} Source` :
+                `Connect ${filterBySocketType.charAt(0).toUpperCase() + filterBySocketType.slice(1)}` : 
               'Add Node'
             }
           </span>
