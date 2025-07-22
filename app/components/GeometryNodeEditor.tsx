@@ -37,6 +37,7 @@ import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connect
 import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
 import { useModal } from './ModalContext';
 import { getDefaultScene, getLighthouseScene } from '../data/scenes';
+import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 
 
 // Define default edge options outside component
@@ -269,11 +270,7 @@ export default function GeometryNodeEditor() {
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
   const [selectedScenePreset, setSelectedScenePreset] = useState<string>('');
   const [isLoadingScene, setIsLoadingScene] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    message: string;
-  }>>([]);
+  const { notifications, showNotification: showToast } = useNotifications();
 
   // Scene preset options
   const scenePresets: DropdownOption[] = [
@@ -290,15 +287,6 @@ export default function GeometryNodeEditor() {
       description: 'Animated water, lighthouse, and rock'
     }
   ];
-
-  // Toast notification system
-  const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
-    const id = Date.now().toString();
-    setNotifications(prev => [...prev, { id, type, message }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 4000); // Show for 4 seconds
-  }, []);
 
   // Function to fit all nodes in view with padding
   const fitAllNodes = useCallback(async () => {
@@ -2052,25 +2040,7 @@ export default function GeometryNodeEditor() {
       />
 
       {/* Toast Notifications */}
-      <div className="fixed top-4 right-4 space-y-2 z-50">
-        {notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border transition-all duration-300 ${
-              notification.type === 'success' ? 'bg-green-900/90 text-green-300 border-green-700' :
-              notification.type === 'error' ? 'bg-red-900/90 text-red-300 border-red-700' :
-              notification.type === 'warning' ? 'bg-yellow-900/90 text-yellow-300 border-yellow-700' :
-              'bg-blue-900/90 text-blue-300 border-blue-700'
-            }`}
-          >
-            {notification.type === 'success' ? <CheckCircle2 size={16} /> :
-             notification.type === 'error' ? <AlertCircle size={16} /> :
-             notification.type === 'warning' ? <AlertCircle size={16} /> :
-             <RefreshCw size={16} />}
-            <span className="text-sm font-medium">{notification.message}</span>
-          </div>
-        ))}
-      </div>
+      <NotificationPanel notifications={notifications} />
     </div>
   );
 } 
