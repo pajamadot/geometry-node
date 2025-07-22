@@ -1,5 +1,7 @@
 # Geometry Nodes On The Web! - A Procedural Geometry System
 
+![Demo GIF](assets/demo.gif)
+
 A comprehensive web-based procedural geometry system for creating and managing complex 3D geometry with advanced node-based editing and real-time visualization.
 
 ## Features
