@@ -25,6 +25,91 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Hide ReactFlow's default selection styling to use our custom styling */
+.react-flow__node {
+  outline: none !important;
+  border: none !important;
+}
+
+.react-flow__node.selected {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.react-flow__node.selected::before {
+  display: none !important;
+}
+
+.react-flow__node.selected::after {
+  display: none !important;
+}
+
+/* Remove ReactFlow's selection box indicator */
+.react-flow__node.react-flow__node-default.selected {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove any other ReactFlow selection indicators */
+.react-flow__node-default.selected {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* More aggressive overrides for all possible ReactFlow selection states */
+.react-flow__node[data-selected="true"] {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Override any inline styles ReactFlow might add */
+.react-flow__node[style*="outline"],
+.react-flow__node[style*="border"],
+.react-flow__node[style*="box-shadow"] {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the specific wrapper that ReactFlow creates */
+.react-flow__node-default {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-default.selected {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Nuclear option: Override everything ReactFlow might add */
+.react-flow .react-flow__node * {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.react-flow .react-flow__node {
+  outline: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Specifically target any remaining selection indicators */
+.react-flow__nodes .react-flow__node.selected,
+.react-flow__nodes .react-flow__node[data-selected],
+.react-flow__nodes .react-flow__node[aria-selected] {
+  outline: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Radix UI Enhanced Styles */
 [data-radix-slider-track] {
   background-color: #4b5563 !important;

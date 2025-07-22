@@ -323,7 +323,11 @@ export default function GenericNode({
   
   return (
     <div 
-      className={`bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-600/50 rounded-lg overflow-hidden backdrop-blur-sm ${
+      className={`bg-gradient-to-br from-slate-800 to-slate-900 border rounded-lg overflow-hidden backdrop-blur-sm transition-all duration-200 ${
+        selected 
+          ? 'border-blue-400 border-2 shadow-blue-400/50' 
+          : 'border-slate-600/50'
+      } ${
         disabled ? 'opacity-50' : ''
       }`}
       style={{
@@ -331,7 +335,9 @@ export default function GenericNode({
         minHeight: `${height}px`,
         width: `${width}px`,
         height: `${height}px`,
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        boxShadow: selected 
+          ? '0 0 20px rgba(59, 130, 246, 0.5), 0 25px 50px rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+          : '0 25px 50px rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4), 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
       }}
     >
       {/* Header */}

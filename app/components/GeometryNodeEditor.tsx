@@ -14,6 +14,7 @@ import ReactFlow, {
   useReactFlow,
   getNodesBounds,
   getViewportForBounds,
+  SelectionMode,
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
@@ -1446,7 +1447,18 @@ export default function GeometryNodeEditor() {
   // Handle node selection changes
   const onSelectionChange = useCallback((params: { nodes: Node[]; edges: Edge[] }) => {
     const selectedNodeIds = new Set(params.nodes.map(node => node.id));
-    setSelectedNodes(selectedNodeIds);
+    
+    // Only update if the selection actually changed to prevent infinite loops
+    setSelectedNodes(prev => {
+      const prevArray = Array.from(prev).sort();
+      const newArray = Array.from(selectedNodeIds).sort();
+      
+      if (prevArray.length !== newArray.length || 
+          !prevArray.every((id, index) => id === newArray[index])) {
+        return selectedNodeIds;
+      }
+      return prev;
+    });
   }, []);
 
   const deleteNode = useCallback((nodeId: string) => {
@@ -2090,7 +2102,7 @@ export default function GeometryNodeEditor() {
               return {
                 ...node,
                 className: className.trim(),
-                selected: isSelected,
+                selectable: !isDisabled,
                 data: {
                   ...node.data,
                   disabled: isDisabled,
@@ -2130,6 +2142,10 @@ export default function GeometryNodeEditor() {
           className="bg-black"
           multiSelectionKeyCode="Shift"
           selectNodesOnDrag={false}
+          panOnDrag={[1, 2]}
+          selectionOnDrag={true}
+          selectionMode={SelectionMode.Partial}
+          elementsSelectable={true}
         >
         <Controls 
           className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 shadow-lg"
