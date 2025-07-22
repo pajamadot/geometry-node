@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -281,6 +281,8 @@ export default function GeometryNodeEditor() {
   const [selectedScenePreset, setSelectedScenePreset] = useState<string>('');
   const [isLoadingScene, setIsLoadingScene] = useState(false);
   const { notifications, showNotification: showToast } = useNotifications();
+  const [connectionWasMade, setConnectionWasMade] = useState(false);
+  const connectionWasMadeRef = useRef(false);
 
   // Scene preset options
   const scenePresets: DropdownOption[] = [
@@ -941,7 +943,6 @@ export default function GeometryNodeEditor() {
     socketId?: string; // Socket ID for auto-connection
     isConnected?: boolean; // For target handles, whether already connected
   } | null>(null);
-  const [connectionWasMade, setConnectionWasMade] = useState(false);
   const [lastMousePosition, setLastMousePosition] = useState({ x: 0, y: 0 });
 
   // Track mouse position for context menu placement
@@ -1024,6 +1025,7 @@ export default function GeometryNodeEditor() {
     (params: Connection) => {
       if (validateTypeBasedConnection(params)) {
         // Mark that a connection was successfully made
+        connectionWasMadeRef.current = true;
         setConnectionWasMade(true);
         
         // BLENDER BEHAVIOR: Auto-replace existing connection on target input
@@ -1078,6 +1080,7 @@ export default function GeometryNodeEditor() {
   // BLENDER BEHAVIOR: Track connection drag start for disconnect functionality and context menu
   const onConnectStart = useCallback((event: any, { nodeId, handleId, handleType }: any) => {
     // Reset connection flag at start of each drag
+    connectionWasMadeRef.current = false;
     setConnectionWasMade(false);
     
     if (handleType === 'target') {
@@ -1140,48 +1143,13 @@ export default function GeometryNodeEditor() {
 
   // BLENDER BEHAVIOR: Handle drag-to-disconnect and show context menu for source handles
   const onConnectEnd = useCallback((event: any) => {
-    if (connectionDragState && !connectionWasMade) {
-      const { nodeId, handleId, handleType, socketType, socketId } = connectionDragState;
-      
-      if (handleType === 'source' && socketType) {
-        // Dragging from source handle to empty space - show filtered context menu
-        let clientX, clientY;
+    // Use a timeout to defer the check, allowing onConnect to fire first.
+    setTimeout(() => {
+      if (connectionDragState && !connectionWasMadeRef.current) {
+        const { nodeId, handleId, handleType, socketType, socketId } = connectionDragState;
         
-        // Try to get coordinates from event
-        if (event) {
-          clientX = event.clientX || 
-                   (event.nativeEvent && event.nativeEvent.clientX);
-          clientY = event.clientY || 
-                   (event.nativeEvent && event.nativeEvent.clientY);
-        }
-        
-        // Fallback to last known mouse position
-        if (!clientX || !clientY) {
-          clientX = lastMousePosition.x;
-          clientY = lastMousePosition.y;
-        }
-        
-        // Store connection info for auto-connect and filtering
-        setConnectionInfo({
-          sourceNodeId: nodeId,
-          sourceSocketId: socketId || '',
-          sourceSocketType: socketType,
-          isReverse: false
-        });
-        
-        // Show context menu
-        setContextMenu({ x: clientX, y: clientY });
-        
-      } else if (handleType === 'target' && socketType) {
-        const { isConnected } = connectionDragState;
-        
-        if (isConnected) {
-          // Dragging from connected target handle - disconnect it
-          setEdges((eds) => eds.filter(edge => 
-            !(edge.target === nodeId && edge.targetHandle === handleId)
-          ));
-        } else {
-          // Dragging from unconnected target handle to empty space - show filtered context menu
+        if (handleType === 'source' && socketType) {
+          // Dragging from source handle to empty space - show filtered context menu
           let clientX, clientY;
           
           // Try to get coordinates from event
@@ -1198,23 +1166,63 @@ export default function GeometryNodeEditor() {
             clientY = lastMousePosition.y;
           }
           
-          // Store connection info for reverse auto-connect (input looking for output)
+          // Store connection info for auto-connect and filtering
           setConnectionInfo({
-            targetNodeId: nodeId,
-            targetSocketId: socketId || '',
-            targetSocketType: socketType,
-            isReverse: true
+            sourceNodeId: nodeId,
+            sourceSocketId: socketId || '',
+            sourceSocketType: socketType,
+            isReverse: false
           });
           
           // Show context menu
           setContextMenu({ x: clientX, y: clientY });
+          
+        } else if (handleType === 'target' && socketType) {
+          const { isConnected } = connectionDragState;
+          
+          if (isConnected) {
+            // Dragging from connected target handle - disconnect it
+            setEdges((eds) => eds.filter(edge => 
+              !(edge.target === nodeId && edge.targetHandle === handleId)
+            ));
+          } else {
+            // Dragging from unconnected target handle to empty space - show filtered context menu
+            let clientX, clientY;
+            
+            // Try to get coordinates from event
+            if (event) {
+              clientX = event.clientX || 
+                       (event.nativeEvent && event.nativeEvent.clientX);
+              clientY = event.clientY || 
+                       (event.nativeEvent && event.nativeEvent.clientY);
+            }
+            
+            // Fallback to last known mouse position
+            if (!clientX || !clientY) {
+              clientX = lastMousePosition.x;
+              clientY = lastMousePosition.y;
+            }
+            
+            // Store connection info for reverse auto-connect (input looking for output)
+            setConnectionInfo({
+              targetNodeId: nodeId,
+              targetSocketId: socketId || '',
+              targetSocketType: socketType,
+              isReverse: true
+            });
+            
+            // Show context menu
+            setContextMenu({ x: clientX, y: clientY });
+          }
         }
       }
-    }
-    
-    setConnectionDragState(null);
-    setConnectionWasMade(false);
-  }, [connectionDragState, connectionWasMade, setEdges, lastMousePosition]);
+      
+      // Always clean up state
+      setConnectionDragState(null);
+      setConnectionWasMade(false);
+      connectionWasMadeRef.current = false;
+    }, 10); // A small delay is crucial for the timing to work.
+  }, [connectionDragState, setEdges, lastMousePosition]);
 
   // Function to get edge style based on connection type (Blender-inspired)
   const getEdgeStyle = (connectionType: string) => {
