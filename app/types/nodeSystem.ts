@@ -147,7 +147,7 @@ export const SOCKET_METADATA: Record<ParameterType, {
   number: {
     color: '#22c55e',
     className: 'number-handle',
-    compatibleWith: ['number', 'integer']
+    compatibleWith: ['number', 'integer', 'numeric']
   },
   integer: {
     color: '#16a34a',
