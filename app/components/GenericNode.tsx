@@ -323,10 +323,10 @@ export default function GenericNode({
   
   return (
     <div 
-      className={`bg-gradient-to-br from-slate-800 to-slate-900 border rounded-lg overflow-hidden backdrop-blur-sm transition-all duration-200 ${
+      className={`bg-gradient-to-br from-slate-800 to-slate-900 border rounded-lg overflow-hidden backdrop-blur-sm transition-all duration-200 hover:shadow-slate-400/30 ${
         selected 
           ? 'border-blue-400 border-2 shadow-blue-400/50' 
-          : 'border-slate-600/50'
+          : 'border-slate-600/50 hover:border-slate-400/70'
       } ${
         disabled ? 'opacity-50' : ''
       }`}
