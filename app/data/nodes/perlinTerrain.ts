@@ -16,6 +16,13 @@ export const perlinTerrainNode: JsonNodeDefinition = {
       type: 'integer',
       defaultValue: 123,
       description: 'Terrain generation seed'
+    },
+    {
+      id: 'amplitude',
+      name: 'Amplitude',
+      type: 'number',
+      defaultValue: 10,
+      description: 'Maximum terrain height'
     }
   ],
   outputs: [
@@ -46,15 +53,7 @@ export const perlinTerrainNode: JsonNodeDefinition = {
       step: 0.01,
       description: 'Noise frequency scale'
     },
-    {
-      id: 'amplitude',
-      name: 'Height Amplitude',
-      type: 'number',
-      defaultValue: 10,
-      min: 1,
-      max: 50,
-      description: 'Maximum terrain height'
-    },
+
     {
       id: 'octaves',
       name: 'Octaves',
@@ -67,9 +66,9 @@ export const perlinTerrainNode: JsonNodeDefinition = {
   ],
   executeCode: `
 const seed = inputs.seed || 123;
+const amplitude = inputs.amplitude || 10;
 const size = parameters.size || 64;
 const scale = parameters.scale || 0.1;
-const amplitude = parameters.amplitude || 10;
 const octaves = parameters.octaves || 4;
 
 // Simple hash function for deterministic random
