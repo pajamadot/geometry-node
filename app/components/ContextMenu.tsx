@@ -167,6 +167,11 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
     return acc;
   }, {} as Record<string, NodeMenuItem[]>);
 
+  // Don't render anything if position is null
+  if (!position) {
+    return null;
+  }
+
   return (
     <>
       {/* Backdrop overlay to capture clicks */}

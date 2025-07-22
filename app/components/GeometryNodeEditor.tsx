@@ -2142,7 +2142,7 @@ export default function GeometryNodeEditor() {
           className="bg-black"
           multiSelectionKeyCode="Shift"
           selectNodesOnDrag={false}
-          panOnDrag={[1, 2]}
+          panOnDrag={[1]}
           selectionOnDrag={true}
           selectionMode={SelectionMode.Partial}
           elementsSelectable={true}
