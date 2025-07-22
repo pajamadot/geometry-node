@@ -36,21 +36,6 @@ import Tooltip from './ui/Tooltip';
 import { areTypesCompatible, getParameterTypeFromHandle } from '../types/connections';
 import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '../utils/nodeCompiler';
 import { useModal } from './ModalContext';
-import { 
-  getDefaultScene as getDefaultSceneData,
-  getLighthouseScene as getLighthouseSceneData,
-  saveSceneToLocalStorage as saveScene,
-  loadSceneFromLocalStorage as loadScene,
-  scenePresets,
-  SceneData
-} from '../utils/sceneManager';
-import { NotificationManager, NotificationHelpers, NotificationMessages, getNotificationIcon, getNotificationClasses } from '../utils/notifications';
-import { GraphLayoutEngine, autoLayoutNodes as autoLayoutNodesUtil } from '../utils/graphLayout';
-import { 
-  exportGraphAsImage as exportGraphAsImageUtil, 
-  exportGraphAsJSON as exportGraphAsJSONUtil, 
-  importGraphFromJSON as importGraphFromJSONUtil 
-} from '../utils/graphExport';
 
 
 
@@ -78,9 +63,606 @@ const backgroundProps = {
   color: "#1f2937",
 };
 
-// Scene configurations - now using utility functions
+// Scene configurations
+const getDefaultScene = () => ({
+  nodes: [
+    {
+      id: 'time-1',
+      type: 'time',
+      position: { x: 50, y: 150 },
+      data: {
+        id: 'time-1',
+        type: 'time',
+        label: 'Time',
+        parameters: { speed: 1, outputType: 'sine', frequency: 1, amplitude: 1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'math-1',
+      type: 'math',
+      position: { x: 400, y: 150 },
+      data: {
+        id: 'math-1',
+        type: 'math',
+        label: 'Math (× π)',
+        parameters: { operation: 'multiply', valueB: 30 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'make-vector-1',
+      type: 'make-vector',
+      position: { x: 750, y: 150 },
+      data: {
+        id: 'make-vector-1',
+        type: 'make-vector',
+        label: 'Make Vector',
+        parameters: { z: 0 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'cube-1',
+    type: 'cube',
+      position: { x: 50, y: 500 },
+    data: {
+        id: 'cube-1',
+      type: 'cube',
+      label: 'Cube',
+      parameters: { width: 1, height: 1, depth: 1 },
+      inputConnections: {},
+      liveParameterValues: {}
+    }
+  },
+  {
+      id: 'math-normalize',
+      type: 'math',
+      position: { x: 750, y: 300 },
+      data: {
+        id: 'math-normalize',
+        type: 'math',
+        label: 'Math (×0.5)',
+        parameters: { operation: 'multiply', valueB: 0.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'math-add',
+      type: 'math',
+      position: { x: 1100, y: 300 },
+      data: {
+        id: 'math-add',
+        type: 'math',
+        label: 'Math (+ 0.5)',
+        parameters: { operation: 'add', valueB: 0.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-1',
+      type: 'standard-material',
+      position: { x: 400, y: 500 },
+      data: {
+        id: 'standard-material-1',
+        type: 'standard-material',
+        label: 'Animated Material',
+        parameters: { roughness: 0.3, metalness: 0.1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-1',
+      type: 'set-material',
+      position: { x: 750, y: 600 },
+      data: {
+        id: 'set-material-1',
+        type: 'set-material',
+        label: 'Set Material',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-1', 
+    type: 'transform',
+      position: { x: 1100, y: 500 },
+    data: {
+        id: 'transform-1',
+      type: 'transform',
+      label: 'Transform',
+      parameters: { 
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 }
+      },
+      inputConnections: {},
+      liveParameterValues: {}
+    }
+  },
+  {
+      id: 'output-1',
+    type: 'output', 
+      position: { x: 1450, y: 500 },
+    data: {
+        id: 'output-1',
+      type: 'output',
+      label: 'Output',
+      parameters: {},
+      inputConnections: {},
+      liveParameterValues: {}
+    }
+  }
+  ],
+  edges: [
+    {
+      id: 'e-time-math',
+      source: 'time-1',
+      target: 'math-1',
+      sourceHandle: 'time-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-math-makevector-x',
+      source: 'math-1',
+      target: 'make-vector-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'x-in',
+    },
+    {
+      id: 'e-math-makevector-y',
+      source: 'math-1',
+      target: 'make-vector-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'y-in',
+    },
+    {
+      id: 'e-makevector-transform',
+      source: 'make-vector-1',
+      target: 'transform-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'rotation-in',
+    },
+    {
+      id: 'e-math-normalize',
+      source: 'math-1',
+      target: 'math-normalize',
+      sourceHandle: 'result-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-normalize-add',
+      source: 'math-normalize',
+      target: 'math-add',
+      sourceHandle: 'result-out',
+      targetHandle: 'valueA-in',
+    },
+    {
+      id: 'e-add-material',
+      source: 'math-add',
+      target: 'standard-material-1',
+      sourceHandle: 'result-out',
+      targetHandle: 'redChannel-in',
+    },
+    {
+      id: 'e-cube-setmaterial',
+      source: 'cube-1',
+      target: 'set-material-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-material-setmaterial',
+      source: 'standard-material-1',
+      target: 'set-material-1',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    {
+      id: 'e-setmaterial-transform',
+      source: 'set-material-1',
+      target: 'transform-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-transform-output',
+      source: 'transform-1',
+      target: 'output-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+  ]
+});
 
-// Scene management functions - replaced with utility imports
+const getLighthouseScene = () => ({
+  nodes: [
+    // Time node - top left
+    {
+      id: 'time-1',
+      type: 'time',
+      position: { x: 50, y: 100 },
+      data: {
+        id: 'time-1',
+        type: 'time',
+        label: 'Time',
+        parameters: { speed: 1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    
+    // Water row - top
+    {
+      id: 'gesner-wave-1',
+      type: 'gesner-wave',
+      position: { x: 500, y: 100 },
+      data: {
+        id: 'gesner-wave-1',
+        type: 'gesner-wave',
+        label: 'Gesner Wave',
+        parameters: { 
+          width: 100, 
+          height: 100, 
+          amplitude: 0.5, 
+          segments: 8,
+          waveType: 'multiple',
+          waveCount: 4
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'water-material-1',
+      type: 'water-material',
+      position: { x: 950, y: 50 },
+      data: {
+        id: 'water-material-1',
+        type: 'water-material',
+        label: 'Water Material',
+        parameters: { shallowColor: '#40e0d0', deepColor: '#006994' },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-1',
+      type: 'set-material',
+      position: { x: 1350, y: 100 },
+      data: {
+        id: 'set-material-1',
+        type: 'set-material',
+        label: 'Set Material (Water)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Lighthouse row - middle
+    {
+      id: 'lighthouse-1',
+      type: 'lighthouse',
+      position: { x: 500, y: 450 },
+      data: {
+        id: 'lighthouse-1',
+        type: 'lighthouse',
+        label: 'Lighthouse',
+        parameters: { towerHeight: 15, towerRadius: 2.5, baseRadius: 3.5 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-lighthouse',
+      type: 'transform',
+      position: { x: 900, y: 450 },
+      data: {
+        id: 'transform-lighthouse',
+        type: 'transform',
+        label: 'Transform Lighthouse',
+        parameters: { 
+          position: { x: 0, y: 3.5, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 }
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-1',
+      type: 'standard-material',
+      position: { x: 950, y: 350 },
+      data: {
+        id: 'standard-material-1',
+        type: 'standard-material',
+        label: 'Standard Material (Yellow)',
+        parameters: { color: '#ffeb3b', roughness: 0.7, metalness: 0.1 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-2',
+      type: 'set-material',
+      position: { x: 1350, y: 450 },
+      data: {
+        id: 'set-material-2',
+        type: 'set-material',
+        label: 'Set Material (Lighthouse)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Rock row - bottom
+    {
+      id: 'rock-1',
+      type: 'lowPolyRock',
+      position: { x: 500, y: 800 },
+      data: {
+        id: 'rock-1',
+        type: 'lowPolyRock',
+        label: 'Low Poly Rock',
+        parameters: { radius: 2, detail: 2, noise: 0.8 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'transform-rock',
+      type: 'transform',
+      position: { x: 900, y: 800 },
+      data: {
+        id: 'transform-rock',
+        type: 'transform',
+        label: 'Transform Rock',
+        parameters: { 
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 5, y: 0.4, z: 3 }
+        },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'standard-material-2',
+      type: 'standard-material',
+      position: { x: 950, y: 700 },
+      data: {
+        id: 'standard-material-2',
+        type: 'standard-material',
+        label: 'Standard Material (Brown)',
+        parameters: { color: '#8d5524', roughness: 0.9, metalness: 0.05 },
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'set-material-3',
+      type: 'set-material',
+      position: { x: 1350, y: 800 },
+      data: {
+        id: 'set-material-3',
+        type: 'set-material',
+        label: 'Set Material (Rock)',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+
+    // Join nodes - right side
+    {
+      id: 'join-1',
+      type: 'join',
+      position: { x: 1700, y: 275 },
+      data: {
+        id: 'join-1',
+        type: 'join',
+        label: 'Join Water & Lighthouse',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'join-2',
+      type: 'join',
+      position: { x: 2050, y: 525 },
+      data: {
+        id: 'join-2',
+        type: 'join',
+        label: 'Join All',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    },
+    {
+      id: 'output-1',
+      type: 'output',
+      position: { x: 2400, y: 525 },
+      data: {
+        id: 'output-1',
+        type: 'output',
+        label: 'Output',
+        parameters: {},
+        inputConnections: {},
+        liveParameterValues: {}
+      }
+    }
+  ],
+  edges: [
+    // Time to gesner wave
+    {
+      id: 'e-time-wave',
+      source: 'time-1',
+      target: 'gesner-wave-1',
+      sourceHandle: 'time-out',
+      targetHandle: 'time-in',
+    },
+    
+    // Water material setup
+    {
+      id: 'e-wave-setmat1',
+      source: 'gesner-wave-1',
+      target: 'set-material-1',
+    sourceHandle: 'geometry-out',
+    targetHandle: 'geometry-in',
+  },
+  {
+      id: 'e-watermat-setmat1',
+      source: 'water-material-1',
+      target: 'set-material-1',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Lighthouse with transform and material setup
+    {
+      id: 'e-lighthouse-transform',
+      source: 'lighthouse-1',
+      target: 'transform-lighthouse',
+    sourceHandle: 'geometry-out',
+    targetHandle: 'geometry-in',
+  },
+    {
+      id: 'e-transform-lighthouse-setmat2',
+      source: 'transform-lighthouse',
+      target: 'set-material-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-yellowmat-setmat2',
+      source: 'standard-material-1',
+      target: 'set-material-2',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Rock with transform and material setup
+    {
+      id: 'e-rock-transform',
+      source: 'rock-1',
+      target: 'transform-rock',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-transform-rock-setmat3',
+      source: 'transform-rock',
+      target: 'set-material-3',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    },
+    {
+      id: 'e-brownmat-setmat3',
+      source: 'standard-material-2',
+      target: 'set-material-3',
+      sourceHandle: 'material-out',
+      targetHandle: 'material-in',
+    },
+    
+    // Join everything
+    {
+      id: 'e-water-join1',
+      source: 'set-material-1',
+      target: 'join-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryA-in',
+    },
+    {
+      id: 'e-lighthouse-join1',
+      source: 'set-material-2',
+      target: 'join-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryB-in',
+    },
+    {
+      id: 'e-join1-join2',
+      source: 'join-1',
+      target: 'join-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryA-in',
+    },
+    {
+      id: 'e-rock-join2',
+      source: 'set-material-3',
+      target: 'join-2',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometryB-in',
+    },
+    {
+      id: 'e-join2-output',
+      source: 'join-2',
+      target: 'output-1',
+      sourceHandle: 'geometry-out',
+      targetHandle: 'geometry-in',
+    }
+  ]
+});
+
+// Scene management functions
+const saveSceneToLocalStorage = (nodes: Node<GeometryNodeData>[], edges: Edge[]) => {
+  // Check if we're running in the browser
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    console.warn('localStorage not available (running on server)');
+    return;
+  }
+  
+  const sceneData = {
+    nodes: nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data
+    })),
+    edges: edges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle
+    })),
+    timestamp: Date.now()
+  };
+  localStorage.setItem('geometry-script-scene', JSON.stringify(sceneData));
+  console.log('Scene saved to localStorage');
+};
+
+const loadSceneFromLocalStorage = () => {
+  // Check if we're running in the browser
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return null;
+  }
+  
+  try {
+    const sceneData = localStorage.getItem('geometry-script-scene');
+    if (sceneData) {
+      const parsed = JSON.parse(sceneData);
+      return {
+        nodes: parsed.nodes || [],
+        edges: parsed.edges || []
+      };
+    }
+  } catch (error) {
+    console.error('Error loading scene from localStorage:', error);
+  }
+  return null;
+};
 
 // Helper function to enhance edges (needed for initial scene setup)
 const enhanceEdgesWithMetadataStatic = (edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
@@ -185,7 +767,7 @@ const enhanceEdgesWithMetadataStatic = (edges: Edge[], nodes: Node<GeometryNodeD
 // Initial nodes for testing - using new registry system
 const getInitialScene = () => {
   // Try to load from localStorage first, fallback to default scene
-  const savedScene = loadScene();
+  const savedScene = loadSceneFromLocalStorage();
   if (savedScene && savedScene.nodes.length > 0) {
     // Enhance saved edges if they don't have proper metadata
     const nodes = savedScene.nodes as Node<GeometryNodeData>[];
@@ -203,7 +785,7 @@ const getInitialScene = () => {
     return savedScene;
   }
   
-  const defaultScene = getDefaultSceneData();
+  const defaultScene = getDefaultScene();
   const nodes = defaultScene.nodes as Node<GeometryNodeData>[];
   const enhancedEdges = enhanceEdgesWithMetadataStatic(defaultScene.edges, nodes);
   
@@ -245,9 +827,6 @@ export default function GeometryNodeEditor() {
     message: string;
   }>>([]);
 
-  // Initialize notification manager
-  const notificationManager = React.useMemo(() => new NotificationManager(), []);
-
   // Scene preset options
   const scenePresets: DropdownOption[] = [
     {
@@ -264,18 +843,14 @@ export default function GeometryNodeEditor() {
     }
   ];
 
-  // Subscribe to notification manager updates
-  React.useEffect(() => {
-    const unsubscribe = notificationManager.subscribe((notifications) => {
-      setNotifications(notifications);
-    });
-    return unsubscribe;
-  }, [notificationManager]);
-
-  // Toast notification system - now using utility
+  // Toast notification system
   const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
-    NotificationHelpers[type](notificationManager, message);
-  }, [notificationManager]);
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000); // Show for 4 seconds
+  }, []);
 
   // Function to fit all nodes in view with padding
   const fitAllNodes = useCallback(async () => {
@@ -288,44 +863,351 @@ export default function GeometryNodeEditor() {
     });
   }, [nodes, fitView]);
 
-  // Auto-layout nodes using utility function
+  // Auto-layout nodes using hierarchical flow algorithm
   const autoLayoutNodes = useCallback(async () => {
     if (nodes.length === 0) {
-      NotificationHelpers.warning(notificationManager, NotificationMessages.LAYOUT_NO_NODES);
+      showToast('warning', 'No nodes to layout');
       return;
     }
 
-    NotificationHelpers.loading(notificationManager, NotificationMessages.LAYOUT_ORGANIZING);
+    showToast('info', 'Organizing nodes...');
 
-    try {
-      const result = autoLayoutNodesUtil(nodes, edges);
-      setNodes(result.nodes);
+    // Step 1: Analyze the graph structure
+    const nodeMap = new Map(nodes.map(node => [node.id, node]));
+    const incomingEdges = new Map<string, Edge[]>();
+    const outgoingEdges = new Map<string, Edge[]>();
 
-      // Fit view to show the new layout
-      setTimeout(async () => {
-        await fitView({ 
-          padding: 120,
-          duration: 800
-        });
-        NotificationHelpers.success(
-          notificationManager, 
-          NotificationMessages.LAYOUT_SUCCESS(
-            result.nodes.length, 
-            result.stats.layerCount, 
-            result.stats.totalCrossings
-          )
-        );
-      }, 150);
+    // Build edge maps
+    edges.forEach(edge => {
+      if (!incomingEdges.has(edge.target)) incomingEdges.set(edge.target, []);
+      if (!outgoingEdges.has(edge.source)) outgoingEdges.set(edge.source, []);
+      incomingEdges.get(edge.target)!.push(edge);
+      outgoingEdges.get(edge.source)!.push(edge);
+    });
 
-    } catch (error) {
-      NotificationHelpers.error(notificationManager, `Layout failed: ${error}`);
+    // Step 2: Determine node layers using topological sort
+    let layers: string[][] = [];
+    const nodeDepths = new Map<string, number>();
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    const calculateDepth = (nodeId: string): number => {
+      if (visiting.has(nodeId)) return 0; // Cycle detection
+      if (nodeDepths.has(nodeId)) return nodeDepths.get(nodeId)!;
+
+      visiting.add(nodeId);
+      
+      const incoming = incomingEdges.get(nodeId) || [];
+      const maxParentDepth = incoming.length > 0 
+        ? Math.max(...incoming.map(edge => calculateDepth(edge.source)))
+        : -1;
+      
+      const depth = maxParentDepth + 1;
+      nodeDepths.set(nodeId, depth);
+      visiting.delete(nodeId);
+      
+      return depth;
+    };
+
+    // Calculate depths for all nodes
+    nodes.forEach(node => calculateDepth(node.id));
+
+    // Group nodes by depth
+    const maxDepth = Math.max(...Array.from(nodeDepths.values()));
+    for (let i = 0; i <= maxDepth; i++) {
+      layers[i] = [];
     }
-  }, [nodes, edges, setNodes, fitView, notificationManager]);
+
+    nodeDepths.forEach((depth, nodeId) => {
+      layers[depth].push(nodeId);
+    });
+
+    // Step 3: Advanced crossing minimization using barycenter heuristic
+    
+    // Helper function for node type ordering (define early to avoid hoisting issues)
+    const getNodeTypeOrder = (node: Node<GeometryNodeData>) => {
+      const type = node.data.type;
+      if (type === 'time') return 0;
+      if (type.includes('input') || type.includes('Input')) return 2;
+      if (type === 'math' || type === 'vector-math') return 5;
+      if (type.includes('vector') || type.includes('Vector')) return 6;
+      if (type === 'transform') return 7;
+      if (type.includes('primitive') || type.includes('geometry')) return 8;
+      if (type.includes('material')) return 9;
+      if (type === 'output') return 10;
+      return 4; // Default
+    };
+
+    const calculateBarycenter = (nodeId: string, fixedLayerIndex: number, isDownward: boolean): number => {
+      const targetEdges = isDownward 
+        ? incomingEdges.get(nodeId) || []
+        : outgoingEdges.get(nodeId) || [];
+      
+      const relevantEdges = targetEdges.filter(edge => {
+        const sourceNode = isDownward ? edge.source : edge.target;
+        return layers[fixedLayerIndex].includes(sourceNode);
+      });
+
+      if (relevantEdges.length === 0) return -1;
+
+      const sum = relevantEdges.reduce((acc, edge) => {
+        const sourceNode = isDownward ? edge.source : edge.target;
+        return acc + layers[fixedLayerIndex].indexOf(sourceNode);
+      }, 0);
+
+      return sum / relevantEdges.length;
+    };
+
+    // Multi-pass crossing reduction (adapted from Unreal's approach)
+    const maxIterations = Math.min(8, layers.length * 2);
+    let bestLayout = layers.map(layer => [...layer]);
+    let bestCrossings = calculateTotalCrossings(bestLayout);
+
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+      const isDownward = iteration % 2 === 0;
+      const startLayer = isDownward ? 1 : layers.length - 2;
+      const endLayer = isDownward ? layers.length : -1;
+      const step = isDownward ? 1 : -1;
+
+      for (let i = startLayer; i !== endLayer; i += step) {
+        const fixedLayerIndex = i - step;
+        const currentLayer = [...layers[i]];
+
+        // Calculate barycenter for each node
+        const nodeBaryCenters = currentLayer.map(nodeId => ({
+          nodeId,
+          barycenter: calculateBarycenter(nodeId, fixedLayerIndex, isDownward)
+        }));
+
+        // Sort by barycenter, keeping nodes with no connections at the end
+        nodeBaryCenters.sort((a, b) => {
+          if (a.barycenter === -1 && b.barycenter === -1) {
+            // For nodes with no connections, use type order as tiebreaker
+            const nodeA = nodeMap.get(a.nodeId)!;
+            const nodeB = nodeMap.get(b.nodeId)!;
+            return getNodeTypeOrder(nodeA) - getNodeTypeOrder(nodeB);
+          }
+          if (a.barycenter === -1) return 1;
+          if (b.barycenter === -1) return -1;
+          return a.barycenter - b.barycenter;
+        });
+
+        layers[i] = nodeBaryCenters.map(item => item.nodeId);
+      }
+
+      // Check if this iteration improved the layout
+      const currentCrossings = calculateTotalCrossings(layers);
+      if (currentCrossings < bestCrossings) {
+        bestLayout = layers.map(layer => [...layer]);
+        bestCrossings = currentCrossings;
+      }
+    }
+
+    // Use the best layout found
+    layers = bestLayout;
+
+    // Helper function to calculate total crossings
+    function calculateTotalCrossings(layerArrangement: string[][]): number {
+      let totalCrossings = 0;
+      for (let i = 0; i < layerArrangement.length - 1; i++) {
+        const upperLayer = layerArrangement[i];
+        const lowerLayer = layerArrangement[i + 1];
+        
+        // Get all edges between these layers
+        const layerEdges: Array<{sourceIndex: number, targetIndex: number}> = [];
+        edges.forEach(edge => {
+          const sourceIndex = upperLayer.indexOf(edge.source);
+          const targetIndex = lowerLayer.indexOf(edge.target);
+          if (sourceIndex !== -1 && targetIndex !== -1) {
+            layerEdges.push({ sourceIndex, targetIndex });
+          }
+        });
+
+        // Count crossings between edge pairs
+        for (let j = 0; j < layerEdges.length; j++) {
+          for (let k = j + 1; k < layerEdges.length; k++) {
+            const edge1 = layerEdges[j];
+            const edge2 = layerEdges[k];
+            if ((edge1.sourceIndex < edge2.sourceIndex && edge1.targetIndex > edge2.targetIndex) ||
+                (edge1.sourceIndex > edge2.sourceIndex && edge1.targetIndex < edge2.targetIndex)) {
+              totalCrossings++;
+            }
+          }
+        }
+      }
+      return totalCrossings;
+    }
+
+    // Step 4: Calculate positions with smart spacing and node size consideration
+    const BASE_NODE_WIDTH = 200;
+    const BASE_NODE_HEIGHT = 100;
+    const MIN_NODE_SPACING_X = 400; // More generous horizontal spacing
+    const MIN_NODE_SPACING_Y = 150; // Base vertical spacing
+    const LAYER_PADDING = 100; // Extra padding between layers
+    const START_X = 100;
+    const START_Y = 100;
+
+    // Estimate node dimensions based on type and content
+    const getNodeDimensions = (node: Node<GeometryNodeData>) => {
+      const type = node.data.type;
+      let width = BASE_NODE_WIDTH;
+      let height = BASE_NODE_HEIGHT;
+      
+      // Adjust for complex nodes
+      if (type.includes('material') || type.includes('parametric')) {
+        height += 50; // Taller for complex parameter nodes
+      }
+      if (node.data.label && node.data.label.length > 12) {
+        width += 20; // Wider for long labels
+      }
+      
+      return { width, height };
+    };
+
+    // Calculate better vertical spacing for each layer
+    const layerSpacing = layers.map(layer => {
+      const layerNodes = layer.map(nodeId => nodeMap.get(nodeId)!);
+      const maxHeight = Math.max(...layerNodes.map(node => getNodeDimensions(node).height));
+      return maxHeight + MIN_NODE_SPACING_Y;
+    });
+
+    // Calculate horizontal positions with variable spacing
+    const layerXPositions: number[] = [];
+    let currentX = START_X;
+    
+    for (let i = 0; i < layers.length; i++) {
+      layerXPositions[i] = currentX;
+      
+      // Calculate width needed for this layer
+      const layerNodes = layers[i].map(nodeId => nodeMap.get(nodeId)!);
+      const maxWidth = Math.max(...layerNodes.map(node => getNodeDimensions(node).width));
+      
+      // Next layer starts after this layer's width + spacing
+      currentX += maxWidth + MIN_NODE_SPACING_X;
+    }
+
+    const newNodes = nodes.map(node => {
+      const depth = nodeDepths.get(node.id) || 0;
+      const layerIndex = layers[depth].indexOf(node.id);
+      const layerSize = layers[depth].length;
+      
+      // Calculate Y position with better centering
+      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
+      const totalLayerHeight = (layerSize - 1) * spacing;
+      const layerStartY = START_Y - totalLayerHeight / 2;
+      const nodeY = layerStartY + layerIndex * spacing;
+      
+      return {
+        ...node,
+        position: {
+          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
+          y: Math.max(50, nodeY) // Ensure minimum Y position
+        }
+      };
+    });
+
+    // Step 5: Refine layout to minimize edge crossings
+    const refinedNodes = newNodes.map(node => ({ ...node })); // Copy for refinement
+
+    // For each layer (except first and last), try to minimize crossings
+    for (let layerIdx = 1; layerIdx < layers.length - 1; layerIdx++) {
+      const currentLayer = layers[layerIdx];
+      if (currentLayer.length <= 1) continue;
+
+      // Calculate crossing score for each possible arrangement
+      const calculateCrossings = (arrangement: string[]) => {
+        let crossings = 0;
+        const nodePositions = new Map<string, number>();
+        arrangement.forEach((nodeId, idx) => nodePositions.set(nodeId, idx));
+
+        // Check crossings with previous layer
+        const prevLayerEdges = edges.filter(edge => 
+          layers[layerIdx - 1].includes(edge.source) && arrangement.includes(edge.target)
+        );
+        
+        for (let i = 0; i < prevLayerEdges.length; i++) {
+          for (let j = i + 1; j < prevLayerEdges.length; j++) {
+            const edge1 = prevLayerEdges[i];
+            const edge2 = prevLayerEdges[j];
+            
+            const source1Pos = layers[layerIdx - 1].indexOf(edge1.source);
+            const source2Pos = layers[layerIdx - 1].indexOf(edge2.source);
+            const target1Pos = nodePositions.get(edge1.target) || 0;
+            const target2Pos = nodePositions.get(edge2.target) || 0;
+            
+            // Check if edges cross
+            if ((source1Pos < source2Pos && target1Pos > target2Pos) ||
+                (source1Pos > source2Pos && target1Pos < target2Pos)) {
+              crossings++;
+            }
+          }
+        }
+        
+        return crossings;
+      };
+
+      // Try different arrangements to minimize crossings
+      let bestArrangement = [...currentLayer];
+      let bestCrossings = calculateCrossings(bestArrangement);
+
+      // Simple bubble sort optimization for small layers
+      if (currentLayer.length <= 8) {
+        for (let i = 0; i < currentLayer.length - 1; i++) {
+          for (let j = 0; j < currentLayer.length - 1 - i; j++) {
+            const testArrangement = [...currentLayer];
+            [testArrangement[j], testArrangement[j + 1]] = [testArrangement[j + 1], testArrangement[j]];
+            
+            const crossings = calculateCrossings(testArrangement);
+            if (crossings < bestCrossings) {
+              bestCrossings = crossings;
+              bestArrangement = testArrangement;
+            }
+          }
+        }
+      }
+
+      // Update layer order
+      layers[layerIdx] = bestArrangement;
+    }
+
+    // Recalculate positions with optimized arrangement
+    const finalNodes = nodes.map(node => {
+      const depth = nodeDepths.get(node.id) || 0;
+      const layerIndex = layers[depth].indexOf(node.id);
+      const layerSize = layers[depth].length;
+      
+      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
+      const totalLayerHeight = (layerSize - 1) * spacing;
+      const layerStartY = START_Y - totalLayerHeight / 2;
+      const nodeY = layerStartY + layerIndex * spacing;
+      
+      return {
+        ...node,
+        position: {
+          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
+          y: Math.max(50, nodeY)
+        }
+      };
+    });
+
+    // Step 6: Apply the refined layout
+    setNodes(finalNodes);
+
+    // Step 7: Fit view to show the new layout
+    setTimeout(async () => {
+      await fitView({ 
+        padding: 120,
+        duration: 800 // Slightly longer for better visual feedback
+      });
+      showToast('success', `Organized ${nodes.length} nodes in ${layers.length} layers with ${bestCrossings} crossings using barycenter optimization! ✨`);
+    }, 150);
+
+  }, [nodes, edges, setNodes, fitView, showToast]);
 
   // Auto-save scene to localStorage when nodes or edges change
   useEffect(() => {
     const timer = setTimeout(() => {
-      saveScene(nodes, edges);
+      saveSceneToLocalStorage(nodes, edges);
     }, 1000); // Debounce saves to avoid excessive localStorage writes
 
     return () => clearTimeout(timer);
@@ -458,49 +1340,119 @@ export default function GeometryNodeEditor() {
 
   // Scene switching functions
   const loadDefaultScene = useCallback(() => {
-    const scene = getDefaultSceneData();
+    const scene = getDefaultScene();
     const sceneNodes = scene.nodes as Node<GeometryNodeData>[];
     const enhancedEdges = enhanceEdgesWithMetadata(scene.edges, sceneNodes);
     
     setNodes(sceneNodes);
     setEdges(enhancedEdges);
-    saveScene(sceneNodes, enhancedEdges);
+    saveSceneToLocalStorage(sceneNodes, enhancedEdges);
   }, [setNodes, setEdges, enhanceEdgesWithMetadata]);
 
   const loadLighthouseScene = useCallback(() => {
-    const scene = getLighthouseSceneData();
+    const scene = getLighthouseScene();
     const sceneNodes = scene.nodes as Node<GeometryNodeData>[];
     const enhancedEdges = enhanceEdgesWithMetadata(scene.edges, sceneNodes);
     
     setNodes(sceneNodes);
     setEdges(enhancedEdges);
-    saveScene(sceneNodes, enhancedEdges);
+    saveSceneToLocalStorage(sceneNodes, enhancedEdges);
   }, [setNodes, setEdges, enhanceEdgesWithMetadata]);
 
   const saveCurrentScene = useCallback(() => {
-    saveScene(nodes, edges);
+    saveSceneToLocalStorage(nodes, edges);
     showToast('success', 'Scene saved to local storage! 💾');
   }, [nodes, edges, showToast]);
 
-  // Export current graph as image - using utility function
+    // Export current graph as image
   const exportCurrentGraph = useCallback(async () => {
     try {
-      // Adapter function to match expected signature
-      const fitViewAdapter = async (options?: { padding?: number; duration?: number }) => {
-        return fitView(options);
-      };
-      
-      await exportGraphAsImageUtil(nodes, getViewport, setViewport, fitViewAdapter, {
-        filename: 'geometry-graph',
-        includeTimestamp: true
-      });
+      await exportGraphAsImage('geometry-graph');
     } catch (error) {
       console.error('Export failed:', error);
-      NotificationHelpers.error(notificationManager, `Export failed: ${error}`);
+      showToast('error', `Export failed: ${error}`);
     }
-  }, [nodes, getViewport, setViewport, fitView, notificationManager]);
+  }, [showToast]);
 
-  // Export functions replaced with utility imports
+  // Export current graph as image with visible fit animation first
+  const exportGraphAsImage = useCallback(async (filename: string = 'node-graph') => {
+    try {
+      const { toPng } = await import('html-to-image');
+      const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
+      
+      if (!reactFlowElement) {
+        throw new Error('React Flow element not found');
+      }
+
+      if (nodes.length === 0) {
+        showToast('warning', 'No nodes to export');
+        return;
+      }
+
+      // Store current viewport to restore later
+      const originalViewport = getViewport();
+      
+      // Step 1: Show the user what will be exported with animated fit
+      showToast('info', 'Framing all nodes for export...');
+      await fitView({ 
+        padding: 100, // 100px padding around all nodes
+        duration: 600 // Show smooth animation to user
+      });
+      
+      // Step 2: Wait for user to see the framing
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Step 3: Now capture the same view instantly (no animation) 
+      await fitView({ 
+        padding: 100, // Same padding as above
+        duration: 0 // No animation for capture
+      });
+      
+      // Wait for instant fit to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Step 4: Capture the image
+      const dataUrl = await toPng(reactFlowElement, {
+        backgroundColor: '#000000',
+        width: reactFlowElement.offsetWidth,
+        height: reactFlowElement.offsetHeight,
+        style: {
+          width: reactFlowElement.offsetWidth + 'px',
+          height: reactFlowElement.offsetHeight + 'px',
+        },
+        pixelRatio: 2, // Higher resolution
+        filter: (node) => {
+          // Hide controls, attribution, and other UI elements during export
+          if (
+            node?.classList?.contains('react-flow__controls') ||
+            node?.classList?.contains('react-flow__attribution') ||
+            node?.classList?.contains('react-flow__panel') ||
+            node?.getAttribute?.('data-testid') === 'rf__controls'
+          ) {
+            return false;
+          }
+          return true;
+        },
+      });
+
+      // Step 5: Restore original viewport
+      setViewport(originalViewport, { duration: 0 });
+
+      // Step 6: Download the image
+      const link = document.createElement('a');
+      link.download = `${filename}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('success', 'Graph image downloaded successfully! 📷');
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      showToast('error', `Export failed: ${error}`);
+    }
+  }, [nodes, getViewport, setViewport, fitView, showToast]);
 
   // Export graph as JSON
   const exportToJSON = useCallback(() => {
@@ -573,7 +1525,7 @@ export default function GeometryNodeEditor() {
           setEdges(importedEdges);
           
                       // Save to localStorage
-            saveScene(importedNodes, importedEdges);
+            saveSceneToLocalStorage(importedNodes, importedEdges);
 
             showToast('success', 'Graph imported successfully! 📥');
                   } catch (error) {
@@ -1653,18 +2605,23 @@ export default function GeometryNodeEditor() {
 
       {/* Toast Notifications */}
       <div className="fixed top-4 right-4 space-y-2 z-50">
-        {notifications.map((notification) => {
-          const IconComponent = getNotificationIcon(notification.type);
-          return (
-            <div
-              key={notification.id}
-              className={getNotificationClasses(notification.type)}
-            >
-              <IconComponent size={16} />
-              <span className="text-sm font-medium">{notification.message}</span>
-            </div>
-          );
-        })}
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border transition-all duration-300 ${
+              notification.type === 'success' ? 'bg-green-900/90 text-green-300 border-green-700' :
+              notification.type === 'error' ? 'bg-red-900/90 text-red-300 border-red-700' :
+              notification.type === 'warning' ? 'bg-yellow-900/90 text-yellow-300 border-yellow-700' :
+              'bg-blue-900/90 text-blue-300 border-blue-700'
+            }`}
+          >
+            {notification.type === 'success' ? <CheckCircle2 size={16} /> :
+             notification.type === 'error' ? <AlertCircle size={16} /> :
+             notification.type === 'warning' ? <AlertCircle size={16} /> :
+             <RefreshCw size={16} />}
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
