@@ -12,6 +12,8 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   useReactFlow,
+  getNodesBounds,
+  getViewportForBounds,
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
@@ -27,7 +29,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2 } from 'lucide-react';
 import Button from './ui/Button';
 import Dropdown, { DropdownOption } from './ui/Dropdown';
 import Tooltip from './ui/Tooltip';
@@ -802,7 +804,7 @@ export default function GeometryNodeEditor() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { compileNodes, isCompiling, error, liveParameterValues } = useGeometry();
   const { currentTime, frameRate } = useTime();
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getViewport, setViewport, fitView } = useReactFlow();
   const { showConfirm, showAlert } = useModal();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [nodeContextMenu, setNodeContextMenu] = useState<{ 
@@ -835,6 +837,17 @@ export default function GeometryNodeEditor() {
       description: 'Animated water, lighthouse, and rock'
     }
   ];
+
+  // Function to fit all nodes in view with padding
+  const fitAllNodes = useCallback(async () => {
+    if (nodes.length === 0) return;
+    
+    // Use React Flow's fitView to show all nodes with padding
+    await fitView({ 
+      padding: 100, // 100px padding around all nodes
+      duration: 300 // Smooth animation
+    });
+  }, [nodes, fitView]);
 
   // Auto-save scene to localStorage when nodes or edges change
   useEffect(() => {
@@ -874,6 +887,49 @@ export default function GeometryNodeEditor() {
 
     // Helper function to enhance programmatic edges with proper metadata
   const enhanceEdgesWithMetadata = useCallback((edges: Edge[], nodes: Node<GeometryNodeData>[]): Edge[] => {
+    // Get edge style based on connection type
+    const getEdgeStyleLocal = (connectionType: string) => {
+      switch (connectionType) {
+        case 'geometry':
+          return {
+            stroke: '#eab308',
+            strokeWidth: 3,
+            filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.4))'
+          };
+        case 'time':
+          return {
+            stroke: '#ec4899',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(236, 72, 153, 0.4))'
+          };
+        case 'number':
+        case 'numeric':
+          return {
+            stroke: '#22c55e',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))'
+          };
+        case 'vector':
+          return {
+            stroke: '#06b6d4',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(6, 182, 212, 0.4))'
+          };
+        case 'material':
+          return {
+            stroke: '#8b5cf6',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(139, 92, 246, 0.4))'
+          };
+        default:
+          return {
+            stroke: '#6b7280',
+            strokeWidth: 2,
+            filter: 'drop-shadow(0 0 4px rgba(107, 114, 128, 0.4))'
+          };
+      }
+    };
+
     return edges.map((edge: Edge) => {
       // Determine connection type based on socket types
       let connectionType = 'geometry';
@@ -910,8 +966,6 @@ export default function GeometryNodeEditor() {
               connectionType = 'material';
             }
           }
-          
-
         }
       }
       
@@ -920,7 +974,7 @@ export default function GeometryNodeEditor() {
         ...edge,
         animated: true,
         data: { connectionType },
-        style: getEdgeStyle(connectionType),
+        style: getEdgeStyleLocal(connectionType),
         className: `connection-${connectionType}`,
         'data-connection-type': connectionType,
         'data-target-handle': edge.targetHandle,
@@ -961,6 +1015,198 @@ export default function GeometryNodeEditor() {
       document.body.removeChild(notification);
     }, 2000);
   }, [nodes, edges]);
+
+    // Export current graph as image
+  const exportCurrentGraph = useCallback(async () => {
+    try {
+      await exportGraphAsImage('geometry-graph');
+    } catch (error) {
+      console.error('Export failed:', error);
+      await showAlert(
+        'Export Failed',
+        `Failed to export graph: ${error}`,
+        'error'
+      );
+    }
+  }, [showAlert]);
+
+  // Export current graph as image using fitAllNodes approach
+  const exportGraphAsImage = useCallback(async (filename: string = 'node-graph') => {
+    try {
+      const { toPng } = await import('html-to-image');
+      const reactFlowElement = document.querySelector('.react-flow') as HTMLElement;
+      
+      if (!reactFlowElement) {
+        throw new Error('React Flow element not found');
+      }
+
+      if (nodes.length === 0) {
+        await showAlert('No Nodes', 'There are no nodes to export.', 'warning');
+        return;
+      }
+
+      // Store current viewport to restore later
+      const originalViewport = getViewport();
+      
+      // Fit all nodes in view with padding (no animation for export)
+      await fitView({ 
+        padding: 100, // 100px padding around all nodes
+        duration: 0 // No animation for instant fit
+      });
+      
+      // Wait a moment for the view to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture the current viewport state
+      const dataUrl = await toPng(reactFlowElement, {
+        backgroundColor: '#000000',
+        width: reactFlowElement.offsetWidth,
+        height: reactFlowElement.offsetHeight,
+        style: {
+          width: reactFlowElement.offsetWidth + 'px',
+          height: reactFlowElement.offsetHeight + 'px',
+        },
+        pixelRatio: 2, // Higher resolution
+        filter: (node) => {
+          // Hide controls, attribution, and other UI elements during export
+          if (
+            node?.classList?.contains('react-flow__controls') ||
+            node?.classList?.contains('react-flow__attribution') ||
+            node?.classList?.contains('react-flow__panel') ||
+            node?.getAttribute?.('data-testid') === 'rf__controls'
+          ) {
+            return false;
+          }
+          return true;
+        },
+      });
+
+      // Restore original viewport
+      setViewport(originalViewport, { duration: 0 });
+
+      // Download the image
+      const link = document.createElement('a');
+      link.download = `${filename}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      await showAlert(
+        'Export Complete',
+        'Graph image has been downloaded with all nodes perfectly framed!',
+        'info'
+      );
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      await showAlert(
+        'Export Failed',
+        `Failed to export graph: ${error}`,
+        'error'
+      );
+    }
+  }, [nodes, getViewport, setViewport, fitView, showAlert]);
+
+  // Export graph as JSON
+  const exportToJSON = useCallback(() => {
+    try {
+      const graphData = {
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle
+        })),
+        metadata: {
+          exportDate: new Date().toISOString(),
+          version: '1.0'
+        }
+      };
+
+      const jsonString = JSON.stringify(graphData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `geometry-graph-${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showAlert(
+        'Export Complete',
+        'Graph has been exported as JSON successfully!',
+        'info'
+      );
+    } catch (error) {
+      console.error('JSON export failed:', error);
+      showAlert(
+        'Export Failed',
+        `Failed to export JSON: ${error}`,
+        'error'
+      );
+    }
+  }, [nodes, edges, showAlert]);
+
+  // Import graph from JSON
+  const importFromJSON = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target?.result as string);
+          
+          if (!jsonData.nodes || !Array.isArray(jsonData.nodes)) {
+            throw new Error('Invalid JSON format: missing nodes array');
+          }
+
+          if (!jsonData.edges || !Array.isArray(jsonData.edges)) {
+            throw new Error('Invalid JSON format: missing edges array');
+          }
+
+          // Validate and set nodes
+          const importedNodes = jsonData.nodes as Node<GeometryNodeData>[];
+          const importedEdges = jsonData.edges as Edge[];
+
+          setNodes(importedNodes);
+          setEdges(importedEdges);
+          
+          // Save to localStorage
+          saveSceneToLocalStorage(importedNodes, importedEdges);
+
+          showAlert(
+            'Import Complete',
+            'Graph has been imported successfully!',
+            'info'
+          );
+        } catch (error) {
+          console.error('JSON import failed:', error);
+          showAlert(
+            'Import Failed',
+            `Failed to import JSON: ${error}`,
+            'error'
+          );
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, [setNodes, setEdges, showAlert]);
 
   // Handle scene preset selection
   const handleScenePresetChange = useCallback(async (presetValue: string) => {
@@ -1782,6 +2028,16 @@ export default function GeometryNodeEditor() {
           className="h-[32px]"
         />
         
+        <Tooltip content="Fit all nodes in view" placement="bottom">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Maximize2}
+            onClick={fitAllNodes}
+            className="h-[32px] w-[32px] !px-0"
+          />
+        </Tooltip>
+        
         {/* Action Buttons */}
         <div className="flex gap-2">
           <Tooltip content="Save current scene to local storage" placement="bottom">
@@ -1800,6 +2056,36 @@ export default function GeometryNodeEditor() {
               size="sm"
               icon={Paintbrush}
               onClick={cleanupUnusedNodes}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+          
+          <Tooltip content="Export current graph as image" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Camera}
+              onClick={exportCurrentGraph}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+          
+          <Tooltip content="Export graph as JSON file" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={FileDown}
+              onClick={exportToJSON}
+              className="h-[32px] w-[32px] !px-0"
+            />
+          </Tooltip>
+          
+          <Tooltip content="Import graph from JSON file" placement="bottom">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={FileUp}
+              onClick={importFromJSON}
               className="h-[32px] w-[32px] !px-0"
             />
           </Tooltip>
