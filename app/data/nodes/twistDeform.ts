@@ -16,6 +16,20 @@ export const twistDeformNode: JsonNodeDefinition = {
       type: 'geometry',
       required: true,
       description: 'Input geometry to deform'
+    },
+    {
+      id: 'angle',
+      name: 'Twist Angle',
+      type: 'number',
+      defaultValue: 1,
+      description: 'Twist strength (radians per unit)'
+    },
+    {
+      id: 'falloff',
+      name: 'Falloff',
+      type: 'number',
+      defaultValue: 1,
+      description: 'Distance falloff factor'
     }
   ],
   outputs: [
@@ -34,33 +48,13 @@ export const twistDeformNode: JsonNodeDefinition = {
       defaultValue: 'y',
       options: ['x', 'y', 'z'],
       description: 'Axis of twist rotation'
-    },
-    {
-      id: 'angle',
-      name: 'Twist Angle',
-      type: 'number',
-      defaultValue: 1,
-      min: -10,
-      max: 10,
-      step: 0.1,
-      description: 'Twist strength (radians per unit)'
-    },
-    {
-      id: 'falloff',
-      name: 'Falloff',
-      type: 'number',
-      defaultValue: 1,
-      min: 0.1,
-      max: 5,
-      step: 0.1,
-      description: 'Distance falloff factor'
     }
   ],
   executeCode: `
 const inputGeometry = inputs.geometry;
+const angle = inputs.angle || 1;
+const falloff = inputs.falloff || 1;
 const axis = parameters.axis || 'y';
-const angle = parameters.angle || 1;
-const falloff = parameters.falloff || 1;
 
 if (!inputGeometry || !inputGeometry.attributes || !inputGeometry.attributes.position) {
   // Create a simple fallback geometry if no input
@@ -115,8 +109,7 @@ geometry.computeVertexNormals();
 return { geometry };`,
   ui: {
     width: 220,
-    icon: 'zap',
-    advanced: ['falloff']
+    icon: 'zap'
   },
   version: '1.0.0',
   author: 'GeometryScript',
