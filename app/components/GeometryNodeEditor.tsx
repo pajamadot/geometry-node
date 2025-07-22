@@ -475,167 +475,101 @@ export default function GeometryNodeEditor() {
     }
 
     // Step 4: Calculate positions with smart spacing and node size consideration
-    const BASE_NODE_WIDTH = 200;
-    const BASE_NODE_HEIGHT = 100;
-    const MIN_NODE_SPACING_X = 400; // More generous horizontal spacing
-    const MIN_NODE_SPACING_Y = 150; // Base vertical spacing
-    const LAYER_PADDING = 100; // Extra padding between layers
+    const BASE_NODE_WIDTH = 220;
+    const BASE_NODE_HEIGHT = 120;
+    const MIN_NODE_SPACING_X = 350; // Generous horizontal spacing
+    const MIN_NODE_SPACING_Y = 40; // Vertical spacing between nodes in a layer
     const START_X = 100;
     const START_Y = 100;
 
-    // Estimate node dimensions based on type and content
+    // Get node dimensions, using actual sizes if available
     const getNodeDimensions = (node: Node<GeometryNodeData>) => {
+      // Use actual dimensions if available (most reliable)
+      if (node.width && node.height && node.width > 1 && node.height > 1) {
+        return { width: node.width, height: node.height };
+      }
+
+      // Fallback to estimation if dimensions are not yet available
       const type = node.data.type;
       let width = BASE_NODE_WIDTH;
       let height = BASE_NODE_HEIGHT;
       
-      // Adjust for complex nodes
-      if (type.includes('material') || type.includes('parametric')) {
-        height += 50; // Taller for complex parameter nodes
+      const definition = nodeRegistry.getDefinition(type);
+      if (definition) {
+        // Estimate based on: base height + sockets + parameters
+        const numSockets = Math.max(definition.inputs.length, definition.outputs.length);
+        const numParams = definition.parameters.length;
+        height = 80 + (numSockets * 24) + (numParams * 28);
+        width = 240;
+      } else if (type.includes('material') || type.includes('parametric')) {
+        height += 50;
       }
-      if (node.data.label && node.data.label.length > 12) {
-        width += 20; // Wider for long labels
+
+      if (node.data.label && node.data.label.length > 15) {
+        width += (node.data.label.length - 15) * 7;
       }
       
       return { width, height };
     };
 
-    // Calculate better vertical spacing for each layer
-    const layerSpacing = layers.map(layer => {
-      const layerNodes = layer.map(nodeId => nodeMap.get(nodeId)!);
-      const maxHeight = Math.max(...layerNodes.map(node => getNodeDimensions(node).height));
-      return maxHeight + MIN_NODE_SPACING_Y;
-    });
-
-    // Calculate horizontal positions with variable spacing
+    // Calculate horizontal positions for each layer
     const layerXPositions: number[] = [];
     let currentX = START_X;
     
     for (let i = 0; i < layers.length; i++) {
       layerXPositions[i] = currentX;
       
-      // Calculate width needed for this layer
       const layerNodes = layers[i].map(nodeId => nodeMap.get(nodeId)!);
-      const maxWidth = Math.max(...layerNodes.map(node => getNodeDimensions(node).width));
+      if (layerNodes.length === 0) continue;
       
-      // Next layer starts after this layer's width + spacing
+      const maxWidth = Math.max(...layerNodes.map(node => getNodeDimensions(node).width));
       currentX += maxWidth + MIN_NODE_SPACING_X;
     }
 
-    const newNodes = nodes.map(node => {
-      const depth = nodeDepths.get(node.id) || 0;
-      const layerIndex = layers[depth].indexOf(node.id);
-      const layerSize = layers[depth].length;
+    // Position nodes within each layer vertically
+    const nodePositions = new Map<string, { x: number; y: number }>();
+
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      const layerNodes = layer.map(nodeId => nodeMap.get(nodeId)!);
+      const nodeDims = layerNodes.map(node => getNodeDimensions(node));
+
+      // Calculate total height of the layer to center it vertically
+      const totalLayerHeight = nodeDims.reduce((sum, dim) => sum + dim.height, 0) + 
+                                Math.max(0, layer.length - 1) * MIN_NODE_SPACING_Y;
       
-      // Calculate Y position with better centering
-      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
-      const totalLayerHeight = (layerSize - 1) * spacing;
-      const layerStartY = START_Y - totalLayerHeight / 2;
-      const nodeY = layerStartY + layerIndex * spacing;
-      
-      return {
-        ...node,
-        position: {
-          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
-          y: Math.max(50, nodeY) // Ensure minimum Y position
-        }
-      };
-    });
+      let layerCurrentY = START_Y - totalLayerHeight / 2;
 
-    // Step 5: Refine layout to minimize edge crossings
-    const refinedNodes = newNodes.map(node => ({ ...node })); // Copy for refinement
-
-    // For each layer (except first and last), try to minimize crossings
-    for (let layerIdx = 1; layerIdx < layers.length - 1; layerIdx++) {
-      const currentLayer = layers[layerIdx];
-      if (currentLayer.length <= 1) continue;
-
-      // Calculate crossing score for each possible arrangement
-      const calculateCrossings = (arrangement: string[]) => {
-        let crossings = 0;
-        const nodePositions = new Map<string, number>();
-        arrangement.forEach((nodeId, idx) => nodePositions.set(nodeId, idx));
-
-        // Check crossings with previous layer
-        const prevLayerEdges = edges.filter(edge => 
-          layers[layerIdx - 1].includes(edge.source) && arrangement.includes(edge.target)
-        );
+      // Position each node, stacking them vertically
+      for (let j = 0; j < layerNodes.length; j++) {
+        const node = layerNodes[j];
+        const { height } = nodeDims[j];
         
-        for (let i = 0; i < prevLayerEdges.length; i++) {
-          for (let j = i + 1; j < prevLayerEdges.length; j++) {
-            const edge1 = prevLayerEdges[i];
-            const edge2 = prevLayerEdges[j];
-            
-            const source1Pos = layers[layerIdx - 1].indexOf(edge1.source);
-            const source2Pos = layers[layerIdx - 1].indexOf(edge2.source);
-            const target1Pos = nodePositions.get(edge1.target) || 0;
-            const target2Pos = nodePositions.get(edge2.target) || 0;
-            
-            // Check if edges cross
-            if ((source1Pos < source2Pos && target1Pos > target2Pos) ||
-                (source1Pos > source2Pos && target1Pos < target2Pos)) {
-              crossings++;
-            }
-          }
-        }
-        
-        return crossings;
-      };
+        nodePositions.set(node.id, {
+          x: layerXPositions[i],
+          y: layerCurrentY
+        });
 
-      // Try different arrangements to minimize crossings
-      let bestArrangement = [...currentLayer];
-      let bestCrossings = calculateCrossings(bestArrangement);
-
-      // Simple bubble sort optimization for small layers
-      if (currentLayer.length <= 8) {
-        for (let i = 0; i < currentLayer.length - 1; i++) {
-          for (let j = 0; j < currentLayer.length - 1 - i; j++) {
-            const testArrangement = [...currentLayer];
-            [testArrangement[j], testArrangement[j + 1]] = [testArrangement[j + 1], testArrangement[j]];
-            
-            const crossings = calculateCrossings(testArrangement);
-            if (crossings < bestCrossings) {
-              bestCrossings = crossings;
-              bestArrangement = testArrangement;
-            }
-          }
-        }
+        layerCurrentY += height + MIN_NODE_SPACING_Y;
       }
-
-      // Update layer order
-      layers[layerIdx] = bestArrangement;
     }
-
-    // Recalculate positions with optimized arrangement
-    const finalNodes = nodes.map(node => {
-      const depth = nodeDepths.get(node.id) || 0;
-      const layerIndex = layers[depth].indexOf(node.id);
-      const layerSize = layers[depth].length;
-      
-      const spacing = layerSpacing[depth] || MIN_NODE_SPACING_Y;
-      const totalLayerHeight = (layerSize - 1) * spacing;
-      const layerStartY = START_Y - totalLayerHeight / 2;
-      const nodeY = layerStartY + layerIndex * spacing;
-      
-      return {
-        ...node,
-        position: {
-          x: layerXPositions[depth] || (START_X + depth * MIN_NODE_SPACING_X),
-          y: Math.max(50, nodeY)
-        }
-      };
+    
+    // Create new nodes with calculated positions
+    const newNodes = nodes.map(node => {
+      const position = nodePositions.get(node.id);
+      return position ? { ...node, position } : node;
     });
 
-    // Step 6: Apply the refined layout
-    setNodes(finalNodes);
+    // Step 5: Apply the new layout
+    setNodes(newNodes);
 
-    // Step 7: Fit view to show the new layout
+    // Step 6: Fit view to show the new layout
     setTimeout(async () => {
       await fitView({ 
         padding: 120,
-        duration: 800 // Slightly longer for better visual feedback
+        duration: 800
       });
-      showToast('success', `Organized ${nodes.length} nodes in ${layers.length} layers with ${bestCrossings} crossings using barycenter optimization! ✨`);
+      showToast('success', `Organized ${nodes.length} nodes into ${layers.length} layers. ✨`);
     }, 150);
 
   }, [nodes, edges, setNodes, fitView, showToast]);
