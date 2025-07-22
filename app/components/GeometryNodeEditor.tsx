@@ -821,6 +821,11 @@ export default function GeometryNodeEditor() {
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
   const [selectedScenePreset, setSelectedScenePreset] = useState<string>('');
   const [isLoadingScene, setIsLoadingScene] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    message: string;
+  }>>([]);
 
   // Scene preset options
   const scenePresets: DropdownOption[] = [
@@ -837,6 +842,15 @@ export default function GeometryNodeEditor() {
       description: 'Animated water, lighthouse, and rock'
     }
   ];
+
+  // Toast notification system
+  const showToast = useCallback((type: 'success' | 'error' | 'warning' | 'info', message: string) => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000); // Show for 4 seconds
+  }, []);
 
   // Function to fit all nodes in view with padding
   const fitAllNodes = useCallback(async () => {
@@ -1006,15 +1020,8 @@ export default function GeometryNodeEditor() {
 
   const saveCurrentScene = useCallback(() => {
     saveSceneToLocalStorage(nodes, edges);
-    // Show temporary notification
-    const notification = document.createElement('div');
-    notification.textContent = 'Scene saved to local storage!';
-    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded z-50';
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 2000);
-  }, [nodes, edges]);
+    showToast('success', 'Scene saved to local storage! 💾');
+  }, [nodes, edges, showToast]);
 
     // Export current graph as image
   const exportCurrentGraph = useCallback(async () => {
@@ -1022,15 +1029,11 @@ export default function GeometryNodeEditor() {
       await exportGraphAsImage('geometry-graph');
     } catch (error) {
       console.error('Export failed:', error);
-      await showAlert(
-        'Export Failed',
-        `Failed to export graph: ${error}`,
-        'error'
-      );
+      showToast('error', `Export failed: ${error}`);
     }
-  }, [showAlert]);
+  }, [showToast]);
 
-  // Export current graph as image using fitAllNodes approach
+  // Export current graph as image with visible fit animation first
   const exportGraphAsImage = useCallback(async (filename: string = 'node-graph') => {
     try {
       const { toPng } = await import('html-to-image');
@@ -1041,23 +1044,33 @@ export default function GeometryNodeEditor() {
       }
 
       if (nodes.length === 0) {
-        await showAlert('No Nodes', 'There are no nodes to export.', 'warning');
+        showToast('warning', 'No nodes to export');
         return;
       }
 
       // Store current viewport to restore later
       const originalViewport = getViewport();
       
-      // Fit all nodes in view with padding (no animation for export)
+      // Step 1: Show the user what will be exported with animated fit
+      showToast('info', 'Framing all nodes for export...');
       await fitView({ 
         padding: 100, // 100px padding around all nodes
-        duration: 0 // No animation for instant fit
+        duration: 600 // Show smooth animation to user
       });
       
-      // Wait a moment for the view to update
+      // Step 2: Wait for user to see the framing
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Step 3: Now capture the same view instantly (no animation) 
+      await fitView({ 
+        padding: 100, // Same padding as above
+        duration: 0 // No animation for capture
+      });
+      
+      // Wait for instant fit to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Capture the current viewport state
+      // Step 4: Capture the image
       const dataUrl = await toPng(reactFlowElement, {
         backgroundColor: '#000000',
         width: reactFlowElement.offsetWidth,
@@ -1081,10 +1094,10 @@ export default function GeometryNodeEditor() {
         },
       });
 
-      // Restore original viewport
+      // Step 5: Restore original viewport
       setViewport(originalViewport, { duration: 0 });
 
-      // Download the image
+      // Step 6: Download the image
       const link = document.createElement('a');
       link.download = `${filename}.png`;
       link.href = dataUrl;
@@ -1092,21 +1105,13 @@ export default function GeometryNodeEditor() {
       link.click();
       document.body.removeChild(link);
 
-      await showAlert(
-        'Export Complete',
-        'Graph image has been downloaded with all nodes perfectly framed!',
-        'info'
-      );
+      showToast('success', 'Graph image downloaded successfully! 📷');
 
     } catch (error) {
       console.error('Export failed:', error);
-      await showAlert(
-        'Export Failed',
-        `Failed to export graph: ${error}`,
-        'error'
-      );
+      showToast('error', `Export failed: ${error}`);
     }
-  }, [nodes, getViewport, setViewport, fitView, showAlert]);
+  }, [nodes, getViewport, setViewport, fitView, showToast]);
 
   // Export graph as JSON
   const exportToJSON = useCallback(() => {
@@ -1142,20 +1147,12 @@ export default function GeometryNodeEditor() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showAlert(
-        'Export Complete',
-        'Graph has been exported as JSON successfully!',
-        'info'
-      );
-    } catch (error) {
-      console.error('JSON export failed:', error);
-      showAlert(
-        'Export Failed',
-        `Failed to export JSON: ${error}`,
-        'error'
-      );
-    }
-  }, [nodes, edges, showAlert]);
+              showToast('success', 'Graph exported as JSON successfully! 📄');
+          } catch (error) {
+        console.error('JSON export failed:', error);
+        showToast('error', `JSON export failed: ${error}`);
+      }
+    }, [nodes, edges, showToast]);
 
   // Import graph from JSON
   const importFromJSON = useCallback(() => {
@@ -1186,27 +1183,19 @@ export default function GeometryNodeEditor() {
           setNodes(importedNodes);
           setEdges(importedEdges);
           
-          // Save to localStorage
-          saveSceneToLocalStorage(importedNodes, importedEdges);
+                      // Save to localStorage
+            saveSceneToLocalStorage(importedNodes, importedEdges);
 
-          showAlert(
-            'Import Complete',
-            'Graph has been imported successfully!',
-            'info'
-          );
-        } catch (error) {
-          console.error('JSON import failed:', error);
-          showAlert(
-            'Import Failed',
-            `Failed to import JSON: ${error}`,
-            'error'
-          );
-        }
+            showToast('success', 'Graph imported successfully! 📥');
+                  } catch (error) {
+            console.error('JSON import failed:', error);
+            showToast('error', `JSON import failed: ${error}`);
+          }
+        };
+        reader.readAsText(file);
       };
-      reader.readAsText(file);
-    };
-    input.click();
-  }, [setNodes, setEdges, showAlert]);
+      input.click();
+    }, [setNodes, setEdges, showToast]);
 
   // Handle scene preset selection
   const handleScenePresetChange = useCallback(async (presetValue: string) => {
@@ -1229,18 +1218,10 @@ export default function GeometryNodeEditor() {
       }
       
       // Show success feedback
-      await showAlert(
-        'Scene Loaded',
-        `${presetValue === 'default' ? 'Default' : 'Lighthouse'} scene has been loaded successfully.`,
-        'info'
-      );
+      showToast('success', `${presetValue === 'default' ? 'Default' : 'Lighthouse'} scene loaded! 🎬`);
       
     } catch (error) {
-      await showAlert(
-        'Loading Error',
-        `Failed to load ${presetValue} scene: ${error}`,
-        'error'
-      );
+      showToast('error', `Failed to load ${presetValue} scene: ${error}`);
     } finally {
       setIsLoadingScene(false);
       // Auto-clear selection after loading to show it's been applied
@@ -1750,12 +1731,8 @@ export default function GeometryNodeEditor() {
     const analysis = analyzeNodeGraphForCleanup(nodes, edges);
     
     if (!analysis.canCleanup) {
-      // Show info modal that there are no unused nodes to clean up
-      await showAlert(
-        'No Cleanup Needed',
-        'All nodes in the graph contribute to the final output. No cleanup is necessary.',
-        'info'
-      );
+      // Show info toast that there are no unused nodes to clean up
+      showToast('info', 'All nodes contribute to the final output. No cleanup needed! ✨');
       return;
     }
     
@@ -1801,14 +1778,10 @@ export default function GeometryNodeEditor() {
     });
     
     // Show success message
-    await showAlert(
-      'Cleanup Complete',
-      `Successfully removed ${cleanupResult.stats.nodesRemoved} node${cleanupResult.stats.nodesRemoved === 1 ? '' : 's'} and ${cleanupResult.stats.edgesRemoved} edge${cleanupResult.stats.edgesRemoved === 1 ? '' : 's'}.`,
-      'info'
-    );
+    showToast('success', `Cleaned up ${cleanupResult.stats.nodesRemoved} node${cleanupResult.stats.nodesRemoved === 1 ? '' : 's'} and ${cleanupResult.stats.edgesRemoved} edge${cleanupResult.stats.edgesRemoved === 1 ? '' : 's'}! 🧹`);
     
     console.log(`🧹 Cleanup complete: Removed ${cleanupResult.stats.nodesRemoved} nodes and ${cleanupResult.stats.edgesRemoved} edges`);
-  }, [nodes, edges, setNodes, setEdges, showConfirm, showAlert]);
+  }, [nodes, edges, setNodes, setEdges, showConfirm, showToast]);
 
   // Add new node using registry system
   const addNode = useCallback((type: any, screenPosition: { x: number; y: number }, primitiveType?: string) => {
@@ -2278,6 +2251,27 @@ export default function GeometryNodeEditor() {
         onCopy={() => nodeContextMenu && copyNode(nodeContextMenu.nodeId)}
         onDisable={() => nodeContextMenu && toggleNodeDisabled(nodeContextMenu.nodeId)}
       />
+
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 space-y-2 z-50">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border transition-all duration-300 ${
+              notification.type === 'success' ? 'bg-green-900/90 text-green-300 border-green-700' :
+              notification.type === 'error' ? 'bg-red-900/90 text-red-300 border-red-700' :
+              notification.type === 'warning' ? 'bg-yellow-900/90 text-yellow-300 border-yellow-700' :
+              'bg-blue-900/90 text-blue-300 border-blue-700'
+            }`}
+          >
+            {notification.type === 'success' ? <CheckCircle2 size={16} /> :
+             notification.type === 'error' ? <AlertCircle size={16} /> :
+             notification.type === 'warning' ? <AlertCircle size={16} /> :
+             <RefreshCw size={16} />}
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 } 
