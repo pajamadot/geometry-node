@@ -8,7 +8,7 @@ import FallbackViewport from './components/FallbackViewport';
 import { GeometryProvider } from './components/GeometryContext';
 import { TimeProvider } from './components/TimeContext';
 import ResizableLayout from './components/ResizableLayout';
-import MemoryMonitor from './components/MemoryMonitor';
+import SystemMonitor from './components/SystemMonitor';
 import { LoggingProvider } from './components/LoggingContext';
 import LogPanel from './components/LogPanel';
 import { ModalProvider } from './components/ModalContext';
@@ -97,7 +97,7 @@ export default function Home() {
               )}
               
               {/* Memory Monitor */}
-              <MemoryMonitor />
+              <SystemMonitor />
               
               {/* Log Panel */}
               <LogPanel />

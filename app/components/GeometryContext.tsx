@@ -1,10 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
 import * as THREE from 'three';
 import { Node, Edge } from 'reactflow';
 import { GeometryNodeData } from '../types/nodes';
 import { compileNodeGraph, compileNodeGraphOptimized, createDefaultMaterial } from '../utils/nodeCompiler';
+import { graphCompiler, CompiledGraph } from '../utils/graphCompiler';
 import { useTime } from './TimeContext';
 import { useLogging } from './LoggingContext';
 
@@ -15,6 +16,13 @@ interface GeometryContextValue {
   isCompiling: boolean;
   error: string | null;
   liveParameterValues: Record<string, Record<string, any>>;
+  performanceStats: {
+    compilationCount: number;
+    executionCount: number;
+    lastCompilationTime: number;
+    lastExecutionTime: number;
+    totalExecutionTime: number;
+  };
 }
 
 const GeometryContext = createContext<GeometryContextValue | null>(null);
@@ -36,6 +44,19 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
   
   // Debounce compilation to prevent excessive WebGL calls
   const compilationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Cache the compiled graph structure
+  const compiledGraphRef = useRef<CompiledGraph | null>(null);
+  const lastGraphHashRef = useRef<string>('');
+  
+  // Performance monitoring
+  const performanceRef = useRef({
+    compilationCount: 0,
+    executionCount: 0,
+    lastCompilationTime: 0,
+    lastExecutionTime: 0,
+    totalExecutionTime: 0
+  });
 
   const compileNodes = useCallback((nodes: Node<GeometryNodeData>[], edges: Edge[], currentTime?: number, frameRate?: number, isTimeUpdate = false) => {
     // Clear any pending compilation
@@ -43,44 +64,58 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
       clearTimeout(compilationTimeoutRef.current);
     }
     
+    // Check if graph structure has changed
+    const currentGraphHash = generateGraphHash(nodes, edges);
+    const needsRecompilation = currentGraphHash !== lastGraphHashRef.current;
+    
     // Use shorter debounce for time updates to enable real-time animation
     // But only if there are actually time nodes in the graph
     const hasTimeNodes = nodes.some(node => node.data.type === 'time');
-    const debounceTime = (isTimeUpdate && hasTimeNodes) ? 8 : 50;
-    
-    // console.log('📅 Compilation requested:', {
-    //   nodeCount: nodes.length,
-    //   edgeCount: edges.length,
-    //   isTimeUpdate,
-    //   hasTimeNodes,
-    //   debounceTime,
-    //   currentTime: currentTime || 0
-    // });
+    const debounceTime = (isTimeUpdate && hasTimeNodes) ? 2 : 50; // Even faster for time updates
     
     compilationTimeoutRef.current = setTimeout(() => {
-      // console.log('🔨 Starting compilation...');
       setIsCompiling(true);
       setError(null);
 
       try {
-        // Use optimized compilation that automatically excludes unused nodes
-        const result = compileNodeGraphOptimized(nodes, edges, currentTime || 0, frameRate || 30, undefined, true);
+        let compiledGraph = compiledGraphRef.current;
         
-        if (result.success) {
-          // Get the compiled geometry from the result
-          const geometry = (result as any).compiledGeometry as THREE.BufferGeometry;
-          const liveValues = (result as any).liveParameterValues || {};
-          const optimizationStats = (result as any).optimizationStats;
+        // COMPILATION PHASE: Only when graph structure changes
+        if (needsRecompilation || !compiledGraph) {
+          const compileStart = performance.now();
+          console.log(`📦 Graph structure changed, recompiling...`);
           
-          // Log optimization stats for debugging
-          if (optimizationStats && optimizationStats.skippedNodes > 0) {
-            console.log(`🚀 Compilation optimization: processed ${optimizationStats.processedNodes}/${optimizationStats.totalNodes} nodes (skipped ${optimizationStats.skippedNodes} unused)`);
-          }
+          compiledGraph = graphCompiler.compileGraph(nodes, edges);
+          compiledGraphRef.current = compiledGraph;
+          lastGraphHashRef.current = currentGraphHash;
           
-          // Update live parameter values
-          setLiveParameterValues(liveValues);
+          const compileTime = performance.now() - compileStart;
+          performanceRef.current.compilationCount++;
+          performanceRef.current.lastCompilationTime = compileTime;
+        }
+        
+        // EXECUTION PHASE: Always happens, but optimized for time updates
+        if (compiledGraph) {
+          const executeStart = performance.now();
           
-          if (geometry) {
+          const result = graphCompiler.executeGraph(
+            compiledGraph,
+            currentTime || 0,
+            frameRate || 30,
+            isTimeUpdate
+          );
+          
+          const executeTime = performance.now() - executeStart;
+          performanceRef.current.executionCount++;
+          performanceRef.current.lastExecutionTime = executeTime;
+          performanceRef.current.totalExecutionTime += executeTime;
+          
+          if (result.success && result.finalGeometry) {
+            const geometry = result.finalGeometry;
+            
+            // Update live parameter values
+            setLiveParameterValues(result.liveParameterValues);
+            
             // Dispose previous geometry to prevent memory leaks
             if (prevGeometryRef.current && prevGeometryRef.current !== geometry) {
               prevGeometryRef.current.dispose();
@@ -111,11 +146,6 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
             };
             
             // Set up animation loop for water materials if needed
-            const hasWaterMaterials = [
-              (geometry as any).material,
-              ...(geometry.userData?.materials || [])
-            ].some(mat => mat && (mat as any).isWaterMaterial);
-            
             const hasShaderMaterials = [
               (geometry as any).material,
               ...(geometry.userData?.materials || [])
@@ -133,31 +163,43 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
               animate();
             }
             
-            // console.log('✅ Compilation successful, geometry updated', {
-            //   hasWaterMaterials,
-            //   hasShaderMaterials,
-            //   materialCount: (geometry.userData?.materials?.length || 0) + ((geometry as any).material ? 1 : 0)
-            // });
+            // Performance stats are now available through the context
+            
           } else {
-            const errorMsg = 'No geometry was produced by compilation';
-            setError(errorMsg);
-            console.error('❌', errorMsg);
+            setError(result.error || 'Graph execution failed');
+            setCompiledGeometry(null);
+            console.error('❌ Execution failed:', result.error);
           }
-        } else {
-          setError(result.error || 'Unknown compilation error');
-          setCompiledGeometry(null);
-          console.error('❌ Compilation failed:', result.error);
         }
+        
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown compilation error';
         setError(errorMsg);
         setCompiledGeometry(null);
-        console.error('💥 Compilation crashed:', err);
+        console.error('💥 Compilation/execution crashed:', err);
       } finally {
         setIsCompiling(false);
       }
     }, debounceTime);
-      }, []);
+  }, []);
+
+  // Helper function to generate a hash of the graph structure
+  const generateGraphHash = (nodes: Node<GeometryNodeData>[], edges: Edge[]): string => {
+    const nodeData = nodes.map(n => ({
+      id: n.id,
+      type: n.data.type,
+      parameters: n.data.parameters
+    }));
+    
+    const edgeData = edges.map(e => ({
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle
+    }));
+
+    return JSON.stringify({ nodes: nodeData, edges: edgeData });
+  };
   
   // Cleanup on unmount
   React.useEffect(() => {
@@ -179,6 +221,7 @@ export function GeometryProvider({ children }: GeometryProviderProps) {
     isCompiling,
     error,
     liveParameterValues,
+    performanceStats: performanceRef.current
   };
 
   return (
@@ -199,7 +242,14 @@ export function useGeometry() {
       compileNodes: () => {},
       isCompiling: false,
       error: 'Geometry context not available',
-      liveParameterValues: {}
+      liveParameterValues: {},
+      performanceStats: {
+        compilationCount: 0,
+        executionCount: 0,
+        lastCompilationTime: 0,
+        lastExecutionTime: 0,
+        totalExecutionTime: 0
+      }
     };
   }
   return context;

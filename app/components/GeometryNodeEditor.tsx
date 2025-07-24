@@ -39,6 +39,7 @@ import { clearNodeCache, analyzeNodeGraphForCleanup, cleanupNodeGraph } from '..
 import { useModal } from './ModalContext';
 import { getDefaultScene, getLighthouseScene } from '../data/scenes';
 import { useNotifications, NotificationPanel } from './hooks/useNotifications';
+import SystemMonitor from './SystemMonitor';
 
 
 // Define default edge options outside component
@@ -2161,6 +2162,9 @@ export default function GeometryNodeEditor() {
         <Background {...backgroundProps} />
       </ReactFlow>
       </NodeProvider>
+
+      {/* Performance Monitor */}
+              <SystemMonitor />
 
       {/* Context Menu */}
       <ContextMenu
