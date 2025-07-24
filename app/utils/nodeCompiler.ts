@@ -950,7 +950,7 @@ function executeNode(
 }
 
 // Wrapper function that handles caching
-function executeNodeWithCaching(
+export function executeNodeWithCaching(
   node: Node<GeometryNodeData>,
   inputs: Record<string, any>,
   cache: Map<string, any>,
