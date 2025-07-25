@@ -9,6 +9,7 @@ export type {
   PlanSceneRequest,
   ComposeSceneRequest,
   DiffSceneRequest,
+  GenerateSceneRequest,
   AIRequest,
   ValidationResult,
   AIGenerationResult

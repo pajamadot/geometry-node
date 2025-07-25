@@ -1,30 +1,209 @@
 import { nodeRegistry } from '../registry/NodeRegistry';
 
 /**
- * Builds a catalog of all available nodes with their descriptions, inputs, and outputs
+ * Builds a comprehensive catalog of all available nodes with detailed information for AI scene generation
  */
 export function buildCatalog(): string {
   const allNodes = nodeRegistry.getAllDefinitions();
-  const catalog = allNodes.map(node => ({
-    id: node.type,
-    name: node.name,
-    description: node.description || 'No description available', // Safe fallback for missing description
-    category: node.category,
-    inputs: node.inputs.map(i => ({
-      id: i.id,
-      name: i.name,
-      type: i.type,
-      required: i.required || false,
-      description: i.description || 'No description available'
-    })),
-    outputs: node.outputs.map(o => ({
-      id: o.id,
-      name: o.name,
-      type: o.type,
-      description: o.description || 'No description available'
-    }))
-  }));
-  return JSON.stringify(catalog, null, 2);
+  
+  // Group nodes by category for better organization
+  const nodesByCategory: Record<string, any[]> = {};
+  
+  const catalog = allNodes.map(node => {
+    const category = node.category || 'utilities';
+    
+    const nodeInfo = {
+      id: node.type,
+      name: node.name,
+      description: node.description || 'No description available',
+      category,
+      
+      // Input details with connection patterns
+      inputs: node.inputs.map(i => ({
+        id: i.id,
+        name: i.name,
+        type: i.type,
+        required: i.required || false,
+        description: i.description || 'No description available',
+        // Add handle name for connections
+        handle: `${i.id}-in`
+      })),
+      
+      // Output details with connection patterns  
+      outputs: node.outputs.map(o => ({
+        id: o.id,
+        name: o.name,
+        type: o.type,
+        description: o.description || 'No description available',
+        // Add handle name for connections
+        handle: `${o.id}-out`
+      })),
+      
+      // Parameter details with defaults and types
+      parameters: node.parameters?.map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        defaultValue: p.defaultValue,
+        description: p.description || 'No description available',
+        // Add constraints if available
+        min: p.min,
+        max: p.max,
+        step: p.step
+      })) || [],
+      
+      // Usage patterns and common connections
+      usagePatterns: getNodeUsagePatterns(node.type),
+      
+      // Common parameter values
+      commonParameters: getCommonParameterValues(node.type)
+    };
+    
+    // Group by category
+    if (!nodesByCategory[category]) {
+      nodesByCategory[category] = [];
+    }
+    nodesByCategory[category].push(nodeInfo);
+    
+    return nodeInfo;
+  });
+
+  // Create organized output with categories and usage examples
+  const organizedCatalog = {
+    summary: {
+      totalNodes: catalog.length,
+      categories: Object.keys(nodesByCategory),
+      connectionTypes: ['geometry', 'material', 'number', 'vector', 'boolean', 'time']
+    },
+    
+    nodesByCategory,
+    
+    // Common connection patterns
+    connectionPatterns: {
+      geometry_flow: "geometry-out → geometry-in (standard geometry processing)",
+      material_application: "material-out → material-in (applying materials to geometry)",
+      animation: "time-out → parameter inputs (for time-based animation)",
+      transforms: "geometry-out → transform(geometry-in) → geometry-out (positioning/scaling)",
+      joining: "geometry-out → join(geometryA-in), geometry-out → join(geometryB-in) → geometry-out",
+      final_output: "geometry-out → output(geometry-in) (required final step)"
+    },
+    
+    // Scene building guidelines
+    scenePatterns: {
+      minimal: ["geometry_node", "output"],
+      basic: ["geometry_node", "material_node", "set-material", "output"],
+      animated: ["time", "geometry_node", "transform", "output"],
+      complex: ["time", "multiple_geometry_nodes", "materials", "transforms", "join", "output"]
+    }
+  };
+
+  return JSON.stringify(organizedCatalog, null, 2);
+}
+
+/**
+ * Get common usage patterns for specific node types
+ */
+function getNodeUsagePatterns(nodeType: string): string[] {
+  const patterns: Record<string, string[]> = {
+    'time': [
+      'Connect to transform rotation for animation',
+      'Connect to material properties for color animation',
+      'Use with math nodes to create wave functions'
+    ],
+    'cube': [
+      'Basic geometry → set-material → output',
+      'Geometry → transform → output for positioning',
+      'Multiple cubes → join → output for combinations'
+    ],
+    'sphere': [
+      'Simple sphere → material → output',
+      'Sphere → transform for positioning/scaling',
+      'Multiple spheres with different materials → join'
+    ],
+    'cylinder': [
+      'Cylinder → material → output',
+      'Useful for pillars, trees, mechanical parts',
+      'Can be transformed for various orientations'
+    ],
+    'transform': [
+      'Any geometry → transform → further processing',
+      'Essential for positioning, rotating, scaling',
+      'Can be animated with time input'
+    ],
+    'set-material': [
+      'geometry + material → set-material → output',
+      'Required step to apply materials to geometry',
+      'Place between geometry processing and output'
+    ],
+    'join': [
+      'geometryA + geometryB → join → output',
+      'Combines multiple geometries into one',
+      'Can chain multiple joins for complex scenes'
+    ],
+    'output': [
+      'Final destination for all geometry',
+      'Required in every scene',
+      'Should be the rightmost node'
+    ],
+    'standard-material': [
+      'Basic PBR material with color, roughness, metalness',
+      'Connect to set-material node',
+      'Good for most general purposes'
+    ],
+    'water-material': [
+      'Specialized material for water effects',
+      'Best used with wave geometry nodes',
+      'Creates realistic water appearance'
+    ],
+    'lighthouse': [
+      'Complex architectural geometry',
+      'Often combined with water and rocks',
+      'Good for maritime scenes'
+    ],
+    'gesner-wave': [
+      'Water surface with wave animation',
+      'Connect time input for animation',
+      'Combine with water-material'
+    ]
+  };
+  
+  return patterns[nodeType] || [`Used for ${nodeType} operations`];
+}
+
+/**
+ * Get common parameter values for specific node types
+ */
+function getCommonParameterValues(nodeType: string): Record<string, any> {
+  const commonValues: Record<string, Record<string, any>> = {
+    'cube': {
+      width: [1, 2, 5, 10],
+      height: [1, 2, 5, 10], 
+      depth: [1, 2, 5, 10]
+    },
+    'sphere': {
+      radius: [0.5, 1, 2, 5],
+      segments: [16, 32, 64]
+    },
+    'cylinder': {
+      radiusTop: [1, 2, 3],
+      radiusBottom: [1, 2, 3],
+      height: [2, 5, 10]
+    },
+    'transform': {
+      position: [{x: 0, y: 0, z: 0}, {x: 5, y: 0, z: 0}, {x: 0, y: 5, z: 0}],
+      scale: [{x: 1, y: 1, z: 1}, {x: 2, y: 2, z: 2}, {x: 1, y: 0.5, z: 1}]
+    },
+    'standard-material': {
+      color: ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0'],
+      roughness: [0.1, 0.3, 0.5, 0.7, 0.9],
+      metalness: [0, 0.1, 0.5, 0.8, 1.0]
+    },
+    'time': {
+      speed: [0.5, 1, 2, 5]
+    }
+  };
+  
+  return commonValues[nodeType] || {};
 }
 
 /**
@@ -266,51 +445,274 @@ RULES:
 }
 
 /**
+ * Builds comprehensive scene examples for better AI guidance
+ */
+export function buildSceneExamples(): string {
+  // Simple example scene
+  const simpleExample = {
+    nodes: [
+      {
+        id: 'cube-1',
+        type: 'cube',
+        position: { x: 100, y: 100 },
+        data: {
+          id: 'cube-1',
+          type: 'cube',
+          label: 'Basic Cube',
+          parameters: { width: 2, height: 2, depth: 2 },
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'material-1',
+        type: 'standard-material',
+        position: { x: 400, y: 100 },
+        data: {
+          id: 'material-1',
+          type: 'standard-material',
+          label: 'Blue Material',
+          parameters: { color: '#4CAF50', roughness: 0.5, metalness: 0.2 },
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'set-material-1',
+        type: 'set-material',
+        position: { x: 700, y: 100 },
+        data: {
+          id: 'set-material-1',
+          type: 'set-material',
+          label: 'Apply Material',
+          parameters: {},
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 1000, y: 100 },
+        data: {
+          id: 'output-1',
+          type: 'output',
+          label: 'Output',
+          parameters: {},
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'e-cube-setmaterial',
+        source: 'cube-1',
+        target: 'set-material-1',
+        sourceHandle: 'geometry-out',
+        targetHandle: 'geometry-in'
+      },
+      {
+        id: 'e-material-setmaterial',
+        source: 'material-1',
+        target: 'set-material-1',
+        sourceHandle: 'material-out',
+        targetHandle: 'material-in'
+      },
+      {
+        id: 'e-setmaterial-output',
+        source: 'set-material-1',
+        target: 'output-1',
+        sourceHandle: 'geometry-out',
+        targetHandle: 'geometry-in'
+      }
+    ]
+  };
+
+  // Complex animated example scene
+  const animatedExample = {
+    nodes: [
+      {
+        id: 'time-1',
+        type: 'time',
+        position: { x: 50, y: 100 },
+        data: {
+          id: 'time-1',
+          type: 'time',
+          label: 'Time',
+          parameters: { speed: 1 },
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'sphere-1',
+        type: 'sphere',
+        position: { x: 300, y: 200 },
+        data: {
+          id: 'sphere-1',
+          type: 'sphere',
+          label: 'Animated Sphere',
+          parameters: { radius: 1, segments: 32 },
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'transform-1',
+        type: 'transform',
+        position: { x: 600, y: 200 },
+        data: {
+          id: 'transform-1',
+          type: 'transform',
+          label: 'Rotate Transform',
+          parameters: {
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 }
+          },
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      },
+      {
+        id: 'output-1',
+        type: 'output',
+        position: { x: 900, y: 200 },
+        data: {
+          id: 'output-1',
+          type: 'output',
+          label: 'Output',
+          parameters: {},
+          inputConnections: {},
+          liveParameterValues: {}
+        }
+      }
+    ],
+    edges: [
+      {
+        id: 'e-time-transform',
+        source: 'time-1',
+        target: 'transform-1',
+        sourceHandle: 'time-out',
+        targetHandle: 'rotation-in'
+      },
+      {
+        id: 'e-sphere-transform',
+        source: 'sphere-1',
+        target: 'transform-1',
+        sourceHandle: 'geometry-out',
+        targetHandle: 'geometry-in'
+      },
+      {
+        id: 'e-transform-output',
+        source: 'transform-1',
+        target: 'output-1',
+        sourceHandle: 'geometry-out',
+        targetHandle: 'geometry-in'
+      }
+    ]
+  };
+
+  return JSON.stringify({
+    simple_scene: simpleExample,
+    animated_scene: animatedExample
+  }, null, 2);
+}
+
+/**
+ * Builds enhanced scene generation guidelines
+ */
+export function buildSceneGenerationGuidelines(): string {
+  return `
+SCENE GENERATION GUIDELINES:
+
+1. STRUCTURE REQUIREMENTS:
+   - Every scene MUST have a "nodes" array and "edges" array
+   - Every node MUST have: id, type, position {x, y}, data object
+   - Every edge MUST have: id, source, target, sourceHandle, targetHandle
+   - Node data MUST include: id, type, label, parameters, inputConnections, liveParameterValues
+
+2. POSITIONING RULES:
+   - Space nodes horizontally by ~300-400 pixels
+   - Space nodes vertically by ~100-200 pixels for clarity
+   - Start leftmost nodes around x: 50-100
+   - Flow from left to right (inputs → processing → outputs)
+
+3. CONNECTION PATTERNS (use the exact handle names from the catalog):
+   - Geometry flow: geometry-out → geometry-in
+   - Material application: material-out → material-in
+   - Time animation: time-out → parameter inputs (rotation-in, position-in, etc.)
+   - Multiple geometry joining: geometryA-in + geometryB-in → geometry-out
+   - Final output: geometry-out → geometry-in (on output node)
+
+4. REQUIRED SCENE STRUCTURE:
+   - ALWAYS end with an output node (required)
+   - Use set-material node to apply materials to geometry
+   - Use transform nodes for positioning/rotating/scaling
+   - Use join nodes to combine multiple geometries
+
+5. PARAMETER BEST PRACTICES:
+   - Use the commonParameters from the catalog for realistic values
+   - Colors in hex format: "#4CAF50", "#2196F3", "#FF9800"
+   - Positions/rotations as objects: {x: 0, y: 0, z: 0}
+   - Reasonable sizes: 1-10 for most dimensions
+   - Animation speeds: 0.5-2 for time nodes
+
+6. SCENE COMPOSITION PATTERNS:
+   
+   MINIMAL SCENE:
+   [geometry_node] → [output]
+   
+   BASIC SCENE:
+   [geometry_node] → [set-material] ← [material_node]
+                          ↓
+                      [output]
+   
+   ANIMATED SCENE:
+   [time] → [transform] ← [geometry_node]
+               ↓
+           [output]
+   
+   COMPLEX SCENE:
+   [time] → [transform] ← [geometry_node_1] → [set-material] ← [material_1]
+                                                   ↓
+   [geometry_node_2] → [set-material] ← [material_2] → [join] → [output]
+                           ↑                              ↑
+                      [material_2]                  [other_geometry]
+
+7. COMMON NODE COMBINATIONS:
+   - Water scenes: time → gesner-wave → water-material → set-material → output
+   - Architectural: lighthouse + standard-material → set-material → transform → join
+   - Basic shapes: cube/sphere → standard-material → set-material → transform → output
+   - Animations: time → multiple nodes with animated parameters
+
+8. HANDLE NAMING CONVENTION:
+   - Inputs: [parameter-name]-in (e.g., geometry-in, material-in, rotation-in)
+   - Outputs: [parameter-name]-out (e.g., geometry-out, material-out, time-out)
+   - Special cases: geometryA-in, geometryB-in for join nodes
+
+9. SCENE VALIDATION CHECKLIST:
+   ✓ Ends with output node
+   ✓ All geometry has materials applied via set-material
+   ✓ Proper handle connections (geometry-out → geometry-in)
+   ✓ Reasonable parameter values
+   ✓ Logical left-to-right flow
+   ✓ Proper node spacing for readability
+
+10. USE THE CATALOG:
+    - Reference the nodesByCategory for available nodes in each category
+    - Use usagePatterns for guidance on how to connect each node type
+    - Use commonParameters for realistic parameter values
+    - Follow connectionPatterns for proper data flow
+`;
+}
+
+/**
  * Builds scene presets for the AI model
  */
 export function buildScenePresets(): string {
-  const presets = [
-    {
-      nodes: [
-        {
-          id: 'cube1',
-          type: 'cube',
-          position: { x: 100, y: 100 },
-          data: {
-            id: 'cube1',
-            type: 'cube',
-            label: 'Cube',
-            parameters: { size: [2, 2, 2] },
-            inputConnections: {},
-            liveParameterValues: {}
-          }
-        },
-        {
-          id: 'output1',
-          type: 'output',
-          position: { x: 400, y: 100 },
-          data: {
-            id: 'output1',
-            type: 'output',
-            label: 'Output',
-            parameters: {},
-            inputConnections: { geometry: 'cube1.geometry' },
-            liveParameterValues: {}
-          }
-        }
-      ],
-      edges: [
-        {
-          id: 'e1',
-          source: 'cube1',
-          target: 'output1',
-          sourceHandle: 'geometry',
-          targetHandle: 'geometry'
-        }
-      ]
-    }
-  ];
-  return JSON.stringify(presets, null, 2);
+  return buildSceneExamples(); // Use the enhanced examples
 }
 
 /**
@@ -343,6 +745,33 @@ SELECTED_NODE_IDS: ${JSON.stringify(task.selected_node_ids)}
 SCENE_PRESETS:
 ${buildScenePresets()}`;
 
+    case 'generate_scene':
+      return `TASK: "generate_scene"
+SCENE_DESCRIPTION: "${task.scene_description}"
+
+${buildSceneGenerationGuidelines()}
+
+COMPREHENSIVE NODE CATALOG:
+The following catalog contains ALL available nodes organized by category, with complete input/output information, usage patterns, and common parameter values. Use this as your primary reference for node selection and configuration.
+
+${buildCatalog()}
+
+SCENE_EXAMPLES:
+Here are working examples of properly structured scenes:
+
+${buildSceneExamples()}
+
+CRITICAL INSTRUCTIONS:
+1. Use ONLY nodes from the catalog above
+2. Follow the exact handle naming convention (geometry-out → geometry-in, etc.)
+3. Use the usagePatterns and commonParameters from the catalog for each node
+4. Every scene MUST end with an output node
+5. Apply materials using set-material nodes (geometry + material → set-material → output)
+6. Use the connectionPatterns as your guide for data flow
+
+RESPONSE FORMAT:
+Return ONLY a valid JSON object with the complete scene structure. No explanations, no markdown formatting, just the raw JSON. The response should contain "nodes" and "edges" arrays following the exact structure shown in the examples.`;
+
     case 'diff_scene':
       return `TASK: "diff_scene"
 OLD_SCENE_JSON: ${JSON.stringify(task.old_scene_json, null, 2)}
@@ -351,4 +780,4 @@ CHANGE_REQUEST: "${task.change_request}"`;
     default:
       throw new Error(`Unknown task type: ${task.task}`);
   }
-} 
+}

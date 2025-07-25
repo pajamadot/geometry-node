@@ -1,4 +1,4 @@
-import { ValidationResult, AIRequest, CreateNodeRequest, PlanSceneRequest, ComposeSceneRequest, DiffSceneRequest } from './types';
+import { ValidationResult, AIRequest, CreateNodeRequest, PlanSceneRequest, ComposeSceneRequest, DiffSceneRequest, GenerateSceneRequest } from './types';
 
 /**
  * Validates AI request inputs comprehensively
@@ -28,6 +28,8 @@ export function validateAIRequest(request: any): ValidationResult {
       return validateComposeSceneRequest(request);
     case 'diff_scene':
       return validateDiffSceneRequest(request);
+    case 'generate_scene':
+      return validateGenerateSceneRequest(request);
     default:
       errors.push(`Unknown task type: ${request.task}`);
       return { success: false, errors, warnings };
@@ -125,6 +127,24 @@ function validateDiffSceneRequest(request: any): ValidationResult {
     if (!sceneValidation.success) {
       errors.push('Old scene JSON is invalid: ' + sceneValidation.errors.join(', '));
     }
+  }
+
+  return { success: errors.length === 0, errors, warnings };
+}
+
+/**
+ * Validates GenerateSceneRequest
+ */
+function validateGenerateSceneRequest(request: any): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!request.scene_description || typeof request.scene_description !== 'string') {
+    errors.push('Scene description field is required and must be a string');
+  }
+
+  if (request.scene_description && request.scene_description.trim().length < 10) {
+    warnings.push('Scene description is very short, consider adding more detail');
   }
 
   return { success: errors.length === 0, errors, warnings };

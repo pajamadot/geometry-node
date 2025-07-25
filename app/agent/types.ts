@@ -2,7 +2,7 @@ import { NodeDefinition } from '../types/nodeSystem';
 import { JsonNodeDefinition } from '../types/jsonNodes';
 
 // Task types and their schemas
-export type AITask = 'create_node' | 'plan_scene' | 'compose_scene' | 'diff_scene';
+export type AITask = 'create_node' | 'plan_scene' | 'compose_scene' | 'diff_scene' | 'generate_scene';
 
 export interface CreateNodeRequest {
   task: 'create_node';
@@ -26,7 +26,12 @@ export interface DiffSceneRequest {
   change_request: string;
 }
 
-export type AIRequest = CreateNodeRequest | PlanSceneRequest | ComposeSceneRequest | DiffSceneRequest;
+export interface GenerateSceneRequest {
+  task: 'generate_scene';
+  scene_description: string;
+}
+
+export type AIRequest = CreateNodeRequest | PlanSceneRequest | ComposeSceneRequest | DiffSceneRequest | GenerateSceneRequest;
 
 // Validation result interface
 export interface ValidationResult {

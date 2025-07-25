@@ -5,6 +5,7 @@ import {
   PlanSceneRequest, 
   ComposeSceneRequest, 
   DiffSceneRequest,
+  GenerateSceneRequest,
   ValidationResult 
 } from './types';
 import { 
@@ -55,6 +56,8 @@ export class GeometryAIAgent {
           return await this.composeSceneWithErrorHandling(request as ComposeSceneRequest, modelName);
         case 'diff_scene':
           return await this.diffSceneWithErrorHandling(request as DiffSceneRequest, modelName);
+        case 'generate_scene':
+          return await this.generateSceneWithErrorHandling(request as GenerateSceneRequest, modelName);
         default:
           const error = createError(
             ErrorType.VALIDATION_ERROR,
@@ -229,6 +232,191 @@ CHANGE_REQUEST: "${request.change_request}"`;
     } catch (error) {
       const standardError = handleError(error, 'diffScene');
       return createErrorResponse(standardError);
+    }
+  }
+
+  /**
+   * Generate a complete scene with comprehensive error handling and validation
+   */
+  private async generateSceneWithErrorHandling(request: GenerateSceneRequest, modelName?: string): Promise<StandardResponse<string>> {
+    try {
+      const prompt = buildPromptForTask(request);
+      
+      const result = await createStreamingSession(prompt, modelName || this.model);
+      
+      // Collect full response from stream
+      let fullResponse = '';
+      for await (const chunk of result.textStream) {
+        fullResponse += chunk;
+      }
+      
+      // Clean up the response - remove any markdown formatting
+      const cleanedResponse = this.cleanJsonResponse(fullResponse);
+      
+      // Try to validate the generated scene JSON
+      try {
+        const sceneJSON = JSON.parse(cleanedResponse);
+        const sceneValidation = validateSceneJSON(sceneJSON);
+        
+        if (!sceneValidation.success) {
+          // Try to fix common validation issues
+          const fixedScene = this.attemptSceneFix(sceneJSON, sceneValidation.errors);
+          
+          if (fixedScene) {
+            const revalidation = validateSceneJSON(fixedScene);
+            if (revalidation.success) {
+              return createSuccessResponse(JSON.stringify(fixedScene), revalidation.warnings);
+            }
+          }
+          
+          const error = createError(
+            ErrorType.VALIDATION_ERROR,
+            `Generated scene validation failed: ${sceneValidation.errors.join(', ')}`,
+            { generatedScene: cleanedResponse, validation: sceneValidation },
+            'generateScene'
+          );
+          return createErrorResponse(error);
+        }
+        
+        return createSuccessResponse(cleanedResponse, sceneValidation.warnings);
+      } catch (parseError) {
+        // Try to extract JSON from response if it's embedded in other text
+        const extractedJson = this.extractJsonFromResponse(fullResponse);
+        if (extractedJson) {
+          try {
+            const sceneJSON = JSON.parse(extractedJson);
+            const sceneValidation = validateSceneJSON(sceneJSON);
+            
+            if (sceneValidation.success) {
+              return createSuccessResponse(extractedJson, sceneValidation.warnings);
+            }
+          } catch (secondParseError) {
+            // Continue to error below
+          }
+        }
+        
+        const error = createError(
+          ErrorType.PARSING_ERROR,
+          'Generated scene is not valid JSON',
+          { generatedScene: fullResponse, parseError },
+          'generateScene'
+        );
+        return createErrorResponse(error);
+      }
+    } catch (error) {
+      const standardError = handleError(error, 'generateScene');
+      return createErrorResponse(standardError);
+    }
+  }
+
+  /**
+   * Clean JSON response by removing markdown formatting and extra text
+   */
+  private cleanJsonResponse(response: string): string {
+    // Remove markdown code blocks
+    let cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // Try to find JSON object boundaries
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    return cleaned.trim();
+  }
+
+  /**
+   * Extract JSON from response that might contain other text
+   */
+  private extractJsonFromResponse(response: string): string | null {
+    try {
+      // Look for JSON object boundaries
+      const patterns = [
+        /\{[\s\S]*\}/,  // Basic object pattern
+        /\{[\s\S]*?"edges"[\s\S]*?\}/, // Look for scene structure
+        /\{[\s\S]*?"nodes"[\s\S]*?\}/  // Look for nodes array
+      ];
+      
+      for (const pattern of patterns) {
+        const match = response.match(pattern);
+        if (match) {
+          return match[0];
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Attempt to fix common scene validation issues
+   */
+  private attemptSceneFix(scene: any, errors: string[]): any | null {
+    try {
+      const fixedScene = JSON.parse(JSON.stringify(scene)); // Deep clone
+      
+      // Fix missing nodes array
+      if (!fixedScene.nodes || !Array.isArray(fixedScene.nodes)) {
+        fixedScene.nodes = [];
+      }
+      
+      // Fix missing edges array
+      if (!fixedScene.edges || !Array.isArray(fixedScene.edges)) {
+        fixedScene.edges = [];
+      }
+      
+      // Fix node structure issues
+      fixedScene.nodes.forEach((node: any, index: number) => {
+        if (!node.id) node.id = `node-${index}`;
+        if (!node.type) node.type = 'cube'; // Default fallback
+        if (!node.position) node.position = { x: 100 + index * 300, y: 100 };
+        if (!node.data) {
+          node.data = {
+            id: node.id,
+            type: node.type,
+            label: node.type.charAt(0).toUpperCase() + node.type.slice(1),
+            parameters: {},
+            inputConnections: {},
+            liveParameterValues: {}
+          };
+        }
+        
+        // Ensure data object has required fields
+        if (!node.data.id) node.data.id = node.id;
+        if (!node.data.type) node.data.type = node.type;
+        if (!node.data.label) node.data.label = node.type;
+        if (!node.data.parameters) node.data.parameters = {};
+        if (!node.data.inputConnections) node.data.inputConnections = {};
+        if (!node.data.liveParameterValues) node.data.liveParameterValues = {};
+      });
+      
+      // Fix edge structure issues
+      fixedScene.edges.forEach((edge: any, index: number) => {
+        if (!edge.id) edge.id = `edge-${index}`;
+        if (!edge.sourceHandle) edge.sourceHandle = 'geometry-out';
+        if (!edge.targetHandle) edge.targetHandle = 'geometry-in';
+      });
+      
+      return fixedScene;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Stream a single-step scene generation task
+   */
+  async *streamGenerateScene(request: GenerateSceneRequest, modelName?: string): AsyncGenerator<string> {
+    const prompt = buildPromptForTask(request);
+    
+    const result = await createStreamingSession(prompt, modelName || this.model);
+    
+    for await (const chunk of result.textStream) {
+      yield chunk;
     }
   }
 
