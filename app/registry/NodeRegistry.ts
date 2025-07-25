@@ -295,6 +295,7 @@ export class NodeRegistry {
   // Save custom nodes to localStorage
   private saveCustomNodesToLocalStorage(): void {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      console.warn('localStorage not available (server-side or unsupported browser)');
       return; // Skip if not in browser
     }
     
@@ -307,10 +308,30 @@ export class NodeRegistry {
         nodes: customNodesArray
       };
       
-      localStorage.setItem('geometry-script-custom-nodes', JSON.stringify(collection));
-      console.log(`💾 Saved ${customNodesArray.length} custom nodes to localStorage`);
+      const jsonString = JSON.stringify(collection);
+      localStorage.setItem('geometry-script-custom-nodes', jsonString);
+      console.log(`💾 Saved ${customNodesArray.length} custom nodes to localStorage (${Math.round(jsonString.length / 1024)}KB)`);
+      
+      // Verify the save worked
+      const verification = localStorage.getItem('geometry-script-custom-nodes');
+      if (!verification) {
+        console.error('❌ localStorage save verification failed - item not found after save');
+      } else if (verification !== jsonString) {
+        console.error('❌ localStorage save verification failed - content mismatch');
+      } else {
+        console.log('✅ localStorage save verified successfully');
+      }
     } catch (error) {
-      console.error('Failed to save custom nodes to localStorage:', error);
+      console.error('❌ Failed to save custom nodes to localStorage:', error);
+      
+      // Try to provide more specific error information
+      if (error instanceof Error) {
+        if (error.name === 'QuotaExceededError') {
+          console.error('💾 localStorage quota exceeded - try clearing some data');
+        } else if (error.name === 'SecurityError') {
+          console.error('🔒 localStorage access denied - check browser privacy settings');
+        }
+      }
     }
   }
 
@@ -452,6 +473,47 @@ export class NodeRegistry {
       return true;
     }
     return false;
+  }
+
+  // Public method to manually force localStorage save (for debugging)
+  public forceSaveToLocalStorage(): boolean {
+    try {
+      this.saveCustomNodesToLocalStorage();
+      return true;
+    } catch (error) {
+      console.error('Force save to localStorage failed:', error);
+      return false;
+    }
+  }
+
+  // Get current localStorage status
+  public getLocalStorageStatus(): {
+    available: boolean;
+    customNodesCount: number;
+    storageSize: number;
+    lastSaved?: string;
+  } {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return { available: false, customNodesCount: 0, storageSize: 0 };
+    }
+
+    try {
+      const stored = localStorage.getItem('geometry-script-custom-nodes');
+      if (!stored) {
+        return { available: true, customNodesCount: 0, storageSize: 0 };
+      }
+
+      const collection: JsonNodeCollection = JSON.parse(stored);
+      return {
+        available: true,
+        customNodesCount: collection.nodes.length,
+        storageSize: stored.length,
+        lastSaved: collection.modified
+      };
+    } catch (error) {
+      console.error('Failed to check localStorage status:', error);
+      return { available: true, customNodesCount: 0, storageSize: 0 };
+    }
   }
 
   // Get all custom nodes as JSON

@@ -40,6 +40,7 @@ import { useModal } from './ModalContext';
 import { getDefaultScene, getLighthouseScene } from '../data/scenes';
 import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 import SystemMonitor from './SystemMonitor';
+import { AIPanel } from './AIPanel';
 
 
 // Define default edge options outside component
@@ -284,6 +285,60 @@ export default function GeometryNodeEditor() {
   const { notifications, showNotification: showToast } = useNotifications();
   const [connectionWasMade, setConnectionWasMade] = useState(false);
   const connectionWasMadeRef = useRef(false);
+
+  // AI Panel handlers
+  const handleNodeGenerated = useCallback((node: any) => {
+    console.log('🤖 AI Generated Node:', node);
+    
+    // Check localStorage status before registration
+    const preStatus = nodeRegistry.getLocalStorageStatus();
+    console.log('📊 Pre-registration localStorage status:', preStatus);
+    
+    // Register the node in the client-side registry
+    const registrationResult = nodeRegistry.registerJsonNode(node);
+    
+    if (registrationResult.success) {
+      // Verify localStorage save with new status method
+      const postStatus = nodeRegistry.getLocalStorageStatus();
+      console.log('📊 Post-registration localStorage status:', postStatus);
+      
+      if (postStatus.available && postStatus.customNodesCount > preStatus.customNodesCount) {
+        showToast('success', `Successfully created and saved ${node.name} node! 💾 (${postStatus.customNodesCount} total)`, 5000);
+      } else if (postStatus.available) {
+        // Try manual save as fallback
+        console.warn('⚠️ localStorage count unchanged, attempting manual save...');
+        const manualSaveSuccess = nodeRegistry.forceSaveToLocalStorage();
+        
+        if (manualSaveSuccess) {
+          const finalStatus = nodeRegistry.getLocalStorageStatus();
+          showToast('success', `Created ${node.name} node and saved to localStorage! 💾 (${finalStatus.customNodesCount} total)`, 5000);
+        } else {
+          showToast('warning', `Created ${node.name} node but localStorage save failed. Check console for details.`, 6000);
+        }
+      } else {
+        showToast('warning', `Created ${node.name} node but localStorage not available.`, 5000);
+      }
+    } else {
+      console.error('❌ Node registration failed:', registrationResult.error);
+      showToast('error', `Node created but registration failed: ${registrationResult.error}`, 6000);
+    }
+    
+    // Refresh the node registry to show the new node
+    setRegistryUpdateKey(prev => prev + 1);
+  }, [showToast]);
+
+  const handleSceneGenerated = useCallback((scene: any) => {
+    if (scene.nodes && scene.edges) {
+      // Replace current scene with AI-generated scene
+      setNodes(scene.nodes);
+      setEdges(scene.edges);
+      
+      showToast('success', `Successfully created scene with ${scene.nodes.length} nodes!`, 4000);
+      
+      // Fit the new scene in view
+      setTimeout(() => fitView({ duration: 800 }), 100);
+    }
+  }, [setNodes, setEdges, showToast, fitView]);
 
   // Scene preset options
   const scenePresets: DropdownOption[] = [
@@ -2082,7 +2137,7 @@ export default function GeometryNodeEditor() {
 
       {/* Keyboard shortcuts hint (when no selection) */}
       {selectedNodes.size === 0 && !isCompiling && !error && (
-        <div className="absolute bottom-4 right-4 z-10 bg-gray-900/60 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-gray-400">
+        <div className="absolute bottom-4 right-20 z-10 bg-gray-900/60 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-gray-400">
           <div className="space-y-1">
             <div>Right-click: Add nodes</div>
             <div>⌫ Delete selected • ⌘A Select all</div>
@@ -2235,6 +2290,12 @@ export default function GeometryNodeEditor() {
 
       {/* Toast Notifications */}
       <NotificationPanel notifications={notifications} />
+
+      {/* AI Panel */}
+      <AIPanel
+        onNodeGenerated={handleNodeGenerated}
+        onSceneGenerated={handleSceneGenerated}
+      />
     </div>
   );
 } 
