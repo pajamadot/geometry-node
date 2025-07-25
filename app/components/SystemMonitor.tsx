@@ -123,7 +123,7 @@ export default function SystemMonitor() {
       <button
         onClick={handleToggleVisibility}
         className={`
-          fixed top-4 right-4 z-30 w-10 h-10 rounded-full border-2 text-xs font-bold transition-all duration-200
+          fixed top-[4.7rem] right-[6.5rem] z-40 w-8 h-8 rounded-full border-2 text-xs font-bold transition-all duration-200
           flex items-center justify-center
           ${overallStatus === 'critical' 
             ? 'bg-red-500/80 border-red-400 text-white animate-pulse' 
@@ -134,14 +134,14 @@ export default function SystemMonitor() {
         `}
         title={`System Status: ${overallStatus.toUpperCase()}`}
       >
-        {overallStatus === 'critical' ? <AlertTriangle size={16} /> : 
-         overallStatus === 'warning' ? <TrendingUp size={16} /> : 
-         <Monitor size={16} />}
+        {overallStatus === 'critical' ? <AlertTriangle size={14} /> : 
+         overallStatus === 'warning' ? <TrendingUp size={14} /> : 
+         <Monitor size={14} />}
       </button>
 
       {/* System Monitor Panel */}
       {isVisible && (
-        <div className="fixed top-4 right-16 z-30 bg-black/95 backdrop-blur-sm border border-gray-700 rounded-lg text-sm text-white min-w-[380px] max-w-[420px]">
+        <div className="fixed top-[4.5rem] right-[9rem] z-40 bg-black/95 backdrop-blur-sm border border-gray-700 rounded-lg text-sm text-white min-w-[380px] max-w-[420px]">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-700">
             <h3 className="font-semibold text-cyan-400 flex items-center gap-2">
