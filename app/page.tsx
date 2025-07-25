@@ -153,7 +153,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <img 
-                src="/assets/logo.webp" 
+                src="https://r1dlvq8ky7dijhxt.public.blob.vercel-storage.com/assets/logo.webp" 
                 alt="Geometry Nodes Logo" 
                 className="size-4 rounded"
               />
@@ -162,7 +162,7 @@ export default function LandingPage() {
               <span>Visual 3D geometry creation</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-gray-400">&copy; pajamadots 2025</span>
+              <span>Built for the modern web</span>
             </div>
           </div>
         </div>
