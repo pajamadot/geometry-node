@@ -2,6 +2,7 @@
 
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Github, Menu, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Header() {
@@ -11,7 +12,7 @@ export default function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
       <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo and Brand */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity">
           <img 
             src="https://r1dlvq8ky7dijhxt.public.blob.vercel-storage.com/assets/logo.webp" 
             alt="Geometry Nodes Logo" 
@@ -21,7 +22,7 @@ export default function Header() {
             <h1 className="font-medium text-white text-sm sm:text-base truncate">Geometry Nodes</h1>
             <span className="hidden xs:inline-block text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded-full flex-shrink-0">Beta</span>
           </div>
-        </div>
+        </Link>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
