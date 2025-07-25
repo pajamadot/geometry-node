@@ -41,6 +41,7 @@ import { getDefaultScene, getLighthouseScene } from '../data/scenes';
 import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 import SystemMonitor from './SystemMonitor';
 import { AIPanel } from './AIPanel';
+import { ModificationPanel } from './ModificationPanel';
 
 
 // Define default edge options outside component
@@ -336,6 +337,35 @@ export default function GeometryNodeEditor() {
       showToast('success', `Successfully created scene with ${scene.nodes.length} nodes!`, 4000);
       
       // Fit the new scene in view
+      setTimeout(() => fitView({ duration: 800 }), 100);
+    }
+  }, [setNodes, setEdges, showToast, fitView]);
+
+  const handleNodeModified = useCallback((modifiedNode: any) => {
+    console.log('🔧 AI Modified Node:', modifiedNode);
+    
+    // Update the registry with the modified node
+    const registrationResult = nodeRegistry.registerJsonNode(modifiedNode);
+    
+    if (registrationResult.success) {
+      showToast('success', `Successfully modified ${modifiedNode.name} node!`, 5000);
+      // Refresh the node registry to show the updated node
+      setRegistryUpdateKey(prev => prev + 1);
+    } else {
+      console.error('❌ Node modification registration failed:', registrationResult.error);
+      showToast('error', `Modified node but registration failed: ${registrationResult.error}`, 6000);
+    }
+  }, [showToast]);
+
+  const handleSceneModified = useCallback((modifiedScene: any) => {
+    if (modifiedScene.nodes && modifiedScene.edges) {
+      // Replace current scene with AI-modified scene
+      setNodes(modifiedScene.nodes);
+      setEdges(modifiedScene.edges);
+      
+      showToast('success', `Successfully modified scene with ${modifiedScene.nodes.length} nodes!`, 4000);
+      
+      // Fit the modified scene in view
       setTimeout(() => fitView({ duration: 800 }), 100);
     }
   }, [setNodes, setEdges, showToast, fitView]);
@@ -2295,6 +2325,15 @@ export default function GeometryNodeEditor() {
       <AIPanel
         onNodeGenerated={handleNodeGenerated}
         onSceneGenerated={handleSceneGenerated}
+      />
+
+      {/* Modification Panel */}
+      <ModificationPanel
+        onNodeModified={handleNodeModified}
+        onSceneModified={handleSceneModified}
+        currentNodes={nodes}
+        currentScene={{ nodes, edges }}
+        className="fixed bottom-4 right-4 w-96 max-h-96 overflow-y-auto z-40"
       />
     </div>
   );

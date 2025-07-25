@@ -777,7 +777,93 @@ Return ONLY a valid JSON object with the complete scene structure. No explanatio
 OLD_SCENE_JSON: ${JSON.stringify(task.old_scene_json, null, 2)}
 CHANGE_REQUEST: "${task.change_request}"`;
 
+    case 'modify_node':
+      return buildModifyNodePrompt(task);
+
+    case 'modify_scene':
+      return buildModifyScenePrompt(task);
+
     default:
       throw new Error(`Unknown task type: ${task.task}`);
   }
+}
+
+/**
+ * Builds a prompt for modifying an existing node
+ */
+function buildModifyNodePrompt(request: any): string {
+  return `TASK: "modify_node"
+MODIFICATION_DESCRIPTION: "${request.modification_description}"
+
+ORIGINAL_NODE_JSON:
+${JSON.stringify(request.nodeData, null, 2)}
+
+NODE_EXAMPLES:
+${buildNodeExamples()}
+
+MODIFICATION_INSTRUCTIONS:
+You need to generate a diff patch that will modify the original node JSON according to the modification description.
+
+The diff format must be:
+<<<<<<< SEARCH
+[exact content to find in the original JSON]
+=======
+[replacement content]
+>>>>>>> REPLACE
+
+RULES:
+1. Generate a precise diff patch using the SEARCH/REPLACE format
+2. The SEARCH section must match existing content exactly
+3. Only modify what's necessary for the requested change
+4. Maintain all required node structure (type, name, description, etc.)
+5. Preserve proper JSON formatting and indentation
+6. Keep executeCode valid JavaScript if modifying it
+7. Ensure parameters, inputs, and outputs remain valid
+
+RESPONSE FORMAT:
+Return ONLY the diff patch using the SEARCH/REPLACE format. No explanations, no markdown, just the raw diff.`;
+}
+
+/**
+ * Builds a prompt for modifying an existing scene
+ */
+function buildModifyScenePrompt(request: any): string {
+  return `TASK: "modify_scene"
+MODIFICATION_DESCRIPTION: "${request.modification_description}"
+
+ORIGINAL_SCENE_JSON:
+${JSON.stringify(request.sceneData, null, 2)}
+
+COMPREHENSIVE NODE CATALOG:
+The following catalog contains ALL available nodes organized by category, with complete input/output information, usage patterns, and common parameter values. Use this as your primary reference for node selection and configuration.
+
+${buildCatalog()}
+
+SCENE_GENERATION_GUIDELINES:
+${buildSceneGenerationGuidelines()}
+
+MODIFICATION_INSTRUCTIONS:
+Analyze the original scene and the modification description, then generate a complete modified scene JSON that incorporates the requested changes.
+
+MODIFICATION RULES:
+1. Start with the original scene structure
+2. Apply the requested modifications while preserving what should remain unchanged
+3. Maintain proper scene structure (nodes and edges arrays)
+4. Use only nodes from the catalog above
+5. Follow proper handle naming conventions for new connections
+6. Ensure all edges reference valid node IDs and handles
+7. Generate new unique IDs for any new nodes you add
+8. Preserve existing node IDs unless they need to be removed
+9. Update positions appropriately for new nodes
+
+CRITICAL INSTRUCTIONS:
+1. Use ONLY nodes from the catalog above
+2. Follow the exact handle naming convention (geometry-out → geometry-in, etc.)
+3. Use the usagePatterns and commonParameters from the catalog for each node
+4. Every scene MUST end with an output node
+5. Apply materials using set-material nodes (geometry + material → set-material → output)
+6. Use the connectionPatterns as your guide for data flow
+
+RESPONSE FORMAT:
+Return ONLY a valid JSON object with the complete modified scene structure. No explanations, no markdown formatting, just the raw JSON. The response should contain "nodes" and "edges" arrays following the exact structure of the original scene.`;
 }

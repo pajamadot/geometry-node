@@ -1,4 +1,4 @@
-import { ValidationResult, AIRequest, CreateNodeRequest, PlanSceneRequest, ComposeSceneRequest, DiffSceneRequest, GenerateSceneRequest } from './types';
+import { ValidationResult, AIRequest, CreateNodeRequest, PlanSceneRequest, ComposeSceneRequest, DiffSceneRequest, GenerateSceneRequest, ModifyNodeRequest, ModifySceneRequest } from './types';
 
 /**
  * Validates AI request inputs comprehensively
@@ -30,6 +30,10 @@ export function validateAIRequest(request: any): ValidationResult {
       return validateDiffSceneRequest(request);
     case 'generate_scene':
       return validateGenerateSceneRequest(request);
+    case 'modify_node':
+      return validateModifyNodeRequest(request);
+    case 'modify_scene':
+      return validateModifySceneRequest(request);
     default:
       errors.push(`Unknown task type: ${request.task}`);
       return { success: false, errors, warnings };
@@ -145,6 +149,58 @@ function validateGenerateSceneRequest(request: any): ValidationResult {
 
   if (request.scene_description && request.scene_description.trim().length < 10) {
     warnings.push('Scene description is very short, consider adding more detail');
+  }
+
+  return { success: errors.length === 0, errors, warnings };
+}
+
+/**
+ * Validates ModifyNodeRequest
+ */
+function validateModifyNodeRequest(request: any): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!request.nodeData) {
+    errors.push('Node data field is required');
+  }
+
+  if (!request.modification_description || typeof request.modification_description !== 'string') {
+    errors.push('Modification description field is required and must be a string');
+  }
+
+  if (request.modification_description && request.modification_description.trim().length < 5) {
+    warnings.push('Modification description is very short, consider adding more detail');
+  }
+
+  return { success: errors.length === 0, errors, warnings };
+}
+
+/**
+ * Validates ModifySceneRequest
+ */
+function validateModifySceneRequest(request: any): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!request.sceneData) {
+    errors.push('Scene data field is required');
+  }
+
+  if (!request.modification_description || typeof request.modification_description !== 'string') {
+    errors.push('Modification description field is required and must be a string');
+  }
+
+  if (request.modification_description && request.modification_description.trim().length < 5) {
+    warnings.push('Modification description is very short, consider adding more detail');
+  }
+
+  // Validate scene data structure if provided
+  if (request.sceneData) {
+    const sceneValidation = validateSceneJSON(request.sceneData);
+    if (!sceneValidation.success) {
+      errors.push('Scene data is invalid: ' + sceneValidation.errors.join(', '));
+    }
   }
 
   return { success: errors.length === 0, errors, warnings };

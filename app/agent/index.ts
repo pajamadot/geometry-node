@@ -10,6 +10,8 @@ export type {
   ComposeSceneRequest,
   DiffSceneRequest,
   GenerateSceneRequest,
+  ModifyNodeRequest,
+  ModifySceneRequest,
   AIRequest,
   ValidationResult,
   AIGenerationResult

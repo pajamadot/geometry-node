@@ -2,7 +2,7 @@ import { NodeDefinition } from '../types/nodeSystem';
 import { JsonNodeDefinition } from '../types/jsonNodes';
 
 // Task types and their schemas
-export type AITask = 'create_node' | 'plan_scene' | 'compose_scene' | 'diff_scene' | 'generate_scene';
+export type AITask = 'create_node' | 'plan_scene' | 'compose_scene' | 'diff_scene' | 'generate_scene' | 'modify_node' | 'modify_scene';
 
 export interface CreateNodeRequest {
   task: 'create_node';
@@ -31,7 +31,20 @@ export interface GenerateSceneRequest {
   scene_description: string;
 }
 
-export type AIRequest = CreateNodeRequest | PlanSceneRequest | ComposeSceneRequest | DiffSceneRequest | GenerateSceneRequest;
+// New modification request types
+export interface ModifyNodeRequest {
+  task: 'modify_node';
+  nodeData: any; // The original node JSON
+  modification_description: string; // What changes to make
+}
+
+export interface ModifySceneRequest {
+  task: 'modify_scene';
+  sceneData: { nodes: any[], edges: any[] }; // The original scene JSON
+  modification_description: string; // What changes to make
+}
+
+export type AIRequest = CreateNodeRequest | PlanSceneRequest | ComposeSceneRequest | DiffSceneRequest | GenerateSceneRequest | ModifyNodeRequest | ModifySceneRequest;
 
 // Validation result interface
 export interface ValidationResult {

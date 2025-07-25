@@ -6,6 +6,8 @@ import {
   ComposeSceneRequest, 
   DiffSceneRequest,
   GenerateSceneRequest,
+  ModifyNodeRequest,
+  ModifySceneRequest,
   ValidationResult 
 } from './types';
 import { 
@@ -58,6 +60,10 @@ export class GeometryAIAgent {
           return await this.diffSceneWithErrorHandling(request as DiffSceneRequest, modelName);
         case 'generate_scene':
           return await this.generateSceneWithErrorHandling(request as GenerateSceneRequest, modelName);
+        case 'modify_node':
+          return await this.modifyNodeWithErrorHandling(request as ModifyNodeRequest, modelName);
+        case 'modify_scene':
+          return await this.modifySceneWithErrorHandling(request as ModifySceneRequest, modelName);
         default:
           const error = createError(
             ErrorType.VALIDATION_ERROR,
@@ -633,5 +639,100 @@ CHANGE_REQUEST: "${request.change_request}"`;
    */
   getAvailableModels(): string[] {
     return getAvailableModels();
+  }
+
+  /**
+   * Modify an existing node with error handling
+   */
+  private async modifyNodeWithErrorHandling(request: ModifyNodeRequest, modelName?: string): Promise<StandardResponse<string>> {
+    try {
+      const prompt = buildPromptForTask(request);
+      const result = await createStreamingSession(prompt, modelName || this.model);
+      
+      let diffContent = '';
+      for await (const chunk of result.textStream) {
+        diffContent += chunk;
+      }
+
+      // Import DiffApplicator
+      const { DiffApplicator } = await import('../utils/diffApplicator');
+      const diffApplicator = new DiffApplicator();
+      
+      // Apply the generated diff to the node
+      const applyResult = await diffApplicator.applyNodeDiff(request.nodeData, diffContent);
+      
+      if (!applyResult.success) {
+        const error = createError(
+          ErrorType.AI_SERVICE_ERROR,
+          `Failed to apply node modifications: ${applyResult.error}`,
+          { diffContent, originalNode: request.nodeData },
+          'modifyNodeWithErrorHandling'
+        );
+        return createErrorResponse(error);
+      }
+
+      return createSuccessResponse(JSON.stringify(applyResult.node!));
+    } catch (error) {
+      const standardError = handleError(error, 'modifyNodeWithErrorHandling');
+      return createErrorResponse(standardError);
+    }
+  }
+
+  /**
+   * Modify an existing scene with error handling
+   */
+  private async modifySceneWithErrorHandling(request: ModifySceneRequest, modelName?: string): Promise<StandardResponse<string>> {
+    try {
+      const prompt = buildPromptForTask(request);
+      const result = await createStreamingSession(prompt, modelName || this.model);
+      
+      let fullResponse = '';
+      for await (const chunk of result.textStream) {
+        fullResponse += chunk;
+      }
+
+      // Clean up the response - remove any markdown formatting
+      const cleanedResponse = this.cleanJsonResponse(fullResponse);
+      
+      // Try to validate the generated scene JSON
+      try {
+        const modifiedScene = JSON.parse(cleanedResponse);
+        const sceneValidation = validateSceneJSON(modifiedScene);
+        
+        if (!sceneValidation.success) {
+          // Try to fix common validation issues
+          const fixedScene = this.attemptSceneFix(modifiedScene, sceneValidation.errors);
+          
+          if (fixedScene) {
+            const revalidation = validateSceneJSON(fixedScene);
+            if (revalidation.success) {
+              return createSuccessResponse(JSON.stringify(fixedScene), revalidation.warnings);
+            }
+          }
+          
+          const error = createError(
+            ErrorType.VALIDATION_ERROR,
+            `Generated modified scene validation failed: ${sceneValidation.errors.join(', ')}`,
+            { generatedScene: cleanedResponse, validation: sceneValidation },
+            'modifySceneWithErrorHandling'
+          );
+          return createErrorResponse(error);
+        }
+        
+        return createSuccessResponse(cleanedResponse, sceneValidation.warnings);
+        
+      } catch (parseError) {
+        const error = createError(
+          ErrorType.PARSING_ERROR,
+          'Generated modified scene could not be parsed as JSON',
+          { parseError, generatedContent: cleanedResponse },
+          'modifySceneWithErrorHandling'
+        );
+        return createErrorResponse(error);
+      }
+    } catch (error) {
+      const standardError = handleError(error, 'modifySceneWithErrorHandling');
+      return createErrorResponse(standardError);
+    }
   }
 } 

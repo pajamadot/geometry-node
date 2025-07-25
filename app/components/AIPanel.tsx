@@ -24,10 +24,22 @@ export interface AIGenerationResult {
 interface AIPanelProps {
   onNodeGenerated?: (node: any) => void;
   onSceneGenerated?: (scene: any) => void;
+  onNodeModified?: (node: any) => void;
+  onSceneModified?: (scene: any) => void;
   className?: string;
+  currentNodes?: any[];
+  currentScene?: { nodes: any[], edges: any[] };
 }
 
-export function AIPanel({ onNodeGenerated, onSceneGenerated, className = '' }: AIPanelProps) {
+export function AIPanel({ 
+  onNodeGenerated, 
+  onSceneGenerated, 
+  onNodeModified, 
+  onSceneModified, 
+  currentNodes = [], 
+  currentScene,
+  className = '' 
+}: AIPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'nodes' | 'scenes'>('nodes');
   const [prompt, setPrompt] = useState('');
