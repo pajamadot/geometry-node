@@ -1,5 +1,6 @@
 import { distance } from "fastest-levenshtein"
 import { JsonNodeDefinition } from '../types/jsonNodes';
+import { RobustDiffStrategy, DiffResult as RobustDiffResult } from './robustDiffStrategy';
 
 interface DiffResult {
   success: boolean;
@@ -147,9 +148,66 @@ class SimpleDiffStrategy implements DiffStrategy {
  */
 export class DiffApplicator {
   private diffStrategy: DiffStrategy;
+  private robustStrategy: RobustDiffStrategy;
 
-  constructor(fuzzyThreshold: number = 0.8) {
+  constructor(
+    fuzzyThreshold: number = 0.8, 
+    useRobustStrategy: boolean = true
+  ) {
     this.diffStrategy = new SimpleDiffStrategy(fuzzyThreshold);
+    this.robustStrategy = new RobustDiffStrategy({ 
+      fuzzyThreshold, 
+      preserveIndentation: true 
+    });
+    
+    // Use robust strategy by default for better reliability
+    if (useRobustStrategy) {
+      this.diffStrategy = this.createRobustStrategyWrapper();
+    }
+  }
+
+  /**
+   * Switch to using the robust diff strategy
+   */
+  useRobustStrategy(enable: boolean = true) {
+    if (enable) {
+      this.diffStrategy = this.createRobustStrategyWrapper();
+    } else {
+      this.diffStrategy = new SimpleDiffStrategy(0.8);
+    }
+  }
+
+  /**
+   * Create a wrapper to make RobustDiffStrategy compatible with DiffStrategy interface
+   */
+  private createRobustStrategyWrapper(): DiffStrategy {
+    return {
+      getName: () => 'RobustDiffStrategy',
+      applyDiff: async (originalContent: string, diffContent: string): Promise<DiffResult> => {
+        const result = await this.robustStrategy.applyDiff(originalContent, diffContent);
+        
+        if (result.success) {
+          return {
+            success: true,
+            content: result.content
+          };
+        } else {
+          // Combine all failed parts into a single error message
+          const errorDetails = result.failedParts.map(fail => 
+            `${fail.reason}${fail.suggestion ? ` (Suggestion: ${fail.suggestion})` : ''}`
+          ).join('; ');
+          
+          return {
+            success: false,
+            error: `Diff application failed: ${errorDetails}`,
+            failParts: result.failedParts.map(fail => ({
+              success: false,
+              error: fail.reason
+            }))
+          };
+        }
+      }
+    };
   }
 
   /**
@@ -260,4 +318,4 @@ ${replaceContent}
 >>>>>>> REPLACE`;
 }
 
-export { DiffStrategy, DiffResult }; 
+export type { DiffStrategy, DiffResult }; 

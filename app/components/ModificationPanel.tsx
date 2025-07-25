@@ -192,7 +192,7 @@ export function ModificationPanel({
       <Button
         onClick={handleModify}
         disabled={isModifying || !prompt.trim() || (activeTab === 'nodes' && !selectedNodeForModification)}
-        variant="default"
+        variant="primary"
         className="w-full mb-4"
       >
         {isModifying ? (

@@ -40,8 +40,7 @@ import { useModal } from './ModalContext';
 import { getDefaultScene, getLighthouseScene } from '../data/scenes';
 import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 import SystemMonitor from './SystemMonitor';
-import { AIPanel } from './AIPanel';
-import { ModificationPanel } from './ModificationPanel';
+import { CommandSystem } from './CommandSystem';
 
 
 // Define default edge options outside component
@@ -2321,19 +2320,14 @@ export default function GeometryNodeEditor() {
       {/* Toast Notifications */}
       <NotificationPanel notifications={notifications} />
 
-      {/* AI Panel */}
-      <AIPanel
+      {/* Command System - Modern AI Interface */}
+      <CommandSystem
         onNodeGenerated={handleNodeGenerated}
         onSceneGenerated={handleSceneGenerated}
-      />
-
-      {/* Modification Panel */}
-      <ModificationPanel
         onNodeModified={handleNodeModified}
         onSceneModified={handleSceneModified}
         currentNodes={nodes}
         currentScene={{ nodes, edges }}
-        className="fixed bottom-4 right-4 w-96 max-h-96 overflow-y-auto z-40"
       />
     </div>
   );

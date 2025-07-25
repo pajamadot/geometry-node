@@ -1,12 +1,26 @@
 'use client';
 
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Github, Menu, X } from "lucide-react";
+import { Github, Menu, X, FileText } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useLogsVisibility } from "./LogsVisibilityContext";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Use logs visibility context if available, otherwise don't show logs toggle
+  let showLogs = false;
+  let toggleLogs: (() => void) | undefined;
+  
+  try {
+    const logsContext = useLogsVisibility();
+    showLogs = logsContext.showLogs;
+    toggleLogs = logsContext.toggleLogs;
+  } catch (error) {
+    // Context not available, hide logs toggle
+    toggleLogs = undefined;
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800">
@@ -26,6 +40,22 @@ export default function Header() {
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
+          {/* Logs toggle button */}
+          {toggleLogs && (
+            <button
+              onClick={toggleLogs}
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                showLogs 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+              title="Toggle compilation logs"
+            >
+              <FileText className="size-4" />
+              <span>Logs</span>
+            </button>
+          )}
+          
           <a 
             href="https://github.com/pajamadot/geometry-node" 
             target="_blank" 
@@ -85,6 +115,24 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-black/95 backdrop-blur-sm border-b border-gray-800">
           <div className="container mx-auto px-4 py-4 space-y-3">
+            {/* Mobile logs toggle */}
+            {toggleLogs && (
+              <button
+                onClick={() => {
+                  toggleLogs();
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors w-full text-left ${
+                  showLogs 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <FileText className="size-4" />
+                <span>Toggle Logs</span>
+              </button>
+            )}
+            
             <a 
               href="https://github.com/pajamadot/geometry-node" 
               target="_blank" 
