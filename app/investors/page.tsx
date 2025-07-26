@@ -19,48 +19,11 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
-import { ReactFlowProvider } from 'reactflow';
-
-// Import geometry editor components and providers
-import GeometryNodeEditor from '../components/GeometryNodeEditor';
-import { GeometryProvider } from '../components/GeometryContext';
-import { TimeProvider } from '../components/TimeContext';
-import { NodeProvider } from '../components/NodeContext';
-import { ModalProvider } from '../components/ModalContext';
-import { LoggingProvider } from '../components/LoggingContext';
-import { LogsVisibilityProvider } from '../components/LogsVisibilityContext';
-
-
-
-// Real Geometry Nodes Demo Component
-const RealGeometryNodesDemo: React.FC = () => {
-  return (
-    <div className="w-full h-64 bg-gray-800/30 rounded-xl border border-gray-600/50 overflow-hidden">
-      <div className="absolute top-2 left-2 text-xs text-gray-400 z-20">
-        Live Geometry Nodes Editor - Right-click to add nodes!
-      </div>
-      
-      <LogsVisibilityProvider>
-        <ModalProvider>
-          <LoggingProvider>
-            <TimeProvider>
-              <GeometryProvider>
-                <ReactFlowProvider>
-                  <div className="w-full h-full">
-                    <GeometryNodeEditor />
-                  </div>
-                </ReactFlowProvider>
-              </GeometryProvider>
-            </TimeProvider>
-          </LoggingProvider>
-        </ModalProvider>
-      </LogsVisibilityProvider>
-    </div>
-  );
-};
 
 export default function InvestorPresentation() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const slides = [
     // Slide 1: Title with Interactive Node Graph
@@ -83,9 +46,18 @@ export default function InvestorPresentation() {
                Revolutionizing 3D content creation with AI-powered procedural modeling in your browser
              </p>
              
-             {/* Interactive Node Graph Demo */}
+             {/* Geometry Graph Image */}
              <div className="my-6">
-               <RealGeometryNodesDemo />
+               <div className="w-full h-64 bg-gray-800/30 rounded-xl border border-gray-600/50 overflow-hidden relative">
+                 <div className="absolute top-2 left-2 text-xs text-gray-400 z-20">
+                   Geometry Nodes Editor - Visual Programming for 3D
+                 </div>
+                 <img 
+                   src="https://r1dlvq8ky7dijhxt.public.blob.vercel-storage.com/assets/geometry-graph.webp"
+                   alt="Geometry Nodes Editor Interface"
+                   className="w-full h-full object-cover"
+                 />
+               </div>
              </div>
              
              <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 p-3 rounded-lg border border-purple-500/30">
@@ -799,40 +771,82 @@ export default function InvestorPresentation() {
     setCurrentSlide(index);
   };
 
+  // Touch handlers for mobile swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentSlide < slides.length - 1) {
+      nextSlide();
+    }
+    if (isRightSwipe && currentSlide > 0) {
+      prevSlide();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Custom CSS for hiding scrollbars */}
+      <style jsx global>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* Internet Explorer 10+ */
+          scrollbar-width: none;  /* Firefox */
+        }
+        .hide-scrollbar::-webkit-scrollbar { 
+          display: none;  /* Safari and Chrome */
+        }
+        .mobile-scroll {
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+      `}</style>
+
       {/* Navigation Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft className="size-5" />
-              <span>Back to App</span>
+              <ArrowLeft className="size-4 sm:size-5" />
+              <span className="text-sm sm:text-base">Back to App</span>
             </Link>
             
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="text-xs sm:text-sm text-gray-400">
                 {currentSlide + 1} / {slides.length}
               </span>
-              <div className="text-lg font-semibold text-white">
+              <div className="text-sm sm:text-lg font-semibold text-white truncate max-w-[120px] sm:max-w-none">
                 {slides[currentSlide].title}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={prevSlide}
                 disabled={currentSlide === 0}
-                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="size-5" />
+                <ChevronLeft className="size-4 sm:size-5" />
               </button>
               <button
                 onClick={nextSlide}
                 disabled={currentSlide === slides.length - 1}
-                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="size-5" />
+                <ChevronRight className="size-4 sm:size-5" />
               </button>
             </div>
           </div>
@@ -840,45 +854,64 @@ export default function InvestorPresentation() {
       </div>
 
       {/* Slide Content */}
-      <div className="pt-20 pb-24 h-screen flex items-center justify-center">
-        <div className="container mx-auto px-4 max-h-[calc(100vh-160px)] overflow-hidden">
-          <div className="max-w-7xl mx-auto h-full flex items-center justify-center">
-            <div className="w-full max-h-full overflow-hidden">
-              {slides[currentSlide].content}
+      <div 
+        className="pt-16 sm:pt-20 pb-20 sm:pb-24 min-h-screen"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="container mx-auto px-2 sm:px-4 h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)]">
+          <div className="max-w-7xl mx-auto h-full">
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden hide-scrollbar mobile-scroll">
+              <div className="flex justify-center py-4 sm:py-8">
+                <div className="w-full max-w-7xl">
+                  {slides[currentSlide].content}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Side Navigation Arrows */}
-      <div className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 opacity-60 hover:opacity-100 transition-opacity duration-200">
+      {/* Side Navigation Arrows - Hidden on mobile, shown on tablet+ */}
+      <div className="hidden md:block fixed left-2 lg:left-4 top-1/2 transform -translate-y-1/2 z-50 opacity-60 hover:opacity-100 transition-opacity duration-200">
         <button
           onClick={prevSlide}
           disabled={currentSlide === 0}
-          className="flex items-center justify-center size-12 rounded-full bg-gray-800/80 backdrop-blur-sm border border-gray-600 hover:bg-gray-700/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 group shadow-lg"
+          className="flex items-center justify-center size-10 lg:size-12 rounded-full bg-gray-800/80 backdrop-blur-sm border border-gray-600 hover:bg-gray-700/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 group shadow-lg"
         >
-          <ChevronLeft className="size-6 text-white group-hover:scale-110 transition-transform" />
+          <ChevronLeft className="size-5 lg:size-6 text-white group-hover:scale-110 transition-transform" />
         </button>
       </div>
 
-      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-50 opacity-60 hover:opacity-100 transition-opacity duration-200">
+      <div className="hidden md:block fixed right-2 lg:right-4 top-1/2 transform -translate-y-1/2 z-50 opacity-60 hover:opacity-100 transition-opacity duration-200">
         <button
           onClick={nextSlide}
           disabled={currentSlide === slides.length - 1}
-          className="flex items-center justify-center size-12 rounded-full bg-gray-800/80 backdrop-blur-sm border border-gray-600 hover:bg-gray-700/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 group shadow-lg"
+          className="flex items-center justify-center size-10 lg:size-12 rounded-full bg-gray-800/80 backdrop-blur-sm border border-gray-600 hover:bg-gray-700/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 group shadow-lg"
         >
-          <ChevronRight className="size-6 text-white group-hover:scale-110 transition-transform" />
+          <ChevronRight className="size-5 lg:size-6 text-white group-hover:scale-110 transition-transform" />
         </button>
       </div>
 
+      {/* Mobile Swipe Area - Invisible touch targets */}
+      <div 
+        className={`md:hidden fixed left-0 top-20 bottom-20 w-16 z-40 ${currentSlide === 0 ? 'pointer-events-none' : 'cursor-pointer'}`} 
+        onClick={currentSlide > 0 ? prevSlide : undefined}
+      ></div>
+      <div 
+        className={`md:hidden fixed right-0 top-20 bottom-20 w-16 z-40 ${currentSlide === slides.length - 1 ? 'pointer-events-none' : 'cursor-pointer'}`} 
+        onClick={currentSlide < slides.length - 1 ? nextSlide : undefined}
+      ></div>
+
       {/* Slide Indicators */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="flex items-center gap-2 bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-600">
+      <div className="fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-800/90 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-gray-600">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`size-2 rounded-full transition-all duration-200 ${
+              className={`size-1.5 sm:size-2 rounded-full transition-all duration-200 ${
                 index === currentSlide 
                   ? 'bg-blue-400 scale-125' 
                   : 'bg-gray-600 hover:bg-gray-500'
@@ -888,9 +921,9 @@ export default function InvestorPresentation() {
         </div>
       </div>
 
-      {/* Keyboard Navigation */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="bg-gray-800/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-gray-600 text-xs text-gray-400">
+      {/* Keyboard Navigation - Hidden on mobile */}
+      <div className="hidden sm:block fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+        <div className="bg-gray-800/90 backdrop-blur-sm px-2 sm:px-3 py-1 sm:py-2 rounded-lg border border-gray-600 text-xs text-gray-400">
           Use ← → keys or side arrows to navigate
         </div>
       </div>
