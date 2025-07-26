@@ -4,7 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, AlertTriangle, CheckCircle, Info, Search, FileText, Bell, BellOff, ChevronRight } from 'lucide-react';
 import { useLogging, LogEntry, LogLevel } from './LoggingContext';
 
-export default function LogPanel() {
+interface LogPanelProps {
+  isVisible?: boolean;
+  onClose?: () => void;
+}
+
+export default function LogPanel({ isVisible = false, onClose }: LogPanelProps) {
   const { logs, clearLogs, getLogsByLevel } = useLogging();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<LogLevel | 'all'>('all');
@@ -16,6 +21,11 @@ export default function LogPanel() {
     return false;
   });
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // Don't render if not visible
+  if (!isVisible) {
+    return null;
+  }
 
   // Save auto-expand setting to localStorage
   useEffect(() => {
@@ -178,6 +188,19 @@ export default function LogPanel() {
               className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
             >
               Clear
+            </button>
+          )}
+
+          {/* Close button */}
+          {onClose && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+            >
+              <X size={12} />
             </button>
           )}
         </div>

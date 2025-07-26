@@ -39,11 +39,20 @@ A comprehensive web-based procedural geometry system for creating and managing c
 - **Make/Break Nodes**: Compose and decompose complex data structures
 - **Generic Templates**: Dynamic node generation from templates
 
+### 🤖 AI-Powered Features
+- **AI Node Generation**: Create custom geometry nodes using natural language prompts
+- **AI Scene Generation**: Generate complete 3D scenes with multiple connected nodes
+- **Multiple AI Models**: Choose from Claude, GPT-4, Gemini, and more via OpenRouter
+- **Streaming Responses**: Real-time feedback during AI generation
+- **Educational Mode**: Get explanations of how nodes and scenes are created
+- **Auto-Integration**: Generated nodes automatically integrate with the existing system
+
 ## Installation
 
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn package manager
+- OpenRouter API key (for AI features)
 
 ### Setup
 1. Clone this repository:
@@ -62,7 +71,14 @@ npm install
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Set up AI features (optional):
+   - Get an API key from [OpenRouter](https://openrouter.ai/keys)
+   - Create a `.env.local` file in the project root:
+   ```bash
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Usage Guide
 
@@ -71,6 +87,19 @@ npm run dev
 2. **Connect Nodes**: Drag from output sockets to input sockets
 3. **Adjust Parameters**: Modify node parameters in the right panel
 4. **View Results**: See real-time updates in the 3D viewport
+
+### AI-Powered Creation
+1. **Open AI Panel**: Click the purple magic wand button (bottom-right)
+2. **Choose Mode**: Select "Generate Nodes" or "Generate Scenes"
+3. **Select Model**: Pick from available AI models (Claude, GPT-4, etc.)
+4. **Write Prompt**: Describe what you want to create
+5. **Generate**: Watch as the AI creates your geometry in real-time
+
+**Example Prompts:**
+- *Nodes*: "Create a spiral staircase generator with configurable steps"
+- *Scenes*: "Build a magical forest with glowing mushrooms and floating particles"
+
+See [`examples/ai-prompts.md`](examples/ai-prompts.md) for more prompt examples.
 
 ### Node Categories
 
