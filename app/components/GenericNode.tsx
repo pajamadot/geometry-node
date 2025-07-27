@@ -165,7 +165,6 @@ const SocketInputRenderer = ({
               <NumberInput
                 value={displayValue}
                 onChange={(value) => onSocketValueChange(socket.id, value)}
-                className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none"
                 step={socket.type === 'integer' ? 1 : 0.1}
               />
             ) : (

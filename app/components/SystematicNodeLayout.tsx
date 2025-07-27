@@ -145,7 +145,7 @@ export default function SystematicNodeLayout({
       switch (component.type) {
         case 'vector':
         case 'transform':
-          componentWidth = Math.max(componentWidth, 360); // 3 numeric inputs + labels + spacing
+          componentWidth = Math.max(componentWidth,600); // 3 numeric inputs + labels + spacing
           break;
         case 'matrix':
           componentWidth = Math.max(componentWidth, 280); // Matrix grid with proper spacing

@@ -84,7 +84,6 @@ export default function VectorInput({
                 <NumberInput
                   value={value[component]}
                   onChange={(newValue) => handleComponentChange(component, newValue)}
-                  className={`w-full px-1 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none ${className}`}
                   step={step}
                 />
               </div>
