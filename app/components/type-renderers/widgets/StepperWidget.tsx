@@ -24,30 +24,8 @@ export const StepperWidget: React.FC<StepperWidgetProps> = ({
     }
   };
 
-  const handleIncrement = () => {
-    const newValue = currentValue + step;
-    if (max === undefined || newValue <= max) {
-      handleChange(newValue);
-    }
-  };
-
-  const handleDecrement = () => {
-    const newValue = currentValue - step;
-    if (min === undefined || newValue >= min) {
-      handleChange(newValue);
-    }
-  };
-
   return (
-    <div className="flex items-center gap-0.5">
-      <button
-        onClick={handleDecrement}
-        className="w-6 h-6 text-xs bg-gray-700 border border-gray-600 rounded text-white hover:bg-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={min !== undefined && currentValue <= min}
-      >
-        -
-      </button>
-      
+    <div className="flex items-center">
       <NumericInput
         value={currentValue}
         onChange={handleChange}
@@ -55,14 +33,6 @@ export const StepperWidget: React.FC<StepperWidgetProps> = ({
         max={max}
         step={step}
       />
-      
-      <button
-        onClick={handleIncrement}
-        className="w-6 h-6 text-xs bg-gray-700 border border-gray-600 rounded text-white hover:bg-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={max !== undefined && currentValue >= max}
-      >
-        +
-      </button>
     </div>
   );
 }; 

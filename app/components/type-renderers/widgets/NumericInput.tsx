@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import * as Slider from '@radix-ui/react-slider';
 
 interface NumericInputProps {
   value: number;
@@ -9,7 +8,6 @@ interface NumericInputProps {
   step?: number;
   className?: string;
   placeholder?: string;
-  showSlider?: boolean;
   axisLabel?: string; // X, Y, Z, etc.
 }
 
@@ -21,7 +19,6 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   step = 0.1,
   className = "",
   placeholder,
-  showSlider = false,
   axisLabel
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -61,12 +58,6 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  const handleSliderChange = (values: number[]) => {
-    if (values.length > 0) {
-      onChange(values[0]);
-    }
-  };
-
   const formatValue = (val: number) => {
     if (step >= 1) return Math.round(val).toString();
     if (step >= 0.1) return val.toFixed(1);
@@ -82,7 +73,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
 
   const handleDecrement = () => {
     const newValue = value - step;
-    if (min === undefined || newValue >= min) {
+    if (min !== undefined && newValue >= min) {
       onChange(newValue);
     }
   };
@@ -102,9 +93,6 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     }
   };
 
-  const normalizedValue = Math.max(min || 0, Math.min(max || 100, value));
-  const sliderValue = showSlider && min !== undefined && max !== undefined ? normalizedValue : 0;
-
   return (
     <div className={`flex items-center gap-1 ${className}`}>
       {/* Axis Label on the Left */}
@@ -114,8 +102,8 @@ export const NumericInput: React.FC<NumericInputProps> = ({
         </div>
       )}
       
-      {/* PlayCanvas-style Numeric Input */}
-      <div className="relative flex-shrink-0" style={{ width: '64px' }}>
+      {/* Numeric Input with Left/Right Buttons */}
+      <div className="relative flex-shrink-0 border border-gray-600 rounded bg-gray-700">
         {isEditing ? (
           <div className="relative">
             <input
@@ -125,60 +113,42 @@ export const NumericInput: React.FC<NumericInputProps> = ({
               onChange={handleTextInputChange}
               onBlur={handleTextInputBlur}
               onKeyDown={handleTextInputKeyDown}
-              className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none text-center"
+              className="w-12 px-1 py-1 text-xs bg-transparent border-0 text-white focus:outline-none text-center"
             />
           </div>
         ) : (
-          <div className="relative group">
+          <div className="flex items-center">
+            {/* Left Minus Button */}
+            <button
+              type="button"
+              onClick={handleDecrement}
+              className="px-1.5 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-600 focus:outline-none focus:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-r border-gray-600"
+              disabled={min !== undefined && value <= min}
+            >
+              −
+            </button>
+            
+            {/* Center Input */}
             <input
               type="text"
               value={formatValue(value)}
               onClick={handleInputClick}
               readOnly
-              className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none text-center cursor-pointer"
+              className="w-12 px-1 py-1 text-xs bg-transparent border-0 text-white text-center cursor-pointer focus:outline-none"
             />
-            {/* PlayCanvas-style Arrow Buttons */}
-            <div className="absolute right-0 top-0 bottom-0 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                type="button"
-                onClick={handleIncrement}
-                className="w-3 h-2.5 text-[8px] bg-gray-600 border-l border-gray-500 text-gray-300 hover:bg-gray-500 hover:text-white focus:outline-none focus:bg-gray-500 focus:text-white transition-colors"
-                disabled={max !== undefined && value >= max}
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                onClick={handleDecrement}
-                className="w-3 h-2.5 text-[8px] bg-gray-600 border-l border-gray-500 text-gray-300 hover:bg-gray-500 hover:text-white focus:outline-none focus:bg-gray-500 focus:text-white transition-colors"
-                disabled={min !== undefined && value <= min}
-              >
-                ▼
-              </button>
-            </div>
+            
+            {/* Right Plus Button */}
+            <button
+              type="button"
+              onClick={handleIncrement}
+              className="px-1.5 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-600 focus:outline-none focus:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-l border-gray-600"
+              disabled={max !== undefined && value >= max}
+            >
+              +
+            </button>
           </div>
         )}
       </div>
-      
-      {/* Radix UI Slider (optional) */}
-      {showSlider && min !== undefined && max !== undefined && (
-        <Slider.Root
-          className="relative flex items-center select-none touch-none w-full h-5"
-          value={[sliderValue]}
-          onValueChange={handleSliderChange}
-          max={max}
-          min={min}
-          step={step}
-        >
-          <Slider.Track className="bg-gray-600 relative grow rounded-full h-1">
-            <Slider.Range className="absolute bg-blue-500 rounded-full h-full" />
-          </Slider.Track>
-          <Slider.Thumb
-            className="block w-3 h-3 bg-blue-500 border-2 border-blue-600 rounded-full hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-800"
-            aria-label="Value"
-          />
-        </Slider.Root>
-      )}
     </div>
   );
 }; 

@@ -44,7 +44,6 @@ export const VectorWidget: React.FC<VectorWidgetProps> = ({
             max={max}
             step={step}
             axisLabel={label}
-            showSlider={false} // Disable slider for vector components to save space
           />
         );
       })}

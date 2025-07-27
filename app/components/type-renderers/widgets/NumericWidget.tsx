@@ -7,7 +7,6 @@ interface NumericWidgetProps extends TypeRendererProps {
   min?: number;
   max?: number;
   step?: number;
-  showSlider?: boolean;
 }
 
 export const NumericWidget: React.FC<NumericWidgetProps> = ({
@@ -16,8 +15,7 @@ export const NumericWidget: React.FC<NumericWidgetProps> = ({
   onValueChange,
   min,
   max,
-  step = 0.1,
-  showSlider = true
+  step = 0.1
 }) => {
   const currentValue = value ?? defaultValue ?? 0;
 
@@ -35,7 +33,6 @@ export const NumericWidget: React.FC<NumericWidgetProps> = ({
         min={min}
         max={max}
         step={step}
-        showSlider={showSlider}
       />
     </div>
   );

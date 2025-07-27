@@ -54,7 +54,6 @@ export default function ParameterRenderer({
           <NumberInput
             value={value || definition.defaultValue}
             onChange={onChange}
-            className="w-16 px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none"
             step={definition.step || 0.1}
             min={definition.min}
             max={definition.max}
@@ -66,7 +65,6 @@ export default function ParameterRenderer({
           <NumberInput
             value={Math.floor(value || definition.defaultValue)}
             onChange={(val) => onChange(Math.floor(val))}
-            className="w-16 px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none"
             step={1}
             min={definition.min}
             max={definition.max}
@@ -116,7 +114,6 @@ export default function ParameterRenderer({
                 <NumberInput
                   value={vectorValue[component]}
                   onChange={(val) => onChange({ ...vectorValue, [component]: val })}
-                  className="w-12 px-1 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none"
                   step={definition.step || 0.1}
                 />
               </div>

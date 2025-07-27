@@ -69,7 +69,6 @@ export default function ParameterInput({
         <NumberInput
           value={value}
           onChange={onChange}
-          className={`w-16 px-1 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none ${className}`}
           step={step}
           min={min}
           max={max}

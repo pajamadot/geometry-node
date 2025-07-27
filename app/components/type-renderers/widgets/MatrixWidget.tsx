@@ -30,8 +30,7 @@ export const MatrixWidget: React.FC<MatrixWidgetProps> = ({
         value={cellValue}
         onChange={(newValue) => handleCellChange(row, col, newValue)}
         step={0.1}
-        className="w-12 h-8"
-        showSlider={false} // Disable slider for matrix cells to save space
+        className="w-6 h-6"
       />
     );
   };

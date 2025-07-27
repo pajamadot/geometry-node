@@ -155,28 +155,65 @@ export default function NumberInput({
   
   const displayValue = isFocused ? localValue : formatDisplayValue(value);
 
+  const handleIncrement = () => {
+    const newValue = value + step;
+    if (max === undefined || newValue <= max) {
+      onChange(newValue);
+    }
+  };
+
+  const handleDecrement = () => {
+    const newValue = value - step;
+    if (min === undefined || newValue >= min) {
+      onChange(newValue);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between relative group">
       {label && <label className="text-xs text-gray-300">{label}</label>}
-      <input
-        ref={inputRef}
-        type="number"
-        value={displayValue}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        disabled={disabled}
-        className={`w-16 px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white 
-                   focus:border-blue-500 focus:outline-none transition-colors
-                   hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-        step={step}
-        min={min}
-        max={max}
-        autoComplete="off"
-        spellCheck={false}
-        title="Updates in real-time • Enter for immediate • Escape to reset"
-      />
+      
+      {/* Numeric Input with Left/Right Buttons */}
+      <div className="flex items-center border border-gray-600 rounded bg-gray-700">
+        {/* Left Minus Button */}
+        <button
+          type="button"
+          onClick={handleDecrement}
+          disabled={disabled || (min !== undefined && value <= min)}
+          className="px-1.5 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-600 focus:outline-none focus:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-r border-gray-600"
+        >
+          −
+        </button>
+        
+        {/* Center Input */}
+        <input
+          ref={inputRef}
+          type="number"
+          value={displayValue}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          disabled={disabled}
+          className="w-12 px-1 py-1 text-xs bg-transparent text-white text-center focus:outline-none focus:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          step={step}
+          min={min}
+          max={max}
+          autoComplete="off"
+          spellCheck={false}
+          title="Updates in real-time • Enter for immediate • Escape to reset"
+        />
+        
+        {/* Right Plus Button */}
+        <button
+          type="button"
+          onClick={handleIncrement}
+          disabled={disabled || (max !== undefined && value >= max)}
+          className="px-1.5 py-1 text-xs text-gray-300 hover:text-white hover:bg-gray-600 focus:outline-none focus:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-l border-gray-600"
+        >
+          +
+        </button>
+      </div>
       
       {/* Subtle tooltip on hover */}
       <div className="absolute bottom-full right-0 mb-1 px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
