@@ -16,7 +16,8 @@ import {
   DollarSign,
   Rocket,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -819,10 +820,16 @@ export default function InvestorPresentation() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
         <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft className="size-4 sm:size-5" />
-              <span className="text-sm sm:text-base">Back to App</span>
-            </Link>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                <ArrowLeft className="size-4 sm:size-5" />
+                <span className="text-sm sm:text-base">Back to App</span>
+              </Link>
+              <Link href="/whitepaper" className="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors">
+                <FileText className="size-4 sm:size-5" />
+                <span className="text-sm sm:text-base">Whitepaper</span>
+              </Link>
+            </div>
             
             <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-xs sm:text-sm text-gray-400">
