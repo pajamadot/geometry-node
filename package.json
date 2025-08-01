@@ -7,11 +7,9 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "cd apps/web && npm run dev",
-    "build": "cd apps/web && npm run build",
-    "start": "cd apps/web && npm run start",
-    "lint": "cd apps/web && npm run lint",
-    "install:web": "cd apps/web && npm install"
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint"
   },
   "keywords": [
     "geometry",
@@ -26,5 +24,9 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  }
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5"
+  },
+  "packageManager": "npm@10.9.2"
 }
