@@ -1,6 +1,6 @@
 # Geometry Nodes On The Web! - A Procedural Geometry System
 
-![Demo GIF](assets/demo.gif)
+![Demo GIF](apps/web/assets/demo.gif)
 
 A comprehensive web-based procedural geometry system for creating and managing complex 3D geometry with advanced node-based editing and real-time visualization.
 
@@ -47,6 +47,18 @@ A comprehensive web-based procedural geometry system for creating and managing c
 - **Educational Mode**: Get explanations of how nodes and scenes are created
 - **Auto-Integration**: Generated nodes automatically integrate with the existing system
 
+## Monorepo Structure
+
+This project is organized as a monorepo with the following structure:
+
+```
+geometry-script/
+├── apps/web/          # Next.js web application
+├── docs/              # Documentation files
+├── examples/          # Example projects and prompts
+└── README.md          # This file
+```
+
 ## Installation
 
 ### Prerequisites
@@ -61,21 +73,24 @@ git clone <repository-url>
 cd geometry-script
 ```
 
-2. Install dependencies:
+2. Install root dependencies (if any):
 ```bash
 npm install
 ```
 
-3. Start the development server:
+3. Install and start the web application:
 ```bash
+cd apps/web
+npm install
 npm run dev
 ```
 
 4. Set up AI features (optional):
    - Get an API key from [OpenRouter](https://openrouter.ai/keys)
-   - Create a `.env.local` file in the project root:
+   - Create a `.env.local` file in the `apps/web` directory:
    ```bash
-   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   cd apps/web
+   echo "OPENROUTER_API_KEY=your_openrouter_api_key_here" > .env.local
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
@@ -399,21 +414,26 @@ return { value: generatedValue };
 
 ### Project Structure
 ```
-app/
-├── components/          # React components
-│   ├── type-renderers/ # Parameter input widgets
-│   └── widgets/        # UI widgets
-├── registry/           # Node definitions
-│   └── nodes/         # Individual node files
-├── types/             # TypeScript type definitions
-└── utils/             # Utility functions
+apps/web/
+├── app/                # Next.js App Router
+│   ├── components/     # React components
+│   ├── registry/       # Node definitions
+│   ├── types/          # TypeScript type definitions
+│   └── utils/          # Utility functions
+├── assets/             # Static assets
+├── public/             # Public assets
+└── package.json        # Web app dependencies
 ```
 
+For detailed development setup, see [`apps/web/README.md`](apps/web/README.md).
+
 ### Adding New Nodes
-1. Create a new node definition in `app/registry/nodes/`
+1. Create a new node definition in `apps/web/app/registry/nodes/`
 2. Define inputs, outputs, and parameters
 3. Implement the execute function
-4. Register the node in `app/registry/nodes/index.ts`
+4. Register the node in `apps/web/app/registry/nodes/index.ts`
+
+For complete development setup, see [`apps/web/README.md`](apps/web/README.md).
 
 ### Node Definition Example
 ```typescript
