@@ -13,7 +13,7 @@ interface NumericInputProps {
   precision?: number;
 }
 
-const NumericInput: React.FC<NumericInputProps> = ({
+export const NumericInput: React.FC<NumericInputProps> = ({
   value,
   onChange,
   min = -Infinity,
