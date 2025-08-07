@@ -1,6 +1,6 @@
 import React from 'react';
 import { TypeRendererProps } from '../types';
-import { NumericInput } from './NumericInput';
+import NumericInput from './NumericInput';
 
 interface StepperWidgetProps extends TypeRendererProps {
   min?: number;

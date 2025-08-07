@@ -1,6 +1,6 @@
 import React from 'react';
 import { TypeRendererProps } from '../types';
-import { NumericInput } from './NumericInput';
+import NumericInput from './NumericInput';
 
 interface VectorWidgetProps extends TypeRendererProps {
   components: 2 | 3 | 4;

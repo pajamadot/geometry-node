@@ -1,7 +1,7 @@
 import React from 'react';
 import { TypeRendererProps } from '../types';
 import { ParameterLabel } from './ParameterLabel';
-import { NumericInput } from './NumericInput';
+import NumericInput from './NumericInput';
 
 interface NumericWidgetProps extends TypeRendererProps {
   min?: number;
