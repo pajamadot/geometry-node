@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import * as Slider from '@radix-ui/react-slider';
 
 interface NumericInputProps {
   value: number;
@@ -85,25 +84,9 @@ const NumericInput: React.FC<NumericInputProps> = ({
     }
   };
 
-  const handleSliderChange = (values: number[]) => {
-    if (values.length > 0) {
-      onChange(values[0]);
-    }
-  };
 
-  const handleIncrement = () => {
-    const newValue = value + step;
-    if (newValue <= max) {
-      onChange(newValue);
-    }
-  };
 
-  const handleDecrement = () => {
-    const newValue = value - step;
-    if (newValue >= min) {
-      onChange(newValue);
-    }
-  };
+
 
   const getAxisColor = (label: string) => {
     switch (label?.toUpperCase()) {
@@ -124,8 +107,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
     return step >= 1 ? Math.round(val).toString() : val.toFixed(precision);
   };
 
-  const normalizedValue = Math.max(min, Math.min(max, value));
-  const sliderValue = showSlider ? normalizedValue : 0;
+
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
@@ -164,47 +146,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
                 ${dragging ? 'bg-blue-900 border-blue-600 text-white' : 'bg-gray-700 border-gray-600 text-white'}
               `}
             />
-            <div className="absolute right-0 top-0 bottom-0 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                type="button"
-                onClick={handleIncrement}
-                className="w-3 h-2.5 text-[8px] bg-gray-600 border-l border-gray-500 text-gray-300 hover:bg-gray-500 hover:text-white focus:outline-none"
-                disabled={value >= max}
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                onClick={handleDecrement}
-                className="w-3 h-2.5 text-[8px] bg-gray-600 border-l border-gray-500 text-gray-300 hover:bg-gray-500 hover:text-white focus:outline-none"
-                disabled={value <= min}
-              >
-                ▼
-              </button>
-            </div>
+
           </div>
         )}
       </div>
 
-      {/* Optional Slider */}
-      {showSlider && min !== undefined && max !== undefined && (
-        <Slider.Root
-          className="relative flex items-center select-none touch-none w-full h-5"
-          value={[sliderValue]}
-          onValueChange={handleSliderChange}
-          max={max}
-          min={min}
-          step={step}
-        >
-          <Slider.Track className="bg-gray-600 relative grow rounded-full h-1">
-            <Slider.Range className="absolute bg-blue-500 rounded-full h-full" />
-          </Slider.Track>
-          <Slider.Thumb
-            className="block w-3 h-3 bg-blue-500 border-2 border-blue-600 rounded-full hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-800"
-            aria-label="Value"
-          />
-        </Slider.Root>
-      )}
+
     </div>
   );
 };
