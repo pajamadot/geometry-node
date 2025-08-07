@@ -280,7 +280,7 @@ export function CommandSystem({
     let endpoint = '';
     let requestBody: any = {
       prompt,
-      model: 'anthropic/claude-sonnet-4'
+      model: 'openai/gpt-5'
     };
 
     switch (command.type) {

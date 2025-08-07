@@ -43,7 +43,7 @@ export function AIPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'nodes' | 'scenes'>('nodes');
   const [prompt, setPrompt] = useState('');
-  const [selectedModel] = useState('anthropic/claude-sonnet-4');
+  const [selectedModel] = useState('openai/gpt-5');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [generationMode, setGenerationMode] = useState<'generate' | 'explain'>('generate');

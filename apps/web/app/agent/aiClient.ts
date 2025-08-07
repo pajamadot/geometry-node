@@ -20,7 +20,7 @@ Follow these rules at all times:
 /**
  * Creates a streaming text generation session
  */
-export async function createStreamingSession(prompt: string, modelName: string = 'anthropic/claude-3.5-sonnet') {
+export async function createStreamingSession(prompt: string, modelName: string = 'openai/gpt-5') {
   return await streamText({
     model: openrouter(modelName),
     prompt,
@@ -33,11 +33,6 @@ export async function createStreamingSession(prompt: string, modelName: string =
  */
 export function getAvailableModels(): string[] {
   return [
-    'anthropic/claude-3.5-sonnet',
-    'openai/gpt-4o',
-    'openai/gpt-4o-mini',
-    'google/gemini-pro-1.5',
-    'meta-llama/llama-3.1-70b-instruct',
-    'mistralai/mixtral-8x7b-instruct'
+    'openai/gpt-5'
   ];
 } 

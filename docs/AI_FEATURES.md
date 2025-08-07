@@ -49,13 +49,8 @@ Create complete node graphs for complex 3D scenes:
 
 ### Available Models
 
-Choose from multiple AI models:
-- **Claude 3.5 Sonnet** (Default) - Best for complex geometry
-- **GPT-4o** - Great for creative scenes
-- **GPT-4o Mini** - Fast and efficient
-- **Gemini Pro 1.5** - Good balance of speed and quality
-- **Llama 3.1 70B** - Open source alternative
-- **Mixtral 8x7B** - Fast open source option
+The system now uses:
+- **GPT-5** (Default) - Latest OpenAI model for optimal geometry node generation
 
 ### Generation Modes
 

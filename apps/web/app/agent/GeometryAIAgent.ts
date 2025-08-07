@@ -34,7 +34,7 @@ import {
 export class GeometryAIAgent {
   private model: string;
 
-  constructor(model: string = 'anthropic/claude-3.5-sonnet') {
+  constructor(model: string = 'openai/gpt-5') {
     this.model = model;
   }
 
