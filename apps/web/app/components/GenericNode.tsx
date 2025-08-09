@@ -418,10 +418,10 @@ export default function GenericNode({
       
       {/* Parameters (Third row and beyond) */}
       {(mainParameters.length > 0 || advancedParameters.length > 0) && (
-        <div className="px-3 py-2 space-y-2">
+        <div className="px-3 py-2 space-y-1">
           {/* Group parameters by category */}
           {Object.entries(groupedParameters).map(([category, params]) => (
-            <div key={category} className="space-y-1">
+            <div key={category} className="space-y-0.5">
               {/* Category header for non-main categories */}
               {category !== 'main' && (
                 <div className="text-xs font-medium text-gray-400 border-b border-gray-600/30 pb-1">

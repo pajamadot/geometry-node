@@ -23,7 +23,7 @@ export const DropdownWidget: React.FC<DropdownWidgetProps> = ({
     <select
       value={currentValue}
       onChange={handleChange}
-      className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none min-w-0"
+      className="w-full px-2 py-0.5 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-blue-400 focus:outline-none min-w-0"
       style={{ minWidth: '80px' }}
     >
       {options.length === 0 ? (

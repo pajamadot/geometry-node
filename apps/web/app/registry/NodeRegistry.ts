@@ -7,6 +7,27 @@ import {
   timeNodeDefinition, 
   cubeNodeDefinition, 
   mathNodeDefinition, 
+  mapRangeNodeDefinition,
+  clampNodeDefinition,
+  randomValueNodeDefinition,
+  smoothStepNodeDefinition,
+  switchNodeDefinition,
+  compareNodeDefinition,
+  ifElseNodeDefinition,
+  sineWaveNodeDefinition,
+  cosineWaveNodeDefinition,
+  noiseWaveNodeDefinition,
+  timeOffsetNodeDefinition,
+  bendNodeDefinition,
+  twistNodeDefinition,
+  taperNodeDefinition,
+  mirrorNodeDefinition,
+  arrayNodeDefinition,
+  scatterNodeDefinition,
+  instanceNodeDefinition,
+  meshToPointsNodeDefinition,
+  pointsToMeshNodeDefinition,
+  sampleGeometryNodeDefinition,
   transformNodeDefinition,
   outputNodeDefinition,
   sphereNodeDefinition,
@@ -123,6 +144,27 @@ export class NodeRegistry {
     this.register(cylinderNodeDefinition);
     this.register(capsuleNodeDefinition);
     this.register(mathNodeDefinition);
+    this.register(mapRangeNodeDefinition);
+    this.register(clampNodeDefinition);
+    this.register(randomValueNodeDefinition);
+    this.register(smoothStepNodeDefinition);
+    this.register(switchNodeDefinition);
+    this.register(compareNodeDefinition);
+    this.register(ifElseNodeDefinition);
+    this.register(sineWaveNodeDefinition);
+    this.register(cosineWaveNodeDefinition);
+    this.register(noiseWaveNodeDefinition);
+    this.register(timeOffsetNodeDefinition);
+    this.register(bendNodeDefinition);
+    this.register(twistNodeDefinition);
+    this.register(taperNodeDefinition);
+    this.register(mirrorNodeDefinition);
+    this.register(arrayNodeDefinition);
+    this.register(scatterNodeDefinition);
+    this.register(instanceNodeDefinition);
+    this.register(meshToPointsNodeDefinition);
+    this.register(pointsToMeshNodeDefinition);
+    this.register(sampleGeometryNodeDefinition);
     this.register(vectorMathNodeDefinition);
     this.register(transformNodeDefinition);
     this.register(joinNodeDefinition);

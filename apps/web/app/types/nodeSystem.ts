@@ -91,6 +91,8 @@ export type NodeCategory =
   | 'instances'      // Instance and point operations
   | 'surfaces'       // Parametric and special surfaces
   | 'utilities'      // Utility and helper nodes
+  | 'control-flow'   // Control flow and logic nodes
+  | 'animation-drivers' // Animation drivers and wave generators
   | 'input'          // Input nodes
   | 'output'         // Output nodes
   | 'data'           // Data structure nodes (make/break)
@@ -298,6 +300,16 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
     color: 'gray',
     icon: '⚫',
     description: 'Utility nodes and helpers'
+  },
+  'control-flow': {
+    color: 'red',
+    icon: '🔴',
+    description: 'Control flow and logic nodes'
+  },
+  'animation-drivers': {
+    color: 'purple',
+    icon: '🟣',
+    description: 'Animation drivers and wave generators'
   },
   input: {
     color: 'cyan',
