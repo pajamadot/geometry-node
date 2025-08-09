@@ -7,7 +7,7 @@ export const joinNodeDefinition: NodeDefinition = {
   type: 'join',
   name: 'Join Geometry',
   description: 'Combine multiple geometries',
-  category: 'utilities',
+  category: 'geometry',
   color: {
     primary: '#f59e42',
     secondary: '#b45309'

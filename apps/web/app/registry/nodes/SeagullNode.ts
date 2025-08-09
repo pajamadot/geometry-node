@@ -4,7 +4,7 @@ import * as THREE from 'three';
 export const seagullNodeDefinition: NodeDefinition = {
   type: 'seagull',
   name: 'Seagull',
-  category: 'animation',
+  category: 'surfaces',
   description: 'Creates a flying seagull with flapping wings that circles around a center point',
   color: {
     primary: '#0ea5e9',

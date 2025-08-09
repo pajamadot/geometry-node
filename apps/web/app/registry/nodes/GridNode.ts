@@ -7,7 +7,7 @@ export const gridNodeDefinition: NodeDefinition = {
   type: 'grid',
   name: 'Grid',
   description: 'Creates a grid geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

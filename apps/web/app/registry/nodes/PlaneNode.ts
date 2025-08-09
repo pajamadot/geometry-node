@@ -7,7 +7,7 @@ export const planeNodeDefinition: NodeDefinition = {
   type: 'plane',
   name: 'Plane',
   description: 'Creates a plane geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

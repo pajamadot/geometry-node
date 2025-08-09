@@ -7,7 +7,7 @@ export const coneNodeDefinition: NodeDefinition = {
   type: 'cone',
   name: 'Cone',
   description: 'Creates a cone geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

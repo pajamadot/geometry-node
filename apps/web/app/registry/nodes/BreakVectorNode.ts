@@ -6,7 +6,7 @@ export const breakVectorNodeDefinition: NodeDefinition = {
   type: 'break-vector',
   name: 'Break Vector',
   description: 'Extract X, Y, Z components from a vector',
-  category: 'vector',
+  category: 'data',
   color: {
     primary: '#3b82f6',
     secondary: '#1d4ed8'

@@ -7,7 +7,7 @@ export const torusNodeDefinition: NodeDefinition = {
   type: 'torus',
   name: 'Torus',
   description: 'Creates a torus geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

@@ -6,7 +6,7 @@ export const timeNodeDefinition: NodeDefinition = {
   type: 'time',
   name: 'Time',
   description: 'Generates time-based values and waveforms',
-  category: 'animation',
+  category: 'input',
   color: {
     primary: '#ec4899',
     secondary: '#be185d'

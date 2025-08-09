@@ -7,7 +7,7 @@ export const capsuleNodeDefinition: NodeDefinition = {
   type: 'capsule',
   name: 'Capsule',
   description: 'Creates a capsule geometry (cylinder with rounded ends)',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

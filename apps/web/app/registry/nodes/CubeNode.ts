@@ -7,7 +7,7 @@ export const cubeNodeDefinition: NodeDefinition = {
   type: 'cube',
   name: 'Cube',
   description: 'Creates a cube geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

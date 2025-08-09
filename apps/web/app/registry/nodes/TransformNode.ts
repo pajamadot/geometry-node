@@ -7,7 +7,7 @@ export const transformNodeDefinition: NodeDefinition = {
   type: 'transform',
   name: 'Transform',
   description: 'Apply transformations to geometry',
-  category: 'geometry',
+  category: 'transform',
   color: {
     primary: '#dc2626',
     secondary: '#b91c1c'

@@ -6,7 +6,7 @@ export const breakTransformNodeDefinition: NodeDefinition = {
   type: 'break-transform',
   name: 'Break Transform',
   description: 'Extract position, rotation, scale from a transform',
-  category: 'vector',
+  category: 'data',
   color: {
     primary: '#2563eb',
     secondary: '#1d4ed8'

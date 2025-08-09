@@ -7,7 +7,7 @@ export const gesnerWaveNodeDefinition: NodeDefinition = {
   type: 'gesner-wave',
   name: 'Gesner Wave',
   description: 'Generate realistic ocean wave surfaces using Gerstner wave model',
-  category: 'geometry',
+  category: 'surfaces',
   color: {
     primary: '#0ea5e9',
     secondary: '#0284c7'

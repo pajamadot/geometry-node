@@ -6,7 +6,7 @@ export const genericBreakNodeDefinition: NodeDefinition = {
   type: 'break',
   name: 'Break',
   description: 'Extract components from a compound data structure',
-  category: 'utilities',
+  category: 'data',
   color: {
     primary: '#3b82f6',
     secondary: '#1d4ed8'
