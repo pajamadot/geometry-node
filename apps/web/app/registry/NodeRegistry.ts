@@ -68,7 +68,14 @@ import {
   setMaterialNodeDefinition,
   materialMixerNodeDefinition,
   waterMaterialNodeDefinition,
-  hologramMaterialNodeDefinition
+  hologramMaterialNodeDefinition,
+  getAttributeFloatNodeDefinition,
+  getAttributeVectorNodeDefinition,
+  getAttributeColorNodeDefinition,
+  setAttributeFloatNodeDefinition,
+  setAttributeVectorNodeDefinition,
+  setAttributeColorNodeDefinition,
+  attributeCaptureNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -203,6 +210,15 @@ export class NodeRegistry {
     this.register(waterMaterialNodeDefinition);
     this.register(hologramMaterialNodeDefinition);
     // Note: lava-material is now provided by server nodes only
+    
+    // Register Attribute System nodes
+    this.register(getAttributeFloatNodeDefinition);
+    this.register(getAttributeVectorNodeDefinition);
+    this.register(getAttributeColorNodeDefinition);
+    this.register(setAttributeFloatNodeDefinition);
+    this.register(setAttributeVectorNodeDefinition);
+    this.register(setAttributeColorNodeDefinition);
+    this.register(attributeCaptureNodeDefinition);
     
     // Register template-generated nodes
     const templateNodes = templateSystem.generateAllNodes();

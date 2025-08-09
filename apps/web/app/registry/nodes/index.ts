@@ -51,6 +51,15 @@ export { lowPolyRockNodeDefinition } from './LowPolyRockNode';
 export { spiralStairNodeDefinition } from './SpiralStairNode';
 export { meshBooleanNodeDefinition } from './MeshBooleanNode';
 
+// Attribute System nodes
+export { getAttributeFloatNodeDefinition } from './GetAttributeFloatNode';
+export { getAttributeVectorNodeDefinition } from './GetAttributeVectorNode';
+export { getAttributeColorNodeDefinition } from './GetAttributeColorNode';
+export { setAttributeFloatNodeDefinition } from './SetAttributeFloatNode';
+export { setAttributeVectorNodeDefinition } from './SetAttributeVectorNode';
+export { setAttributeColorNodeDefinition } from './SetAttributeColorNode';
+export { attributeCaptureNodeDefinition } from './AttributeCaptureNode';
+
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';
 export { breakVectorNodeDefinition } from './BreakVectorNode';

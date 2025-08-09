@@ -6,7 +6,7 @@ export const switchNodeDefinition: NodeDefinition = {
   type: 'switch',
   name: 'Switch',
   description: 'Selects output based on condition (true/false)',
-  category: 'control-flow',
+  category: 'control',
   color: {
     primary: '#dc2626',
     secondary: '#b91c1c'

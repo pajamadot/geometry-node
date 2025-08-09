@@ -6,7 +6,7 @@ export const compareNodeDefinition: NodeDefinition = {
   type: 'compare',
   name: 'Compare',
   description: 'Compares two values using various operators',
-  category: 'control-flow',
+  category: 'control',
   color: {
     primary: '#dc2626',
     secondary: '#b91c1c'

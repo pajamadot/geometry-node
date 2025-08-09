@@ -6,7 +6,7 @@ export const timeOffsetNodeDefinition: NodeDefinition = {
   type: 'time-offset',
   name: 'Time Offset',
   description: 'Offsets time input for delayed or advanced animations',
-  category: 'animation-drivers',
+  category: 'drivers',
   color: {
     primary: '#9333ea',
     secondary: '#7c3aed'

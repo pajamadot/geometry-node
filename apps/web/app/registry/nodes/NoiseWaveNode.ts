@@ -6,7 +6,7 @@ export const noiseWaveNodeDefinition: NodeDefinition = {
   type: 'noise-wave',
   name: 'Noise Wave',
   description: 'Generates smooth noise oscillation between -1 and 1',
-  category: 'animation-drivers',
+  category: 'drivers',
   color: {
     primary: '#9333ea',
     secondary: '#7c3aed'

@@ -6,7 +6,7 @@ export const cosineWaveNodeDefinition: NodeDefinition = {
   type: 'cosine-wave',
   name: 'Cosine Wave',
   description: 'Generates cosine wave oscillation between -1 and 1',
-  category: 'animation-drivers',
+  category: 'drivers',
   color: {
     primary: '#9333ea',
     secondary: '#7c3aed'

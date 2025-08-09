@@ -6,7 +6,7 @@ export const ifElseNodeDefinition: NodeDefinition = {
   type: 'if-else',
   name: 'If/Else',
   description: 'Executes different paths based on condition',
-  category: 'control-flow',
+  category: 'control',
   color: {
     primary: '#dc2626',
     secondary: '#b91c1c'

@@ -91,13 +91,14 @@ export type NodeCategory =
   | 'instances'      // Instance and point operations
   | 'surfaces'       // Parametric and special surfaces
   | 'utilities'      // Utility and helper nodes
-  | 'control-flow'   // Control flow and logic nodes
-  | 'animation-drivers' // Animation drivers and wave generators
+  | 'control'        // Control flow and logic nodes
+  | 'drivers'        // Animation drivers and wave generators
   | 'input'          // Input nodes
   | 'output'         // Output nodes
   | 'data'           // Data structure nodes (make/break)
   | 'modifiers'      // Geometry modifiers
-  | 'animation';     // Animation nodes
+  | 'animation'      // Animation nodes
+  | 'attributes';    // Attribute system nodes
 
 // Complete node definition - this is what defines a node type
 export interface NodeDefinition {
@@ -259,7 +260,7 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
   primitives: {
     color: 'orange',
     icon: '🟠',
-    description: 'Basic geometric primitives (cube, sphere, plane, etc.)'
+    description: 'Basic geometric primitives'
   },
   geometry: {
     color: 'amber',
@@ -269,22 +270,22 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
   math: {
     color: 'green',
     icon: '🟢',
-    description: 'Mathematical operations and functions'
+    description: 'Math'
   },
   vector: {
     color: 'blue',
     icon: '🔵',
-    description: 'Vector mathematics and transformations'
+    description: 'Vector'
   },
   transform: {
     color: 'indigo',
     icon: '🟣',
-    description: 'Transform operations (position, rotation, scale)'
+    description: 'Transform operations'
   },
   materials: {
     color: 'stone',
     icon: '🟤',
-    description: 'Material creation and manipulation'
+    description: 'Material'
   },
   instances: {
     color: 'emerald',
@@ -294,47 +295,52 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
   surfaces: {
     color: 'teal',
     icon: '🔷',
-    description: 'Parametric and special surfaces'
+    description: 'Special samples'
   },
   utilities: {
     color: 'gray',
     icon: '⚫',
-    description: 'Utility nodes and helpers'
+    description: 'Utility'
   },
-  'control-flow': {
+  'control': {
     color: 'red',
     icon: '🔴',
-    description: 'Control flow and logic nodes'
+    description: 'Control flow/logic'
   },
-  'animation-drivers': {
+  'drivers': {
     color: 'purple',
     icon: '🟣',
-    description: 'Animation drivers and wave generators'
+    description: 'Animation driver'
   },
   input: {
     color: 'cyan',
     icon: '🔷',
-    description: 'Input and data sources'
+    description: 'Input'
   },
   output: {
     color: 'yellow',
     icon: '🟡',
-    description: 'Output and visualization'
+    description: 'Output'
   },
   data: {
     color: 'violet',
     icon: '🟣',
-    description: 'Data structure nodes (make/break)'
+    description: 'Data'
   },
   modifiers: {
     color: 'purple',
     icon: '🟣',
-    description: 'Geometry modifiers and effects'
+    description: 'Modifiers and effects'
   },
   animation: {
     color: 'pink',
     icon: '🟣',
     description: 'Time and animation'
+  },
+  attributes: {
+    color: 'cyan',
+    icon: '🔷',
+    description: 'Attribute system'
   }
 };
 
