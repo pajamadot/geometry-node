@@ -14,6 +14,9 @@ import {
   torusNodeDefinition,
   coneNodeDefinition,
   gridNodeDefinition,
+  floatNodeDefinition,
+  integerNodeDefinition,
+  booleanNodeDefinition,
   cylinderNodeDefinition,
   capsuleNodeDefinition,
   vectorMathNodeDefinition,
@@ -108,6 +111,9 @@ export class NodeRegistry {
   // Register all default nodes
   private registerDefaultNodes() {
     this.register(timeNodeDefinition);
+    this.register(floatNodeDefinition);
+    this.register(integerNodeDefinition);
+    this.register(booleanNodeDefinition);
     this.register(cubeNodeDefinition);
     this.register(sphereNodeDefinition);
     this.register(planeNodeDefinition);
