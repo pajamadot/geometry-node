@@ -10,7 +10,12 @@ import {
   transformNodeDefinition,
   outputNodeDefinition,
   sphereNodeDefinition,
+  planeNodeDefinition,
+  torusNodeDefinition,
+  coneNodeDefinition,
+  gridNodeDefinition,
   cylinderNodeDefinition,
+  capsuleNodeDefinition,
   vectorMathNodeDefinition,
   joinNodeDefinition,
   subdivideMeshNodeDefinition,
@@ -105,7 +110,12 @@ export class NodeRegistry {
     this.register(timeNodeDefinition);
     this.register(cubeNodeDefinition);
     this.register(sphereNodeDefinition);
+    this.register(planeNodeDefinition);
+    this.register(torusNodeDefinition);
+    this.register(coneNodeDefinition);
+    this.register(gridNodeDefinition);
     this.register(cylinderNodeDefinition);
+    this.register(capsuleNodeDefinition);
     this.register(mathNodeDefinition);
     this.register(vectorMathNodeDefinition);
     this.register(transformNodeDefinition);
