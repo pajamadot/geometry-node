@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Wand2, 
-  Sparkles, 
-  Loader2, 
-  Command, 
-  Search, 
-  Edit3, 
-  Plus, 
+import {
+  Wand2,
+  Sparkles,
+  Loader2,
+  Command,
+  Search,
+  Edit3,
+  Plus,
   Zap,
   ChevronRight,
   X,
@@ -20,6 +20,7 @@ import {
   Activity,
   Terminal
 } from 'lucide-react';
+import { buildCatalog, buildSceneGenerationGuidelines } from '../agent/contextBuilders';
 
 interface CommandSystemProps {
   onNodeGenerated?: (node: any) => void;
@@ -80,7 +81,8 @@ export function CommandSystem({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
-  
+  const [aiMessages, setAiMessages] = useState<string[]>(["AI Agent is ready to help you"]);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -141,7 +143,7 @@ export function CommandSystem({
   // Parse command input
   const parseCommand = useCallback((input: string): ParsedCommand | null => {
     const trimmed = input.trim().toLowerCase();
-    
+
     for (const command of commands) {
       for (const alias of command.aliases) {
         if (trimmed.startsWith(alias.toLowerCase())) {
@@ -150,7 +152,7 @@ export function CommandSystem({
         }
       }
     }
-    
+
     return null;
   }, []);
 
@@ -158,9 +160,9 @@ export function CommandSystem({
   const getCommandSuggestions = useCallback((input: string) => {
     const trimmed = input.trim().toLowerCase();
     if (!trimmed) return [];
-    
+
     const suggestions: string[] = [];
-    
+
     // Add matching aliases
     commands.forEach(cmd => {
       cmd.aliases.forEach(alias => {
@@ -169,7 +171,7 @@ export function CommandSystem({
         }
       });
     });
-    
+
     // Add partial matches
     commands.forEach(cmd => {
       cmd.aliases.forEach(alias => {
@@ -178,7 +180,7 @@ export function CommandSystem({
         }
       });
     });
-    
+
     return suggestions.slice(0, 5);
   }, []);
 
@@ -252,7 +254,7 @@ export function CommandSystem({
     if (!parsedCommand.prompt.trim()) return;
 
     const { command, prompt } = parsedCommand;
-    
+
     // Add to history
     const fullCommand = input;
     setCommandHistory(prev => [fullCommand, ...prev.slice(0, 19)]); // Keep last 20
@@ -264,7 +266,7 @@ export function CommandSystem({
       content: 'Starting generation process...',
       progress: 0
     });
-    
+
     const result: CommandResult = {
       id: crypto.randomUUID(),
       command,
@@ -344,16 +346,16 @@ export function CommandSystem({
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               if (data.type === 'progress' || data.type === 'stream') {
                 accumulatedContent += data.content;
                 currentProgress = Math.min(currentProgress + 2, 90);
-                
+
                 let stage = 'Generating';
                 if (data.content.includes('analysis') || data.content.includes('analyzing')) {
                   stage = 'Analyzing Requirements';
@@ -364,14 +366,14 @@ export function CommandSystem({
                 } else if (data.content.includes('optimizing') || data.content.includes('refining')) {
                   stage = 'Optimizing Result';
                 }
-                
+
                 setGenerationProgress({
                   stage,
                   content: data.content.slice(-100),
                   progress: currentProgress
                 });
-                
-                updateResult(result.id, { 
+
+                updateResult(result.id, {
                   content: accumulatedContent,
                   progress: currentProgress
                 });
@@ -381,9 +383,9 @@ export function CommandSystem({
                   content: 'Generation completed successfully!',
                   progress: 100
                 });
-                
-                updateResult(result.id, { 
-                  status: 'success', 
+
+                updateResult(result.id, {
+                  status: 'success',
                   content: accumulatedContent + '\n\n✅ ' + data.content,
                   data: data.node || data.scene,
                   progress: 100
@@ -393,7 +395,7 @@ export function CommandSystem({
                 if (data.scene && onSceneGenerated) onSceneGenerated(data.scene);
                 if (data.node && onNodeModified) onNodeModified(data.node);
                 if (data.scene && onSceneModified) onSceneModified(data.scene);
-                
+
                 // Close all modals after successful generation
                 setTimeout(() => {
                   setGenerationProgress(null);
@@ -403,19 +405,19 @@ export function CommandSystem({
                   setSelectedSuggestion(-1);
                   setShowResults(false);
                 }, 2000);
-                
+
               } else if (data.type === 'error') {
                 setGenerationProgress({
                   stage: 'Error',
                   content: 'Generation failed',
                   progress: 0
                 });
-                
-                updateResult(result.id, { 
-                  status: 'error', 
-                  content: accumulatedContent + '\n\n❌ ' + data.content 
+
+                updateResult(result.id, {
+                  status: 'error',
+                  content: accumulatedContent + '\n\n❌ ' + data.content
                 });
-                
+
                 setTimeout(() => setGenerationProgress(null), 3000);
               }
             } catch (e) {
@@ -430,12 +432,12 @@ export function CommandSystem({
         content: 'Network or processing error',
         progress: 0
       });
-      
-      updateResult(result.id, { 
-        status: 'error', 
-        content: `Error: ${error}` 
+
+      updateResult(result.id, {
+        status: 'error',
+        content: `Error: ${error}`
       });
-      
+
       setTimeout(() => setGenerationProgress(null), 3000);
     } finally {
       setIsExecuting(false);
@@ -448,12 +450,129 @@ export function CommandSystem({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseCommand(input);
-    if (parsed) {
-      executeCommand(parsed);
-      setInput('');
-    }
+
+    // ================================
+    // Python Agent Start
+    // ================================
+    startJob(input);
+    // ================================
+    // Python Agent End
+    // ================================
+
+    // const parsed = parseCommand(input);
+    // if (parsed) {
+    //   executeCommand(parsed);
+    //   setInput('');
+    // }
   };
+
+  // ================================
+  // Python Agent Start
+  // ================================
+  let eventSource: EventSource | null = null;
+  let jobId: string | null = null;
+
+  function addMessage(message: string) {
+    setAiMessages(prev => [...prev, message]);
+  }
+
+  async function startJob(userInput: string) {
+    console.log('Starting job with input:', userInput);
+    try {
+      const request_data = {
+        model: "openai/gpt-4.1-nano",
+        user_query: userInput,
+        scene_data: `${JSON.stringify(currentScene, null, 2)}`,
+        catalog: buildCatalog(),
+        scene_generation_guidelines: buildSceneGenerationGuidelines(),
+      }
+
+      const response = await fetch('/api/ai/agent-add-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        body: JSON.stringify({ request_data: request_data }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      jobId = result.job_id;
+
+      console.log('Job started with ID:', jobId);
+
+      // TODO: update ui status(like disable or something)
+      setGenerationProgress({
+        stage: 'Connected',
+        content: `Connected to stream for job: ${jobId}`,
+        progress: 0
+      })
+
+      setTimeout(() => {
+        setGenerationProgress(null);
+        setIsOpen(false);
+        setInput('');
+        setSuggestions([]);
+        setSelectedSuggestion(-1);
+        setShowResults(false);
+      }, 2000);
+
+      startStream(jobId);
+
+    } catch (error) {
+      console.error('Error starting job:', error);
+    }
+  }
+
+  function startStream(targetJobId: string | null) {
+    if (eventSource) {
+      eventSource.close();
+    }
+    console.log('Starting stream for job:', targetJobId);
+    eventSource = new EventSource(`/api/ai/agent-job-stream?job_id=${targetJobId}`);
+
+    eventSource.onopen = function (event) {
+      addMessage(`Connected to stream for job: ${targetJobId}`);
+    }
+
+    eventSource.onmessage = function (event) {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('onmessage data:', data);
+        if (data.step && data.content !== undefined) {
+          addMessage(data.content);
+        }
+        else if (data.type === 'done') {
+          addMessage('Stream completed');
+          stopStream();
+        }
+      }
+      catch (error) {
+        console.error('Error parsing SSE message:', error);
+      }
+    }
+
+    eventSource.onerror = function (event) {
+      console.error('SSE error:', event);
+      addMessage('Connection error occurred');
+      stopStream();
+    };
+  }
+
+  function stopStream() {
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+    // TODO: update status: "stream stopped"
+    // TODO: add message: "stream stopped"
+    console.log('stop stream');
+    setGenerationProgress(null);
+    jobId = null;
+  }
+  // ================================
+  // Python Agent End
+  // ================================
 
   // Generation Progress Overlay
   if (generationProgress) {
@@ -470,21 +589,21 @@ export function CommandSystem({
                 <span className="ml-3 text-green-400 text-xs">ai-process.exe</span>
               </div>
             </div>
-            
+
             {/* Animated Terminal Icon */}
             <div className="relative mb-6">
               <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center border border-green-500/30">
                 <Terminal className="w-8 h-8 text-green-400 animate-pulse" />
               </div>
               <div className="absolute inset-0 w-16 h-16 mx-auto rounded-lg bg-gradient-to-r from-green-600 to-blue-600 animate-ping opacity-20"></div>
-              
+
               {/* Matrix-style particles */}
               <div className="absolute -top-2 -left-2 w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
               <div className="absolute -top-2 -right-2 w-1 h-1 bg-blue-400 rounded-full animate-bounce delay-100"></div>
               <div className="absolute -bottom-2 -left-2 w-1 h-1 bg-green-300 rounded-full animate-bounce delay-200"></div>
               <div className="absolute -bottom-2 -right-2 w-2 h-2 bg-blue-300 rounded-full animate-bounce delay-300"></div>
             </div>
-            
+
             {/* Stage and Progress */}
             <div className="mb-4">
               <div className="text-green-400 text-xs mb-1 font-mono">[SYSTEM STATUS]</div>
@@ -496,29 +615,43 @@ export function CommandSystem({
                 </div>
               </div>
             </div>
-            
+
             {/* Progress Bar */}
             <div className="w-full bg-gray-800 border border-green-500/30 rounded-full h-3 mb-4 overflow-hidden">
-              <div 
+              <div
                 className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out relative"
                 style={{ width: `${generationProgress.progress}%` }}
               >
                 <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
               </div>
             </div>
-            
+
             {/* Progress Stats */}
             <div className="flex justify-between items-center text-xs font-mono mb-4">
               <span className="text-gray-400">Progress:</span>
               <span className="text-green-400">{Math.round(generationProgress.progress)}%</span>
             </div>
-            
+
             {/* Status Indicator */}
             <div className="flex items-center justify-center space-x-2 p-3 bg-gray-900/50 border border-green-500/30 rounded">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-green-400 text-sm font-mono">NEURAL_NETWORK_ACTIVE</span>
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-500"></div>
             </div>
+
+            {/* AI Messages */}
+            <div className="text-green-400 text-xs mb-4 opacity-70 max-h-40 overflow-y-auto font-mono bg-black/40 rounded p-2 border border-green-500/10">
+              {aiMessages && aiMessages.length > 0 ? (
+                aiMessages.map((msg, idx) => (
+                  <div key={idx} className="mb-1 whitespace-pre-line">
+                    <span className="text-green-500">&gt;</span> {msg}
+                  </div>
+                ))
+              ) : (
+                <div className="italic text-green-700/60">No AI messages yet.</div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
@@ -534,11 +667,11 @@ export function CommandSystem({
           className="group relative bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-700 hover:via-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-2xl transform transition-all duration-300 hover:scale-110"
         >
           <Terminal className="w-6 h-6" />
-          
+
           <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-black text-green-400 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity font-mono">
             Press ⌘K to hack the matrix
           </div>
-          
+
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-green-600 to-purple-600 animate-ping opacity-20"></div>
         </button>
       </div>
@@ -550,14 +683,14 @@ export function CommandSystem({
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity duration-300"
         onClick={() => setIsOpen(false)}
       />
-      
+
       {/* Terminal Panel */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-        <div 
+        <div
           ref={panelRef}
           className="w-full max-w-4xl mx-4 bg-black/95 backdrop-blur-xl border border-green-500/30 rounded-lg shadow-2xl overflow-hidden font-mono"
         >
@@ -635,11 +768,10 @@ export function CommandSystem({
                   {suggestions.map((suggestion, index) => (
                     <div
                       key={suggestion}
-                      className={`text-sm cursor-pointer px-2 py-1 rounded ${
-                        index === selectedSuggestion
+                      className={`text-sm cursor-pointer px-2 py-1 rounded ${index === selectedSuggestion
                           ? 'bg-green-500/20 text-green-300'
                           : 'text-gray-400 hover:text-green-400'
-                      }`}
+                        }`}
                       onClick={() => {
                         setInput(suggestion + ' ');
                         setSuggestions([]);
@@ -700,9 +832,9 @@ export function CommandSystem({
           {/* Shortcuts */}
           <div className="px-4 pb-4">
             <div className="text-xs text-gray-600 text-center font-mono">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600">⌘K</kbd> open • 
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600 mx-1">Tab</kbd> autocomplete • 
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600">↑↓</kbd> history • 
+              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600">⌘K</kbd> open •
+              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600 mx-1">Tab</kbd> autocomplete •
+              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600">↑↓</kbd> history •
               <kbd className="px-1.5 py-0.5 bg-gray-800 rounded border border-gray-600 mx-1">Esc</kbd> exit
             </div>
           </div>
@@ -724,7 +856,7 @@ export function CommandSystem({
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="max-h-80 overflow-y-auto p-3 space-y-2">
             {results.map((result) => (
               <div key={result.id} className="border border-gray-700/50 rounded p-2 bg-gray-900/40">
@@ -747,19 +879,19 @@ export function CommandSystem({
                     )}
                   </div>
                 </div>
-                
+
                 {result.status === 'pending' && result.progress && result.progress > 0 && (
                   <div className="w-full bg-gray-700 rounded-full h-1 mb-1">
-                    <div 
+                    <div
                       className="bg-green-400 h-1 rounded-full transition-all duration-300"
                       style={{ width: `${result.progress}%` }}
                     ></div>
                   </div>
                 )}
-                
+
                 {result.content && (
                   <div className="text-xs text-gray-300 font-mono">
-                    {result.content.length > 80 
+                    {result.content.length > 80
                       ? result.content.substring(0, 80) + '...'
                       : result.content
                     }
