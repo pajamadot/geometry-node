@@ -9,6 +9,7 @@ from utils.call_llm import stream
 from utils.background_tasks import run_agent_flow
 
 DEFAULT_LLM_MODEL = "deepseek/deepseek-chat-v3-0324:free"
+DEFAULT_LLM_MODEL = "anthropic/claude-3.7-sonnet"
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -63,6 +64,8 @@ async def add_job(request: Request, background_tasks: BackgroundTasks):
     "user_query": "what you can do?",
   })
 
+  print(f"\n\nmodel: {request_data['model']}\n\n")
+
   job_id = str(uuid.uuid4())
   sse_queue = asyncio.Queue()
   request.app.state.jobs[job_id] = sse_queue
@@ -87,8 +90,8 @@ async def get_job_stream(request: Request, job_id: str):
       msg = await sse_queue.get()
       yield f"data: {json.dumps(msg)}\n\n"
 
-      # TODO: need to be aligned with the agent's implementation
-      if msg.get("type") == "done":
+      if msg.get("step") == "done":
+        print(f"\n\njob_id: {job_id} done\n\n")
         del request.app.state.jobs[job_id]
         break
 

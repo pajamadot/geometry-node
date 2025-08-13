@@ -479,8 +479,11 @@ export function CommandSystem({
   async function startJob(userInput: string) {
     console.log('Starting job with input:', userInput);
     try {
+      setAiMessages([]);
+      let model = "anthropic/claude-3.7-sonnet";
+      // model = "openai/gpt-4.1-nano";
       const request_data = {
-        model: "openai/gpt-4.1-nano",
+        model: model,
         user_query: userInput,
         scene_data: `${JSON.stringify(currentScene, null, 2)}`,
         catalog: buildCatalog(),
@@ -508,15 +511,6 @@ export function CommandSystem({
         progress: 0
       })
 
-      setTimeout(() => {
-        setGenerationProgress(null);
-        setIsOpen(false);
-        setInput('');
-        setSuggestions([]);
-        setSelectedSuggestion(-1);
-        setShowResults(false);
-      }, 2000);
-
       startStream(jobId);
 
     } catch (error) {
@@ -538,13 +532,37 @@ export function CommandSystem({
     eventSource.onmessage = function (event) {
       try {
         const data = JSON.parse(event.data);
-        console.log('onmessage data:', data);
-        if (data.step && data.content !== undefined) {
-          addMessage(data.content);
-        }
-        else if (data.type === 'done') {
-          addMessage('Stream completed');
-          stopStream();
+        console.log('onmsg data: ', data);
+        if (data.step) {
+          if (data.step === 'edit_finished') {
+            console.log(`intent: ${data.intent}`);
+            if (data.intent === 'modify_scene') {
+              if (data.flow_data && onSceneModified) {
+                console.log(`onSceneModified: ${data.flow_data.nodes.length} nodes, ${data.flow_data.edges.length} edges`);
+                onSceneModified(data.flow_data);
+              }
+            }
+            else if (data.intent === 'modify_node') {
+              // onNodeModified(data.apply_diff_result);
+            }
+            else if (data.intent === 'generate_scene') {
+              // onSceneGenerated(data.apply_diff_result);
+            }
+            else if (data.intent === 'generate_node') {
+              // onNodeGenerated(data.apply_diff_result);
+            }
+          }
+          else if (data.step === 'done') {
+            console.log('\n\nStream completed\n\n');
+            addMessage('Stream completed');
+            stopStream();
+          }
+          else if (data.step === 'modify_scene') {
+            // 
+          }
+          else {
+            addMessage(data.content);
+          }
         }
       }
       catch (error) {
@@ -564,10 +582,17 @@ export function CommandSystem({
       eventSource.close();
       eventSource = null;
     }
-    // TODO: update status: "stream stopped"
-    // TODO: add message: "stream stopped"
-    console.log('stop stream');
+    // ===========================
     setGenerationProgress(null);
+    setIsOpen(false);
+    setInput('');
+    setSuggestions([]);
+    setSelectedSuggestion(-1);
+    setShowResults(false);
+    // ===========================
+
+    // TODO: update status: "stream stopped"
+    addMessage('Stream stopped');
     jobId = null;
   }
   // ================================

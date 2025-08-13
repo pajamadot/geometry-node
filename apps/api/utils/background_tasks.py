@@ -13,4 +13,6 @@ def run_agent_flow(request_data: Dict[str, Any]):
   }
   agent_flow = create_agent_flow()
   asyncio.run(agent_flow.run_async(shared))
-  print("Agent flow completed")
+
+  sse_queue = shared["sse_queue"]
+  sse_queue.put_nowait({"step":"done", "content": "Agent flow completed"})
