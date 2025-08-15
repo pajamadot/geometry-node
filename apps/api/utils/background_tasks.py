@@ -2,8 +2,10 @@
 from typing import Dict, Any, List
 
 from agent.flow import create_agent_flow
+from utils.decorators import measure_time
 
-def run_agent_flow(request_data: Dict[str, Any]):
+@measure_time
+async def run_agent_flow_async(request_data: Dict[str, Any]):
   # basic shared data contains: model, user_query, sse_queue
   shared = {
     "model": request_data.get("model"),
@@ -12,7 +14,7 @@ def run_agent_flow(request_data: Dict[str, Any]):
     "request_data": request_data,
   }
   agent_flow = create_agent_flow()
-  asyncio.run(agent_flow.run_async(shared))
+  await agent_flow.run_async(shared)
 
   sse_queue = shared["sse_queue"]
   sse_queue.put_nowait({"step":"done", "content": "Agent flow completed"})

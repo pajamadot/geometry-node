@@ -22,6 +22,8 @@ export async function GET(
         const cookie = req.headers.get('cookie');
         if (cookie) { headers['Cookie'] = cookie; }
 
+        headers['Authorization'] = `Bearer ${process.env.GEOMETRY_API_KEY}`;
+
         const pyRes = await fetch(targetUrl, { method: 'GET', headers, });
 
         if (!pyRes.body) {
