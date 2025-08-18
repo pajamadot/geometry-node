@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         send(JSON.stringify({ step: 'error', content: err.message }));
       } finally {
-        send(JSON.stringify({ step: 'close', content: 'stream closedm' }));
+        send(JSON.stringify({ step: 'close', content: 'stream closed' }));
         controller.close();
       }
     },

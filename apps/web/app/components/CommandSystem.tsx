@@ -453,26 +453,10 @@ export function CommandSystem({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ================================
-    // TypeScript Agent Start
-    // ================================
     runGeometryEditAgent(input);
     setInput('');
-
-    // ================================
-    // TypeScript Agent End
-    // ================================
-
-    // const parsed = parseCommand(input);
-    // if (parsed) {
-    //   executeCommand(parsed);
-    //   setInput('');
-    // }
   };
 
-  // ================================
-  // TypeScript Agent Start
-  // ================================
   async function runGeometryEditAgent(userQuery: string) {
     const requestBody = {
       model: "anthropic/claude-sonnet-4",
@@ -501,14 +485,11 @@ export function CommandSystem({
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) {
-        console.log('runGeometryEditAgent\ndone');
-        break;
-      }
+      if (done) { break; }
       buffer += decoder.decode(value, { stream: true });
 
       const lines = buffer.split('\n\n');
-      buffer = lines.pop() || ''; // 保留最后可能未完整的 chunk
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (!line.startsWith('data:')) continue;
@@ -566,142 +547,10 @@ export function CommandSystem({
     setSelectedSuggestion(-1);
     setShowResults(false);
   }
-  // ================================
-  // TypeScript Agent End
-  // ================================
-
-  // ================================
-  // Python Agent Start
-  // ================================
-  let eventSource: EventSource | null = null;
-  let jobId: string | null = null;
 
   function addMessage(message: string) {
     setAiMessages(prev => [...prev, message]);
   }
-
-  async function startJob(userInput: string) {
-    console.log('Starting job with input:', userInput);
-    try {
-      setAiMessages([]);
-      let model = "anthropic/claude-sonnet-4";
-      // model = "openai/gpt-4.1-nano";
-      const request_data = {
-        model: model,
-        user_query: userInput,
-        scene_data: `${JSON.stringify(currentScene, null, 2)}`,
-        catalog: buildCatalog(),
-        scene_generation_guidelines: buildSceneGenerationGuidelines(),
-      }
-
-      const response = await fetch('/api/ai/agent-add-job', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', },
-        body: JSON.stringify({ request_data: request_data }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-      jobId = result.job_id;
-
-      console.log('Job started with ID:', jobId);
-
-      // TODO: update ui status(like disable or something)
-      setGenerationProgress({
-        stage: 'Connected',
-        content: `Connected to stream for job: ${jobId}`,
-        progress: 0
-      })
-
-      startStream(jobId);
-
-    } catch (error) {
-      console.error('Error starting job:', error);
-    }
-  }
-
-  function startStream(targetJobId: string | null) {
-    if (eventSource) {
-      eventSource.close();
-    }
-    console.log('Starting stream for job:', targetJobId);
-    eventSource = new EventSource(`/api/ai/agent-job-stream?job_id=${targetJobId}`);
-
-    eventSource.onopen = function (event) {
-      addMessage(`Connected to stream for job: ${targetJobId}`);
-    }
-
-    eventSource.onmessage = function (event) {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('onmsg data: ', data);
-        if (data.step) {
-          if (data.step === 'edit_finished') {
-            console.log(`intent: ${data.intent}`);
-            if (data.intent === 'modify_scene') {
-              if (data.flow_data && onSceneModified) {
-                console.log(`onSceneModified: ${data.flow_data.nodes.length} nodes, ${data.flow_data.edges.length} edges`);
-                onSceneModified(data.flow_data);
-              }
-            }
-            else if (data.intent === 'modify_node') {
-              // onNodeModified(data.apply_diff_result);
-            }
-            else if (data.intent === 'generate_scene') {
-              // onSceneGenerated(data.apply_diff_result);
-            }
-            else if (data.intent === 'generate_node') {
-              // onNodeGenerated(data.apply_diff_result);
-            }
-          }
-          else if (data.step === 'done') {
-            console.log('\n\nStream completed\n\n');
-            addMessage('Stream completed');
-            stopStream();
-          }
-          else if (data.step === 'modify_scene') {
-            // 
-          }
-          else {
-            addMessage(data.content);
-          }
-        }
-      }
-      catch (error) {
-        console.error('Error parsing SSE message:', error);
-      }
-    }
-
-    eventSource.onerror = function (event) {
-      console.error('SSE error:', event);
-      addMessage('Connection error occurred');
-      stopStream();
-    };
-  }
-
-  function stopStream() {
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
-    }
-    // ===========================
-    setGenerationProgress(null);
-    setIsOpen(false);
-    setInput('');
-    setSuggestions([]);
-    setSelectedSuggestion(-1);
-    setShowResults(false);
-    // ===========================
-
-    // TODO: update status: "stream stopped"
-    addMessage('Stream stopped');
-    jobId = null;
-  }
-  // ================================
-  // Python Agent End
-  // ================================
 
   // Generation Progress Overlay
   if (generationProgress) {
