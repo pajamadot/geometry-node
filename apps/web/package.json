@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/rsc": "^1.0.15",
     "@clerk/nextjs": "^6.26.0",
     "@openrouter/ai-sdk-provider": "^0.7.3",
     "@radix-ui/react-label": "^2.1.7",
@@ -19,8 +20,10 @@
     "ai": "^4.3.19",
     "fastest-levenshtein": "^1.0.16",
     "html-to-image": "^1.11.11",
+    "js-yaml": "^4.1.0",
     "lucide-react": "^0.525.0",
     "next": "15.4.2",
+    "pocketflow": "^1.0.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "reactflow": "^11.11.4",
@@ -29,6 +32,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

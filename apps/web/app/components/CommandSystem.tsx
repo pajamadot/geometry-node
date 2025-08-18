@@ -21,6 +21,8 @@ import {
   Terminal
 } from 'lucide-react';
 import { buildCatalog, buildSceneGenerationGuidelines } from '../agent/contextBuilders';
+import { runGeometryEditFlow } from '@/app/agent/actions/runFlow';
+import { useStreamableValue, type StreamableValue } from '@ai-sdk/rsc';
 
 interface CommandSystemProps {
   onNodeGenerated?: (node: any) => void;
@@ -82,6 +84,29 @@ export function CommandSystem({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const [aiMessages, setAiMessages] = useState<string[]>(["AI Agent is ready to help you"]);
+  const [actionStreamValue, setActionStreamValue] = useState<StreamableValue<string> | undefined>(undefined);
+  const [streamText, streamError, streamPending] = useStreamableValue<string>(actionStreamValue);
+  const prevStreamLengthRef = useRef(0);
+
+  // Reset chunk tracking whenever a new stream is set
+  useEffect(() => {
+    prevStreamLengthRef.current = 0;
+  }, [actionStreamValue]);
+
+  // Log incremental chunks as they arrive
+  useEffect(() => {
+    if (typeof streamText === 'string') {
+      const previousLength = prevStreamLengthRef.current || 0;
+      const currentLength = streamText.length;
+      if (currentLength > previousLength) {
+        const chunk = streamText.slice(previousLength);
+        console.log('stream chunk:', chunk);
+        prevStreamLengthRef.current = currentLength;
+      }
+    } else if (typeof streamText === 'object' && streamText !== null) {
+      console.log('stream object:', streamText);
+    }
+  }, [streamText]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -452,11 +477,12 @@ export function CommandSystem({
     e.preventDefault();
 
     // ================================
-    // Python Agent Start
+    // TypeScript Agent Start
     // ================================
-    startJob(input);
+    runGeometryEditAgent(input);
+
     // ================================
-    // Python Agent End
+    // TypeScript Agent End
     // ================================
 
     // const parsed = parseCommand(input);
@@ -465,6 +491,25 @@ export function CommandSystem({
     //   setInput('');
     // }
   };
+
+  // ================================
+  // TypeScript Agent Start
+  // ================================
+  async function runGeometryEditAgent(userQuery: string) {
+    console.log("\n\nrunGeometryEditAgent called in client\n\n");
+    const { actionStream } = await runGeometryEditFlow({
+      model: "anthropic/claude-sonnet-4",
+      user_query: userQuery,
+      scene_data: `${JSON.stringify(currentScene, null, 2)}`,
+      catalog: buildCatalog(),
+      scene_generation_guidelines: buildSceneGenerationGuidelines(),
+    });
+    setActionStreamValue(actionStream);
+    console.log("\n\nrunGeometryEditAgent done in client\n\n");
+  }
+  // ================================
+  // TypeScript Agent End
+  // ================================
 
   // ================================
   // Python Agent Start
@@ -480,7 +525,7 @@ export function CommandSystem({
     console.log('Starting job with input:', userInput);
     try {
       setAiMessages([]);
-      let model = "anthropic/claude-3.7-sonnet";
+      let model = "anthropic/claude-sonnet-4";
       // model = "openai/gpt-4.1-nano";
       const request_data = {
         model: model,
