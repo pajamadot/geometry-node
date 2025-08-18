@@ -21,8 +21,6 @@ import {
   Terminal
 } from 'lucide-react';
 import { buildCatalog, buildSceneGenerationGuidelines } from '../agent/contextBuilders';
-import { runGeometryEditFlow } from '@/app/agent/actions/runFlow';
-import { useStreamableValue, type StreamableValue } from '@ai-sdk/rsc';
 
 interface CommandSystemProps {
   onNodeGenerated?: (node: any) => void;

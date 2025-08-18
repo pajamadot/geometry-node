@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/rsc": "^1.0.15",
     "@clerk/nextjs": "^6.26.0",
     "@openrouter/ai-sdk-provider": "^0.7.3",
     "@radix-ui/react-label": "^2.1.7",
