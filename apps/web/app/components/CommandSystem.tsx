@@ -84,29 +84,6 @@ export function CommandSystem({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const [aiMessages, setAiMessages] = useState<string[]>(["AI Agent is ready to help you"]);
-  const [actionStreamValue, setActionStreamValue] = useState<StreamableValue<string> | undefined>(undefined);
-  const [streamText, streamError, streamPending] = useStreamableValue<string>(actionStreamValue);
-  const prevStreamLengthRef = useRef(0);
-
-  // Reset chunk tracking whenever a new stream is set
-  useEffect(() => {
-    prevStreamLengthRef.current = 0;
-  }, [actionStreamValue]);
-
-  // Log incremental chunks as they arrive
-  useEffect(() => {
-    if (typeof streamText === 'string') {
-      const previousLength = prevStreamLengthRef.current || 0;
-      const currentLength = streamText.length;
-      if (currentLength > previousLength) {
-        const chunk = streamText.slice(previousLength);
-        console.log('stream chunk:', chunk);
-        prevStreamLengthRef.current = currentLength;
-      }
-    } else if (typeof streamText === 'object' && streamText !== null) {
-      console.log('stream object:', streamText);
-    }
-  }, [streamText]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -480,6 +457,7 @@ export function CommandSystem({
     // TypeScript Agent Start
     // ================================
     runGeometryEditAgent(input);
+    setInput('');
 
     // ================================
     // TypeScript Agent End
@@ -496,16 +474,97 @@ export function CommandSystem({
   // TypeScript Agent Start
   // ================================
   async function runGeometryEditAgent(userQuery: string) {
-    console.log("\n\nrunGeometryEditAgent called in client\n\n");
-    const { actionStream } = await runGeometryEditFlow({
+    const requestBody = {
       model: "anthropic/claude-sonnet-4",
       user_query: userQuery,
       scene_data: `${JSON.stringify(currentScene, null, 2)}`,
       catalog: buildCatalog(),
       scene_generation_guidelines: buildSceneGenerationGuidelines(),
+    }
+    const res = await fetch('/api/ai/geo-edit-flow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
     });
-    setActionStreamValue(actionStream);
-    console.log("\n\nrunGeometryEditAgent done in client\n\n");
+
+    if (!res.body) throw new Error('No response body');
+
+    setGenerationProgress({
+      stage: 'Run Geometry Edit Agent',
+      content: `Running geometry edit agent...`,
+      progress: 0
+    })
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        console.log('runGeometryEditAgent\ndone');
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop() || ''; // 保留最后可能未完整的 chunk
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        try {
+          const msgSSE: any = JSON.parse(line.replace(/^data:\s*/, ''));
+          if (typeof msgSSE === 'object' && msgSSE !== null) {
+            if (msgSSE.step === 'close') {
+              break;
+            }
+            else if (msgSSE.step === 'apply_diff_finished' && msgSSE.content) {
+              // switch by intent
+              try {
+                const sceneData = JSON.parse(msgSSE.content);
+                if (msgSSE.intent === 'modify_scene') {
+                  if (onSceneModified) {
+                    onSceneModified(sceneData);
+                  }
+                }
+                addMessage(`Scene updated successfully based on intent: ${msgSSE.intent || 'unknown'}`);
+              } catch (error) {
+                addMessage('Error parsing scene data from agent response');
+              } finally {
+              }
+            } else if (msgSSE.step === 'intent_recognition' && msgSSE.content) {
+              setGenerationProgress({
+                stage: 'Intent Recognition',
+                content: `Recognizing intent...`,
+                progress: 10
+              })
+              addMessage(`Agent recognized intent: ${msgSSE.content}`);
+            } else if (msgSSE.step === 'modify_scene' && msgSSE.content) {
+              setGenerationProgress({
+                stage: 'Modify Scene',
+                content: `Modifying scene...`,
+                progress: 20
+              })
+              addMessage(`Scene modification: ${msgSSE.content}`);
+            } else if (msgSSE.step === 'chat' && msgSSE.content) {
+              addMessage(msgSSE.content);
+            } else if (msgSSE.step === 'edit_finished' || msgSSE.step === 'error') {
+              console.log('runGeometryEditAgent\nedit_finished or error');
+            } else if (msgSSE.content) {
+              addMessage(msgSSE.content);
+            }
+          }
+        } catch {
+        } finally {
+        }
+      }
+    }
+    setGenerationProgress(null);
+    setIsOpen(false);
+    setInput('');
+    setSuggestions([]);
+    setSelectedSuggestion(-1);
+    setShowResults(false);
   }
   // ================================
   // TypeScript Agent End
@@ -839,8 +898,8 @@ export function CommandSystem({
                     <div
                       key={suggestion}
                       className={`text-sm cursor-pointer px-2 py-1 rounded ${index === selectedSuggestion
-                          ? 'bg-green-500/20 text-green-300'
-                          : 'text-gray-400 hover:text-green-400'
+                        ? 'bg-green-500/20 text-green-300'
+                        : 'text-gray-400 hover:text-green-400'
                         }`}
                       onClick={() => {
                         setInput(suggestion + ' ');

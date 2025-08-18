@@ -26,7 +26,11 @@ export class IntentRecognitionNode extends Node<FlowSharedStore> {
   async exec(prepRes: any): Promise<any> {
     const { prompt, model, actionStream } = prepRes
 
-    console.log("\n\nIntentRecognitionNode exec prompt:\n", prompt, "\n\n");
+    actionStream.update(JSON.stringify({ 
+      step: 'intent_recognition', 
+      type: 'markdown', 
+      content: 'thinking...',
+    }));
 
     const streamResponse = await createStreamingSession(prompt, model);
 
@@ -36,23 +40,19 @@ export class IntentRecognitionNode extends Node<FlowSharedStore> {
       respBuffer += formattedChunk
     }
 
-    // TODO: remove this
-    console.log("\n\nIntentRecognitionNode response:\n", respBuffer, "\n\n");
-
     let resDict = parseYamlToDict(respBuffer);
-
-    console.log("\n\nIntentRecognitionNode resDict:\n", resDict, "\n\n");
 
     // if the response is not a valid YAML, set the next action to chat
     if (!resDict) {
       resDict = { "next_action": "chat" }
     }
 
-    const message = {
+    const streamMessage = {
       "step": "intent_recognition",
+      "type": "markdown",
       "content": `next_action: ${resDict.next_action}`,
     }
-    actionStream.update(message);
+    actionStream.update(JSON.stringify(streamMessage));
 
     return { resDict }
   }
@@ -65,7 +65,6 @@ export class IntentRecognitionNode extends Node<FlowSharedStore> {
     const { resDict } = execRes
     const nextAction = resDict.next_action
     shared.current_intent = nextAction
-    console.log("\n\nIntentRecognitionNode post nextAction:\n", nextAction, "\n\n");
     return nextAction
   }
 }
@@ -97,21 +96,16 @@ export class ModifySceneNode extends Node<FlowSharedStore> {
 
     let respBuffer = ""
     for await (const chunk of streamResponse.textStream) {
-      // TODO: only data: should be handled with respBuffer
       const formattedChunk = `${chunk}`
       respBuffer += formattedChunk
-
-      const message = {
-        "step": "modify_scene",
-        "content": formattedChunk,
-      }
-      actionStream.update(message);
     }
 
-    // TODO: remove this
-    console.log("\n\nModifySceneNode response:\n", respBuffer, "\n\n");
-
-    // TODO: check respBuffer validity
+    const streamMessage = {
+      "step": "modify_scene",
+      "type": "markdown",
+      "content": "generate diff completed",
+    }
+    actionStream.update(JSON.stringify(streamMessage));
 
     return { respBuffer }
   }
@@ -205,7 +199,12 @@ export class ChatNode extends Node<FlowSharedStore> {
     for await (const chunk of streamResponse.textStream) {
       // TODO: only data: should be handled with respBuffer
       const formattedChunk = `${chunk}`
-      actionStream.update(formattedChunk);
+      const message = {
+        "step": "chat",
+        "type": "markdown",
+        "content": formattedChunk,
+      }
+      actionStream.update(JSON.stringify(message));
     }
 
     return "default";
@@ -224,26 +223,36 @@ export class ApplyDiffNode extends Node<FlowSharedStore> {
     const userQuery = shared.user_query || ''
     const actionStream = shared.actionStream || null
 
-    const originalSceneJson = shared.metadata.scene_data || null
-    const diffContent = shared.diff_content || null
+    const originalSceneJsonStr = shared.metadata.scene_data || null
+
+    let diffContent = shared.diff_content || null
+    if (diffContent) {
+      if (diffContent.startsWith("```diff")) {
+        diffContent = diffContent.slice(7).trim()
+      }
+      if (diffContent.endsWith("```")) {
+        diffContent = diffContent.slice(0, -3).trim()
+      }
+      diffContent = diffContent.trim()
+    }
 
     const currentIntent = shared.current_intent || null
 
-    return { actionStream, originalSceneJson, diffContent, currentIntent }
+    return { actionStream, originalSceneJsonStr, diffContent, currentIntent }
   }
 
   async exec(prepRes: any): Promise<any> {
-    const { actionStream, originalSceneJson, diffContent, currentIntent } = prepRes;
+    const { actionStream, originalSceneJsonStr, diffContent, currentIntent } = prepRes;
 
-    const modifiedScene = applyDiff(originalSceneJson, diffContent);
-    const modifiedSceneJson = JSON.parse(modifiedScene);
+    const modifiedScene = applyDiff(originalSceneJsonStr, diffContent);
 
-    const message = {
+    const streamMessage = {
       "step": "apply_diff_finished",
+      "type": "markdown",
       "intent": currentIntent,
-      "content": modifiedSceneJson,
+      "content": modifiedScene,
     }
-    actionStream.update(message);
+    actionStream.update(JSON.stringify(streamMessage));
     return "default";
   }
 

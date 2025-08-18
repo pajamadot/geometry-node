@@ -17,13 +17,16 @@ export async function runGeometryEditFlow(requestData: Record<string, any>) {
     };
     const flow = createGeometryEditFlow();
 
-    // measure how long the flow takes
-    // await measureTime(async () => {
-    //   await flow.run(shared);
-    // });
-    await flow.run(shared);
+    await measureTime(async () => {
+      await flow.run(shared);
+    })();
+    // await flow.run(shared);
 
-    streamableValue.update("Agent Flow Finished!");
+    const message = {
+      "step": "edit_finished",
+      "content": "Agent Flow Finished!",
+    }
+    streamableValue.update(JSON.stringify(message));
     streamableValue.done();
   })();
 
