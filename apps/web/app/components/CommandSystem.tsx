@@ -501,6 +501,7 @@ export function CommandSystem({
               // switch by intent
               try {
                 const sceneData = JSON.parse(msgSSE.content);
+                console.log("sceneData: ", sceneData);
                 if (msgSSE.intent === 'modify_scene') {
                   if (onSceneModified) {
                     onSceneModified(sceneData);
@@ -527,8 +528,10 @@ export function CommandSystem({
               addMessage(`Scene modification: ${msgSSE.content}`);
             } else if (msgSSE.step === 'chat' && msgSSE.content) {
               addMessage(msgSSE.content);
-            } else if (msgSSE.step === 'edit_finished' || msgSSE.step === 'error') {
-              console.log('runGeometryEditAgent\nedit_finished or error');
+            } else if (msgSSE.step === 'edit_finished') {
+              console.log(`runGeometryEditAgent\nedit_finished\n${msgSSE.content}`);
+            } else if (msgSSE.step === 'error') {
+              console.log(`runGeometryEditAgent\nerror\n${msgSSE.content}`);
             } else if (msgSSE.content) {
               addMessage(msgSSE.content);
             }

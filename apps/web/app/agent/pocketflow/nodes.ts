@@ -36,8 +36,7 @@ export class IntentRecognitionNode extends Node<FlowSharedStore> {
 
     let respBuffer = ""
     for await (const chunk of streamResponse.textStream) {
-      const formattedChunk = `${chunk}`
-      respBuffer += formattedChunk
+      respBuffer += chunk
     }
 
     let resDict = parseYamlToDict(respBuffer);
@@ -92,15 +91,21 @@ export class ModifySceneNode extends Node<FlowSharedStore> {
   async exec(prepRes: any): Promise<any> {
     const { model, prompt, actionStream } = prepRes;
 
+    let streamMessage = {
+      "step": "modify_scene",
+      "type": "markdown",
+      "content": "processing...",
+    }
+    actionStream.update(JSON.stringify(streamMessage));
+
     const streamResponse = await createStreamingSession(prompt, model);
 
     let respBuffer = ""
     for await (const chunk of streamResponse.textStream) {
-      const formattedChunk = `${chunk}`
-      respBuffer += formattedChunk
+      respBuffer += chunk
     }
 
-    const streamMessage = {
+    streamMessage = {
       "step": "modify_scene",
       "type": "markdown",
       "content": "generate diff completed",
@@ -198,11 +203,10 @@ export class ChatNode extends Node<FlowSharedStore> {
 
     for await (const chunk of streamResponse.textStream) {
       // TODO: only data: should be handled with respBuffer
-      const formattedChunk = `${chunk}`
       const message = {
         "step": "chat",
         "type": "markdown",
-        "content": formattedChunk,
+        "content": chunk,
       }
       actionStream.update(JSON.stringify(message));
     }
