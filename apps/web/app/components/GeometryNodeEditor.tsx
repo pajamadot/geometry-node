@@ -2239,6 +2239,12 @@ export default function GeometryNodeEditor() {
           selectionOnDrag={true}
           selectionMode={SelectionMode.Partial}
           elementsSelectable={true}
+          // Mac trackpad support
+          panOnScroll={true}
+          zoomOnScroll={true}
+          zoomOnPinch={true}
+          zoomOnDoubleClick={false}
+          preventScrolling={false}
         >
         <Controls 
           className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 shadow-lg"
