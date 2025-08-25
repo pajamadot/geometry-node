@@ -7,7 +7,7 @@ export const sphereNodeDefinition: NodeDefinition = {
   type: 'sphere',
   name: 'Sphere',
   description: 'Creates a sphere geometry',
-  category: 'geometry',
+  category: 'primitives',
   color: {
     primary: '#ea580c',
     secondary: '#c2410c'

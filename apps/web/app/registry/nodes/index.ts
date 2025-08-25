@@ -2,10 +2,39 @@
 export { timeNodeDefinition } from './TimeNode';
 export { cubeNodeDefinition } from './CubeNode';
 export { mathNodeDefinition } from './MathNode';
+export { mapRangeNodeDefinition } from './MapRangeNode';
+export { clampNodeDefinition } from './ClampNode';
+export { randomValueNodeDefinition } from './RandomValueNode';
+export { smoothStepNodeDefinition } from './SmoothStepNode';
+export { switchNodeDefinition } from './SwitchNode';
+export { compareNodeDefinition } from './CompareNode';
+export { ifElseNodeDefinition } from './IfElseNode';
+export { sineWaveNodeDefinition } from './SineWaveNode';
+export { cosineWaveNodeDefinition } from './CosineWaveNode';
+export { noiseWaveNodeDefinition } from './NoiseWaveNode';
+export { timeOffsetNodeDefinition } from './TimeOffsetNode';
+export { bendNodeDefinition } from './BendNode';
+export { twistNodeDefinition } from './TwistNode';
+export { taperNodeDefinition } from './TaperNode';
+export { mirrorNodeDefinition } from './MirrorNode';
+export { arrayNodeDefinition } from './ArrayNode';
+export { scatterNodeDefinition } from './ScatterNode';
+export { instanceNodeDefinition } from './InstanceNode';
+export { meshToPointsNodeDefinition } from './MeshToPointsNode';
+export { pointsToMeshNodeDefinition } from './PointsToMeshNode';
+export { sampleGeometryNodeDefinition } from './SampleGeometryNode';
 export { transformNodeDefinition } from './TransformNode';
 export { outputNodeDefinition } from './OutputNode';
 export { sphereNodeDefinition } from './SphereNode';
+export { planeNodeDefinition } from './PlaneNode';
+export { torusNodeDefinition } from './TorusNode';
+export { coneNodeDefinition } from './ConeNode';
+export { gridNodeDefinition } from './GridNode';
+export { floatNodeDefinition } from './FloatNode';
+export { integerNodeDefinition } from './IntegerNode';
+export { booleanNodeDefinition } from './BooleanNode';
 export { cylinderNodeDefinition } from './CylinderNode';
+export { capsuleNodeDefinition } from './CapsuleNode';
 export { vectorMathNodeDefinition } from './VectorMathNode';
 export { joinNodeDefinition } from './JoinNode';
 export { subdivideMeshNodeDefinition } from './SubdivideMeshNode';
@@ -21,6 +50,15 @@ export { seagullNodeDefinition } from './SeagullNode';
 export { lowPolyRockNodeDefinition } from './LowPolyRockNode';
 export { spiralStairNodeDefinition } from './SpiralStairNode';
 export { meshBooleanNodeDefinition } from './MeshBooleanNode';
+
+// Attribute System nodes
+export { getAttributeFloatNodeDefinition } from './GetAttributeFloatNode';
+export { getAttributeVectorNodeDefinition } from './GetAttributeVectorNode';
+export { getAttributeColorNodeDefinition } from './GetAttributeColorNode';
+export { setAttributeFloatNodeDefinition } from './SetAttributeFloatNode';
+export { setAttributeVectorNodeDefinition } from './SetAttributeVectorNode';
+export { setAttributeColorNodeDefinition } from './SetAttributeColorNode';
+export { attributeCaptureNodeDefinition } from './AttributeCaptureNode';
 
 // Make/Break nodes for compound data structures
 export { makeVectorNodeDefinition } from './MakeVectorNode';

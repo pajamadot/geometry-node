@@ -38,6 +38,7 @@ interface NodeMenuItem {
   label: string;
   description: string;
   category: string;
+  categoryIcon: string;
   color: string;
   icon?: string | React.ComponentType<any>;
 }
@@ -98,6 +99,7 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
         label: definition.name,
         description: definition.description,
         category: categoryMeta?.description || definition.category,
+        categoryIcon: categoryMeta?.icon || '⚫',
         color: `bg-${categoryMeta?.color || 'gray'}-600`,
         icon: definition.ui?.icon || categoryMeta?.icon
       };
@@ -162,11 +164,14 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
   // Group filtered items by category
   const categories = filteredItems.reduce((acc, item) => {
     if (!acc[item.category]) {
-      acc[item.category] = [];
+      acc[item.category] = {
+        items: [],
+        icon: item.categoryIcon
+      };
     }
-    acc[item.category].push(item);
+    acc[item.category].items.push(item);
     return acc;
-  }, {} as Record<string, NodeMenuItem[]>);
+  }, {} as Record<string, { items: NodeMenuItem[]; icon: string }>);
 
   // Don't render anything if position is null
   if (!position) {
@@ -255,12 +260,13 @@ export default function ContextMenu({ position, onClose, onAddNode, onOpenCustom
             scrollbarColor: 'rgba(75, 85, 99, 0.6) transparent'
           }}
         >
-          {Object.entries(categories).map(([category, items]) => (
+          {Object.entries(categories).map(([category, categoryData]) => (
             <div key={category}>
-              <div className="px-4 py-2 text-xs font-medium text-gray-200 bg-gray-800/90 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-600/30">
-                {category}
+              <div className="px-4 py-2 text-xs font-medium text-gray-200 bg-gray-800/90 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-600/30 flex items-center gap-2">
+                <span className="text-sm">{categoryData.icon}</span>
+                <span>{category}</span>
               </div>
-              {items.map((item, index) => (
+              {categoryData.items.map((item, index) => (
                 <button
                   key={`${item.type}-${index}`}
                   onClick={() => handleAddNode(item)}

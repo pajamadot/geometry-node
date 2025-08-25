@@ -7,10 +7,39 @@ import {
   timeNodeDefinition, 
   cubeNodeDefinition, 
   mathNodeDefinition, 
+  mapRangeNodeDefinition,
+  clampNodeDefinition,
+  randomValueNodeDefinition,
+  smoothStepNodeDefinition,
+  switchNodeDefinition,
+  compareNodeDefinition,
+  ifElseNodeDefinition,
+  sineWaveNodeDefinition,
+  cosineWaveNodeDefinition,
+  noiseWaveNodeDefinition,
+  timeOffsetNodeDefinition,
+  bendNodeDefinition,
+  twistNodeDefinition,
+  taperNodeDefinition,
+  mirrorNodeDefinition,
+  arrayNodeDefinition,
+  scatterNodeDefinition,
+  instanceNodeDefinition,
+  meshToPointsNodeDefinition,
+  pointsToMeshNodeDefinition,
+  sampleGeometryNodeDefinition,
   transformNodeDefinition,
   outputNodeDefinition,
   sphereNodeDefinition,
+  planeNodeDefinition,
+  torusNodeDefinition,
+  coneNodeDefinition,
+  gridNodeDefinition,
+  floatNodeDefinition,
+  integerNodeDefinition,
+  booleanNodeDefinition,
   cylinderNodeDefinition,
+  capsuleNodeDefinition,
   vectorMathNodeDefinition,
   joinNodeDefinition,
   subdivideMeshNodeDefinition,
@@ -39,7 +68,14 @@ import {
   setMaterialNodeDefinition,
   materialMixerNodeDefinition,
   waterMaterialNodeDefinition,
-  hologramMaterialNodeDefinition
+  hologramMaterialNodeDefinition,
+  getAttributeFloatNodeDefinition,
+  getAttributeVectorNodeDefinition,
+  getAttributeColorNodeDefinition,
+  setAttributeFloatNodeDefinition,
+  setAttributeVectorNodeDefinition,
+  setAttributeColorNodeDefinition,
+  attributeCaptureNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -103,10 +139,39 @@ export class NodeRegistry {
   // Register all default nodes
   private registerDefaultNodes() {
     this.register(timeNodeDefinition);
+    this.register(floatNodeDefinition);
+    this.register(integerNodeDefinition);
+    this.register(booleanNodeDefinition);
     this.register(cubeNodeDefinition);
     this.register(sphereNodeDefinition);
+    this.register(planeNodeDefinition);
+    this.register(torusNodeDefinition);
+    this.register(coneNodeDefinition);
+    this.register(gridNodeDefinition);
     this.register(cylinderNodeDefinition);
+    this.register(capsuleNodeDefinition);
     this.register(mathNodeDefinition);
+    this.register(mapRangeNodeDefinition);
+    this.register(clampNodeDefinition);
+    this.register(randomValueNodeDefinition);
+    this.register(smoothStepNodeDefinition);
+    this.register(switchNodeDefinition);
+    this.register(compareNodeDefinition);
+    this.register(ifElseNodeDefinition);
+    this.register(sineWaveNodeDefinition);
+    this.register(cosineWaveNodeDefinition);
+    this.register(noiseWaveNodeDefinition);
+    this.register(timeOffsetNodeDefinition);
+    this.register(bendNodeDefinition);
+    this.register(twistNodeDefinition);
+    this.register(taperNodeDefinition);
+    this.register(mirrorNodeDefinition);
+    this.register(arrayNodeDefinition);
+    this.register(scatterNodeDefinition);
+    this.register(instanceNodeDefinition);
+    this.register(meshToPointsNodeDefinition);
+    this.register(pointsToMeshNodeDefinition);
+    this.register(sampleGeometryNodeDefinition);
     this.register(vectorMathNodeDefinition);
     this.register(transformNodeDefinition);
     this.register(joinNodeDefinition);
@@ -145,6 +210,15 @@ export class NodeRegistry {
     this.register(waterMaterialNodeDefinition);
     this.register(hologramMaterialNodeDefinition);
     // Note: lava-material is now provided by server nodes only
+    
+    // Register Attribute System nodes
+    this.register(getAttributeFloatNodeDefinition);
+    this.register(getAttributeVectorNodeDefinition);
+    this.register(getAttributeColorNodeDefinition);
+    this.register(setAttributeFloatNodeDefinition);
+    this.register(setAttributeVectorNodeDefinition);
+    this.register(setAttributeColorNodeDefinition);
+    this.register(attributeCaptureNodeDefinition);
     
     // Register template-generated nodes
     const templateNodes = templateSystem.generateAllNodes();

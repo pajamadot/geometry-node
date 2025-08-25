@@ -82,8 +82,23 @@ export interface ParameterDefinition {
 
 // Node category for organization
 export type NodeCategory = 
-  | 'geometry' | 'math' | 'vector' | 'utilities' | 'input' 
-  | 'output' | 'modifiers' | 'instances' | 'animation' | 'materials';
+  | 'primitives'     // Basic geometric primitives (cube, sphere, plane, etc.)
+  | 'geometry'       // Geometry processing and manipulation
+  | 'math'           // Mathematical operations
+  | 'vector'         // Vector operations
+  | 'transform'      // Transform operations
+  | 'materials'      // Material nodes
+  | 'instances'      // Instance and point operations
+  | 'surfaces'       // Parametric and special surfaces
+  | 'utilities'      // Utility and helper nodes
+  | 'control'        // Control flow and logic nodes
+  | 'drivers'        // Animation drivers and wave generators
+  | 'input'          // Input nodes
+  | 'output'         // Output nodes
+  | 'data'           // Data structure nodes (make/break)
+  | 'modifiers'      // Geometry modifiers
+  | 'animation'      // Animation nodes
+  | 'attributes';    // Attribute system nodes
 
 // Complete node definition - this is what defines a node type
 export interface NodeDefinition {
@@ -242,55 +257,90 @@ export const CATEGORY_METADATA: Record<NodeCategory, {
   icon: string;
   description: string;
 }> = {
-  geometry: {
+  primitives: {
     color: 'orange',
-    icon: '',
-    description: 'Basic geometry creation and manipulation'
+    icon: '🟠',
+    description: 'Basic geometric primitives'
+  },
+  geometry: {
+    color: 'amber',
+    icon: '🟡',
+    description: 'Geometry processing and manipulation'
   },
   math: {
     color: 'green',
-    icon: '',
-    description: 'Mathematical operations and functions'
+    icon: '🟢',
+    description: 'Math'
   },
   vector: {
     color: 'blue',
-    icon: '',
-    description: 'Vector mathematics and transformations'
+    icon: '🔵',
+    description: 'Vector'
   },
-  utilities: {
-    color: 'gray',
-    icon: '',
-    description: 'Utility nodes and helpers'
-  },
-  input: {
-    color: 'cyan',
-    icon: '',
-    description: 'Input and data sources'
-  },
-  output: {
-    color: 'yellow',
-    icon: '',
-    description: 'Output and visualization'
-  },
-  modifiers: {
-    color: 'purple',
-    icon: '',
-    description: 'Geometry modifiers and effects'
-  },
-  instances: {
-    color: 'emerald',
-    icon: '',
-    description: 'Instancing and duplication'
-  },
-  animation: {
-    color: 'pink',
-    icon: '',
-    description: 'Time and animation'
+  transform: {
+    color: 'indigo',
+    icon: '🟣',
+    description: 'Transform operations'
   },
   materials: {
     color: 'stone',
-    icon: '',
-    description: 'Material creation and manipulation'
+    icon: '🟤',
+    description: 'Material'
+  },
+  instances: {
+    color: 'emerald',
+    icon: '🟢',
+    description: 'Instancing and duplication'
+  },
+  surfaces: {
+    color: 'teal',
+    icon: '🔷',
+    description: 'Special samples'
+  },
+  utilities: {
+    color: 'gray',
+    icon: '⚫',
+    description: 'Utility'
+  },
+  'control': {
+    color: 'red',
+    icon: '🔴',
+    description: 'Control flow/logic'
+  },
+  'drivers': {
+    color: 'purple',
+    icon: '🟣',
+    description: 'Animation driver'
+  },
+  input: {
+    color: 'cyan',
+    icon: '🔷',
+    description: 'Input'
+  },
+  output: {
+    color: 'yellow',
+    icon: '🟡',
+    description: 'Output'
+  },
+  data: {
+    color: 'violet',
+    icon: '🟣',
+    description: 'Data'
+  },
+  modifiers: {
+    color: 'purple',
+    icon: '🟣',
+    description: 'Modifiers and effects'
+  },
+  animation: {
+    color: 'pink',
+    icon: '🟣',
+    description: 'Time and animation'
+  },
+  attributes: {
+    color: 'cyan',
+    icon: '🔷',
+    description: 'Attribute system'
   }
 };
 
@@ -418,4 +468,5 @@ function generateStandardLayout(inputs: SocketDefinition[], outputs: SocketDefin
   return layout;
 }
 
+ 
  

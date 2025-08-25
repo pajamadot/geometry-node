@@ -6,7 +6,7 @@ export const makeTransformNodeDefinition: NodeDefinition = {
   type: 'make-transform',
   name: 'Make Transform',
   description: 'Combine position, rotation, scale into a transform',
-  category: 'vector',
+  category: 'data',
   color: {
     primary: '#3b82f6',
     secondary: '#1d4ed8'

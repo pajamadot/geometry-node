@@ -80,7 +80,7 @@ export const parametricSurfaceNodeDefinition: NodeDefinition = {
   type: 'parametric-surface',
   name: 'Parametric Surface',
   description: 'Generate 3D surfaces using parametric equations',
-  category: 'geometry',
+  category: 'surfaces',
   color: {
     primary: '#8b5cf6',
     secondary: '#7c3aed'

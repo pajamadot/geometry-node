@@ -6,7 +6,7 @@ export const genericMakeNodeDefinition: NodeDefinition = {
   type: 'make',
   name: 'Make',
   description: 'Combine inputs into a compound data structure',
-  category: 'utilities',
+  category: 'data',
   color: {
     primary: '#3b82f6',
     secondary: '#1d4ed8'

@@ -7,7 +7,7 @@ export const lighthouseNodeDefinition: NodeDefinition = {
   type: 'lighthouse',
   name: 'Lighthouse',
   description: 'Generate procedural lighthouse with tower, roof, windows, and balcony',
-  category: 'geometry',
+  category: 'surfaces',
   color: {
     primary: '#f59e0b',
     secondary: '#d97706'

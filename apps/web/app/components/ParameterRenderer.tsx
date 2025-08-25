@@ -99,7 +99,7 @@ export default function ParameterRenderer({
           <select
             value={value || definition.defaultValue}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full px-2 py-1 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none"
+            className="w-full px-2 py-0.5 text-xs bg-gray-700 border border-gray-600 rounded text-white focus:border-orange-400 focus:outline-none"
           >
             {definition.options?.map(option => (
               <option key={option} value={option}>{option}</option>
@@ -159,7 +159,7 @@ export default function ParameterRenderer({
   };
   
   return (
-    <div className="flex items-center justify-between relative">
+    <div className="flex items-center justify-between relative py-0.5">
       {/* Input Handle for parameters that can be connected */}
       {(definition.type === 'number' || definition.type === 'integer' || definition.type === 'vector') && (
         <Handle

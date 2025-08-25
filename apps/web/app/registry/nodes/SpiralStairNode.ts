@@ -7,7 +7,7 @@ export const spiralStairNodeDefinition: NodeDefinition = {
   type: 'spiralStair',
   name: 'Spiral Stair',
   description: 'Generate procedural spiral staircase with steps and handrails',
-  category: 'geometry',
+  category: 'surfaces',
   color: {
     primary: '#8b5a2b',
     secondary: '#6b4423'

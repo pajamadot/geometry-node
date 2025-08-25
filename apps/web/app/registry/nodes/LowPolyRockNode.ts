@@ -7,7 +7,7 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
   type: 'lowPolyRock',
   name: 'Low Poly Rock',
   description: 'Generate a low poly rock shape',
-  category: 'geometry',
+  category: 'surfaces',
   color: {
     primary: '#6b7280',
     secondary: '#374151'

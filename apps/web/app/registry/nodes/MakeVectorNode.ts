@@ -6,7 +6,7 @@ export const makeVectorNodeDefinition: NodeDefinition = {
   type: 'make-vector',
   name: 'Make Vector',
   description: 'Combine X, Y, Z values into a vector',
-  category: 'vector',
+  category: 'data',
   color: {
     primary: '#3b82f6',
     secondary: '#1d4ed8'
