@@ -48,6 +48,6 @@ export function parseJsonNodeCollection(json: string): { version: string; create
     }
 }
 
-export function stringifyJsonNodeCollection(nodes: any[]): string {
-    return JSON.stringify(nodes); // Stub
+export function stringifyJsonNodeCollection(collection: any): string {
+    return JSON.stringify(collection, null, 2);
 }

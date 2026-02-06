@@ -1296,7 +1296,7 @@ export function createDefaultMaterial(): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
   material.diffuse.set(1, 1, 1);
   material.metalness = 0.0;
-  material.shininess = 50;
+  material.gloss = 50;
   material.useMetalness = true;
   material.cull = pc.CULLFACE_NONE;
   material.update();

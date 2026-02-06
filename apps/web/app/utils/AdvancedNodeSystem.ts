@@ -154,12 +154,12 @@ export class NodeGroup {
       inputs: this.inputs.map((i) => ({
         id: i.exposedName,
         name: i.exposedName,
-        type: 'any' as const,
+        type: 'geometry' as const,
       })),
       outputs: this.outputs.map((o) => ({
         id: o.exposedName,
         name: o.exposedName,
-        type: 'any' as const,
+        type: 'geometry' as const,
       })),
       parameters: [],
       execute: this.createGroupExecutor(),

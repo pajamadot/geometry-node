@@ -39,7 +39,7 @@ export class ComputeBufferPool {
     this.stats.allocations++;
     
     // Usage: pc.BUFFER_STATIC or pc.BUFFER_DYNAMIC
-    const buffer = new pc.VertexBuffer(device, format, numVertices, pc.BUFFER_STATIC, data);
+    const buffer = new pc.VertexBuffer(device, format, numVertices, { storage: false, data });
     return buffer;
   }
 

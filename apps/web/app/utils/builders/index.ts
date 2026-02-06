@@ -26,16 +26,16 @@ export { GeometryOperations } from './operations/GeometryOperations';
 export { AttributeOperations } from './operations/AttributeOperations';
 
 // Caching & performance
-export { GeometryCache, DirtyFlagSystem } from './cache/GeometryCache';
+export { GeometryCache } from './cache/GeometryCache';
 
 // Materials
 export { MaterialCoupling } from './materials/MaterialCoupling';
 
 // Procedural generators
-export { TerrainGenerator, RockGenerator, TreeGenerator } from './generators/TerrainGenerator';
+export { TerrainGenerator } from './generators/TerrainGenerator';
 
 // Import/export
-export { GeometryIO, type GeometryStatistics } from './io/GeometryIO';
+export { GeometryIO } from './io/GeometryIO';
 
 // Developer tools
 export { GeometryProfiler, GeometryInspector, profiler } from './devtools/GeometryProfiler';
@@ -47,14 +47,14 @@ export { WorkerNodeExecutor, workerExecutor, WorkerCompatible } from './parallel
 
 // Streaming & LOD
 export { GeometryStreamer, GeometryStreamLoader, type GeometryChunk } from './streaming/GeometryStreamer';
-export { LODGenerator, type LODLevel, type LODStats } from './streaming/LODGenerator';
+export { LODGenerator } from './streaming/LODGenerator';
 export { SimplificationEngine, type SimplificationQuality } from './streaming/SimplificationEngine';
-export { AdaptiveLOD, AdaptiveLODManager, lodManager } from './streaming/AdaptiveLOD';
+export { AdaptiveLOD } from './streaming/AdaptiveLOD';
 
 // GPU-accelerated operations
-export { GPUComputeShaders, gpuCompute, type GPUInfo } from './gpu/GPUComputeShaders';
-export { GPUNoiseGenerator, gpuNoise } from './gpu/GPUNoiseGenerator';
-export { GPUInstanceRenderer, gpuInstances, type InstanceStats } from './gpu/GPUInstanceRenderer';
+export { GPUComputeShaders, gpuCompute } from './gpu/GPUComputeShaders';
+export { GPUNoiseGenerator } from './gpu/GPUNoiseGenerator';
+export { GPUInstanceRenderer } from './gpu/GPUInstanceRenderer';
 export { ComputeBufferPool, bufferPool } from './gpu/ComputeBufferPool';
 
 // Memory management
@@ -73,10 +73,10 @@ export { BooleanOperations } from './boolean/BooleanOperations';
 export { AdvancedModifiers } from './modifiers/AdvancedModifiers';
 
 // Particle systems
-export { ParticleSystem, ParticleEmitter, PointCloudGenerator } from './particles/ParticleSystem';
+export { ParticleSystem } from './particles/ParticleSystem';
 
 // Physics integration
-export { CollisionDetector, RigidBodySimulator, SoftBodyDeformer, PhysicsConstraints, collisionDetector, rigidBodySimulator, physicsConstraints, type RigidBody } from './physics/PhysicsIntegration';
+export { PhysicsIntegration } from './physics/PhysicsIntegration';
 
 // Advanced exporters
-export { GLTFExporter, OBJExporter, STLExporter, UniversalGeometryConverter } from './export/AdvancedExporters';
+export { AdvancedExporters } from './export/AdvancedExporters';
