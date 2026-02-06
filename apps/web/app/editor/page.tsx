@@ -5,7 +5,7 @@ import { ReactFlowProvider } from 'reactflow';
 import { SignedIn, SignedOut, RedirectToSignIn, SignOutButton } from '@clerk/nextjs';
 import { LogOut } from 'lucide-react';
 import GeometryNodeEditor from '../components/GeometryNodeEditor';
-import ThreeViewport from '../components/ThreeViewport';
+import PlayCanvasViewport from '../components/PlayCanvasViewport'; // Renamed and updated
 import FallbackViewport from '../components/FallbackViewport';
 import { GeometryProvider } from '../components/GeometryContext';
 import { TimeProvider } from '../components/TimeContext';
@@ -41,7 +41,7 @@ function EditorContent() {
           </div>
         </div>
         <div className="pt-12 h-full">
-          <ThreeViewport />
+          <PlayCanvasViewport />
         </div>
       </div>
     </div>

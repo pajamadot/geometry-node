@@ -1,8 +1,9 @@
-import { NodeDefinition } from '../../types/nodeSystem';
+import * as pc from 'playcanvas';
+import { NodeDefinition } from '../../types/nodes';
 import { Brush } from 'lucide-react';
-import * as THREE from 'three';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
 
-// SET MATERIAL NODE - Assigns a material to geometry
+// SET MATERIAL NODE
 export const setMaterialNodeDefinition: NodeDefinition = {
   type: 'set-material',
   name: 'Set Material',
@@ -31,11 +32,7 @@ export const setMaterialNodeDefinition: NodeDefinition = {
       id: 'materialIndex',
       name: 'Material Index',
       type: 'integer',
-      defaultValue: 0,
-      min: 0,
-      max: 10,
-      step: 1,
-      description: 'Material slot index for multi-materials'
+      defaultValue: 0
     }
   ],
   outputs: [
@@ -52,59 +49,38 @@ export const setMaterialNodeDefinition: NodeDefinition = {
     width: 200
   },
   execute: (inputs, parameters) => {
-    const geometry = inputs.geometry;
-    const material = inputs.material;
+    const geometry = inputs.geometry as EnhancedGeometryData;
+    const material = inputs.material as pc.StandardMaterial;
     const materialIndex = inputs.materialIndex ?? 0;
 
-    // console.log('Set Material node execution:', {
-    //   hasGeometry: !!geometry,
-    //   hasMaterial: !!material,
-    //   materialIndex,
-    //   geometryType: geometry?.type,
-    //   materialType: material?.type,
-    //   geometryVertices: geometry?.attributes?.position?.count || 0
-    // });
-
     if (!geometry || !material) {
-      console.warn('Set Material: Missing geometry or material input', {
-        geometry: !!geometry,
-        material: !!material
-      });
-      return { geometry: geometry || new THREE.BufferGeometry() };
+      return { geometry: geometry || null };
     }
 
-    // Clone the geometry to avoid modifying the original
-    const outputGeometry = geometry.clone();
+    // Clone to avoid mutation side-effects if reusing geometry
+    // In our system, we treat inputs as immutable usually, but cloning is safer.
+    // VertexDataUtils.clone creates a deep copy of data arrays but not materials array references initially.
+    // We need to manage materials array.
     
-    // Ensure userData exists
-    if (!outputGeometry.userData) {
-      outputGeometry.userData = {};
+    // For now, just modify the geometry object reference passed (if it's a fresh execute result) 
+    // or do a shallow copy of structure if we want to be purely functional.
+    
+    // Let's do a shallow clone of the structure to attach new metadata
+    const outputGeometry: EnhancedGeometryData = { ...geometry };
+    
+    if (!outputGeometry.materials) {
+        outputGeometry.materials = [];
     }
+    // Clone materials array to avoid affecting upstream
+    outputGeometry.materials = [...outputGeometry.materials];
     
-    // Store material reference on the geometry
-    // For multi-material support, we'll store materials in an array
-    if (!outputGeometry.userData.materials) {
-      outputGeometry.userData.materials = [];
-    }
+    outputGeometry.materials[materialIndex] = material;
     
-    outputGeometry.userData.materials[materialIndex] = material;
-    
-    // For single material, also set it directly
-    if (materialIndex === 0) {
-      (outputGeometry as any).material = material;
-    }
-
-    // console.log('Set Material result:', {
-    //   hasOutputMaterial: !!((outputGeometry as any).material),
-    //   userDataMaterials: outputGeometry.userData.materials?.length || 0,
-    //   materialSet: !!outputGeometry.userData.materials[materialIndex]
-    // });
-
     return { geometry: outputGeometry };
   }
 };
 
-// MATERIAL MIXER NODE - Blend between multiple materials
+// MATERIAL MIXER NODE
 export const materialMixerNodeDefinition: NodeDefinition = {
   type: 'material-mixer',
   name: 'Material Mixer',
@@ -119,15 +95,13 @@ export const materialMixerNodeDefinition: NodeDefinition = {
       id: 'materialA',
       name: 'Material A',
       type: 'material',
-      required: true,
-      description: 'First material'
+      required: true
     },
     {
       id: 'materialB',
       name: 'Material B',
       type: 'material',
-      required: true,
-      description: 'Second material'
+      required: true
     },
     {
       id: 'factor',
@@ -135,9 +109,7 @@ export const materialMixerNodeDefinition: NodeDefinition = {
       type: 'number',
       defaultValue: 0.5,
       min: 0,
-      max: 1,
-      step: 0.01,
-      description: 'Blend factor (0 = A, 1 = B)'
+      max: 1
     }
   ],
   outputs: [
@@ -154,43 +126,23 @@ export const materialMixerNodeDefinition: NodeDefinition = {
     width: 220
   },
   execute: (inputs, parameters) => {
-    const materialA = inputs.materialA;
-    const materialB = inputs.materialB;
+    const matA = inputs.materialA as pc.StandardMaterial;
+    const matB = inputs.materialB as pc.StandardMaterial;
     const factor = inputs.factor ?? 0.5;
 
-    if (!materialA || !materialB) {
-      return { material: materialA || materialB || new THREE.MeshStandardMaterial() };
-    }
+    if (!matA || !matB) return { material: matA || matB };
 
-    // Create a new material by interpolating properties
-    const mixedMaterial = new THREE.MeshStandardMaterial();
-    
-    // Blend colors
-    if (materialA.color && materialB.color) {
-      mixedMaterial.color = materialA.color.clone().lerp(materialB.color, factor);
-    }
-    
-    // Blend emissive colors
-    if (materialA.emissive && materialB.emissive) {
-      mixedMaterial.emissive = materialA.emissive.clone().lerp(materialB.emissive, factor);
-    }
-    
-    // Blend numeric properties
-    if (typeof materialA.metalness === 'number' && typeof materialB.metalness === 'number') {
-      mixedMaterial.metalness = THREE.MathUtils.lerp(materialA.metalness, materialB.metalness, factor);
-    }
-    
-    if (typeof materialA.roughness === 'number' && typeof materialB.roughness === 'number') {
-      mixedMaterial.roughness = THREE.MathUtils.lerp(materialA.roughness, materialB.roughness, factor);
-    }
-    
-    if (typeof materialA.opacity === 'number' && typeof materialB.opacity === 'number') {
-      mixedMaterial.opacity = THREE.MathUtils.lerp(materialA.opacity, materialB.opacity, factor);
-      mixedMaterial.transparent = mixedMaterial.opacity < 1.0;
-    }
+    const mixed = new pc.StandardMaterial();
+    // Simple blending of diffuse color
+    const colorA = matA.diffuse;
+    const colorB = matB.diffuse;
+    mixed.diffuse = new pc.Color(
+        colorA.r + (colorB.r - colorA.r) * factor,
+        colorA.g + (colorB.g - colorA.g) * factor,
+        colorA.b + (colorB.b - colorA.b) * factor
+    );
+    mixed.update();
 
-    mixedMaterial.side = THREE.DoubleSide;
-
-    return { material: mixedMaterial };
+    return { material: mixed };
   }
-}; 
+};

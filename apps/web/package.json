@@ -6,33 +6,47 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.26.0",
     "@openrouter/ai-sdk-provider": "^0.7.3",
+    "@playcanvas/observer": "^1.6.6",
+    "@playcanvas/pcui": "^5.3.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slider": "^1.3.5",
-    "@react-three/drei": "^10.5.1",
-    "@react-three/fiber": "^9.2.0",
-    "@types/three": "^0.178.1",
     "ai": "^4.3.19",
     "fastest-levenshtein": "^1.0.16",
     "html-to-image": "^1.11.11",
     "lucide-react": "^0.525.0",
     "next": "15.4.2",
+    "playcanvas": "^2.13.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "reactflow": "^11.11.4",
-    "three": "^0.178.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@clerk/testing": "^1.13.6",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/react": "^16.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^2.1.8",
+    "dotenv": "^16.6.1",
+    "jsdom": "^25.0.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.8"
   }
 }

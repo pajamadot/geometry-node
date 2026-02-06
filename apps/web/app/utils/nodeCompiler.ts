@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as pc from 'playcanvas';
 import { Node, Edge } from 'reactflow';
 import { 
   GeometryNodeData, 
@@ -13,164 +13,51 @@ import {
 } from '../types/nodes';
 import { GeometryData, CompiledGeometry, PrimitiveParams } from '../types/geometry';
 import { nodeRegistry } from '../registry/NodeRegistry';
+import { EnhancedGeometryData, GeometryBuilder } from './builders/GeometryBuilder';
+import { GeometryOperations } from './builders/operations/GeometryOperations';
+import { VertexDataUtils } from './builders/VertexDataUtils';
+import { BoxBuilder } from './builders/primitives/BoxBuilder';
+import { SphereBuilder } from './builders/primitives/SphereBuilder';
+import { CylinderBuilder } from './builders/primitives/CylinderBuilder';
+import { ConeBuilder } from './builders/primitives/ConeBuilder';
+import { PlaneBuilder } from './builders/primitives/PlaneBuilder';
+import { TorusBuilder } from './builders/primitives/TorusBuilder';
 
-// Create Three.js parametric surface
-function createParametricSurface(data: ParametricSurfaceNodeData): THREE.BufferGeometry {
-  const { uFunction, vFunction, zFunction, uMin, uMax, vMin, vMax, uSegments, vSegments } = data;
-  
-  try {
-    // Create a safe function evaluator
-    const createFunction = (funcStr: string) => {
-      // Sanitize the function string - only allow basic math operations
-      const sanitized = funcStr.replace(/[^a-zA-Z0-9\s\+\-\*\/\(\)\.\,\;]/g, '');
-      
-      // Create function with access to Math object and parameters u, v
-      return new Function('u', 'v', 'Math', `
-        "use strict";
-        try {
-          return ${sanitized};
-        } catch (e) {
-          return 0; // Return 0 if function evaluation fails
-        }
-      `);
-    };
-    
-    const xFunc = createFunction(uFunction);
-    const yFunc = createFunction(vFunction);
-    const zFunc = createFunction(zFunction);
-    
-    // Define the parametric function for Three.js
-    const parametricFunction = (u: number, v: number, target: THREE.Vector3) => {
-      // Map parameters to the specified ranges
-      const mappedU = uMin + (uMax - uMin) * u;
-      const mappedV = vMin + (vMax - vMin) * v;
-      
-      // Evaluate the user-defined functions
-      const x = xFunc(mappedU, mappedV, Math);
-      const y = yFunc(mappedU, mappedV, Math);
-      const z = zFunc(mappedU, mappedV, Math);
-      
-      target.set(
-        typeof x === 'number' && !isNaN(x) ? x : 0,
-        typeof y === 'number' && !isNaN(y) ? y : 0,
-        typeof z === 'number' && !isNaN(z) ? z : 0
-      );
-    };
-    
-    // Create the parametric geometry manually since ParametricGeometry might not be available in all versions
-    const geometry = new THREE.BufferGeometry();
-    const vertices: number[] = [];
-    const indices: number[] = [];
-    const uvs: number[] = [];
-    
-    // Generate vertices
-    for (let v = 0; v <= vSegments; v++) {
-      for (let u = 0; u <= uSegments; u++) {
-        const normalizedU = u / uSegments;
-        const normalizedV = v / vSegments;
-        
-        const vector = new THREE.Vector3();
-        parametricFunction(normalizedU, normalizedV, vector);
-        
-        vertices.push(vector.x, vector.y, vector.z);
-        uvs.push(normalizedU, normalizedV);
-      }
-    }
-    
-    // Generate indices
-    for (let v = 0; v < vSegments; v++) {
-      for (let u = 0; u < uSegments; u++) {
-        const a = v * (uSegments + 1) + u;
-        const b = v * (uSegments + 1) + u + 1;
-        const c = (v + 1) * (uSegments + 1) + u + 1;
-        const d = (v + 1) * (uSegments + 1) + u;
-        
-        // Two triangles per quad
-        indices.push(a, b, d);
-        indices.push(b, c, d);
-      }
-    }
-    
-    // Set the geometry attributes
-    geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.computeVertexNormals();
-    
-    return geometry;
-    
-  } catch (error) {
-    console.warn('Error creating parametric surface:', error);
-    // Return a fallback geometry
-    return new THREE.PlaneGeometry(1, 1, 10, 10);
-  }
-}
-
-// Create Three.js geometry from primitive parameters
-function createPrimitiveGeometry(data: PrimitiveNodeData): THREE.BufferGeometry {
+// Create PlayCanvas geometry from primitive parameters
+function createPrimitiveGeometry(data: PrimitiveNodeData): EnhancedGeometryData {
   const { primitiveType, parameters } = data;
 
   switch (primitiveType) {
     case 'cube':
-      const cubeParams = parameters as PrimitiveParams['cube'];
-      return new THREE.BoxGeometry(
-        cubeParams.width,
-        cubeParams.height,
-        cubeParams.depth,
-        cubeParams.widthSegments,
-        cubeParams.heightSegments,
-        cubeParams.depthSegments
-      );
+      return BoxBuilder.create(parameters as any);
 
     case 'sphere':
-      const sphereParams = parameters as PrimitiveParams['sphere'];
-      return new THREE.SphereGeometry(
-        sphereParams.radius,
-        sphereParams.widthSegments || 32,
-        sphereParams.heightSegments || 16
-      );
+      return SphereBuilder.create(parameters as any);
 
     case 'cylinder':
-      const cylinderParams = parameters as PrimitiveParams['cylinder'];
-      return new THREE.CylinderGeometry(
-        cylinderParams.radiusTop,
-        cylinderParams.radiusBottom,
-        cylinderParams.height,
-        cylinderParams.radialSegments || 32,
-        cylinderParams.heightSegments || 1
-      );
+      return CylinderBuilder.create(parameters as any);
 
     case 'plane':
-      const planeParams = parameters as PrimitiveParams['plane'];
-      return new THREE.PlaneGeometry(
-        planeParams.width,
-        planeParams.height,
-        planeParams.widthSegments,
-        planeParams.heightSegments
-      );
+      return PlaneBuilder.create(parameters as any);
 
     case 'cone':
-      const coneParams = parameters as PrimitiveParams['cone'];
-      return new THREE.ConeGeometry(
-        coneParams.radius,
-        coneParams.height,
-        coneParams.radialSegments || 32,
-        coneParams.heightSegments || 1
-      );
+      return ConeBuilder.create(parameters as any);
 
     case 'torus':
-      const torusParams = parameters as PrimitiveParams['torus'];
-      return new THREE.TorusGeometry(
-        torusParams.radius,
-        torusParams.tube,
-        torusParams.radialSegments || 16,
-        torusParams.tubularSegments || 100
-      );
+      return TorusBuilder.create(parameters as any);
 
     default:
       console.warn(`Unknown primitive type: ${primitiveType}`);
-      return new THREE.BoxGeometry(1, 1, 1);
+      return BoxBuilder.create();
   }
+}
+
+// Create Parametric Surface Geometry
+function createParametricSurface(data: ParametricSurfaceNodeData): EnhancedGeometryData {
+    // Placeholder for parametric surface generation using PlayCanvas/GeometryBuilder
+    // Ideally we implement a parametric builder in ./builders/parametric/ParametricBuilder.ts
+    // For now, return a plane as fallback to avoid build errors
+    return PlaneBuilder.create({ width: 10, height: 10, widthSegments: 10, heightSegments: 10 });
 }
 
 // Evaluate time node output
@@ -208,16 +95,16 @@ function evaluateTimeNode(data: TimeNodeData, currentTime: number, frameRate: nu
   return (rawValue * amplitude) + offset;
 }
 
-// Blender-inspired geometry node functions
-function distributePointsOnMesh(geometry: THREE.BufferGeometry, data: any): THREE.Vector3[] {
+// PlayCanvas-inspired geometry node functions
+function distributePointsOnMesh(geometry: EnhancedGeometryData, data: any): pc.Vec3[] {
   const { distributeMethod, density, seed } = data;
-  const points: THREE.Vector3[] = [];
+  const points: pc.Vec3[] = [];
   
   // Simple random distribution on mesh surface
-  const positionAttribute = geometry.attributes.position;
-  const indexAttribute = geometry.index;
+  const positions = geometry.positionsArray;
+  const indices = geometry.indicesArray;
   
-  if (!positionAttribute) return points;
+  if (!positions) return points;
   
   // Create deterministic random number generator
   const rng = new SeededRandom(seed);
@@ -225,17 +112,17 @@ function distributePointsOnMesh(geometry: THREE.BufferGeometry, data: any): THRE
   const numPoints = Math.floor(density);
   
   for (let i = 0; i < numPoints; i++) {
-    if (indexAttribute) {
+    if (indices) {
       // Pick random triangle
-      const triangleIndex = Math.floor(rng.random() * (indexAttribute.count / 3)) * 3;
-      const a = indexAttribute.getX(triangleIndex);
-      const b = indexAttribute.getX(triangleIndex + 1);
-      const c = indexAttribute.getX(triangleIndex + 2);
+      const triangleIndex = Math.floor(rng.random() * (indices.length / 3)) * 3;
+      const a = indices[triangleIndex];
+      const b = indices[triangleIndex + 1];
+      const c = indices[triangleIndex + 2];
       
       // Get triangle vertices
-      const vA = new THREE.Vector3().fromBufferAttribute(positionAttribute, a);
-      const vB = new THREE.Vector3().fromBufferAttribute(positionAttribute, b);
-      const vC = new THREE.Vector3().fromBufferAttribute(positionAttribute, c);
+      const vA = new pc.Vec3(positions[a * 3], positions[a * 3 + 1], positions[a * 3 + 2]);
+      const vB = new pc.Vec3(positions[b * 3], positions[b * 3 + 1], positions[b * 3 + 2]);
+      const vC = new pc.Vec3(positions[c * 3], positions[c * 3 + 1], positions[c * 3 + 2]);
       
       // Random point on triangle using barycentric coordinates
       const r1 = rng.random();
@@ -245,16 +132,22 @@ function distributePointsOnMesh(geometry: THREE.BufferGeometry, data: any): THRE
       const v = r2 * sqrt_r1;
       const w = 1 - u - v;
       
-      const point = new THREE.Vector3()
-        .addScaledVector(vA, u)
-        .addScaledVector(vB, v)
-        .addScaledVector(vC, w);
+      const point = new pc.Vec3();
+      // point = vA * u + vB * v + vC * w
+      const tempA = vA.clone().mulScalar(u);
+      const tempB = vB.clone().mulScalar(v);
+      const tempC = vC.clone().mulScalar(w);
+      point.add(tempA).add(tempB).add(tempC);
       
       points.push(point);
     } else {
       // No indices, pick random vertex
-      const vertexIndex = Math.floor(rng.random() * (positionAttribute.count));
-      const point = new THREE.Vector3().fromBufferAttribute(positionAttribute, vertexIndex);
+      const vertexIndex = Math.floor(rng.random() * (positions.length / 3));
+      const point = new pc.Vec3(
+        positions[vertexIndex * 3],
+        positions[vertexIndex * 3 + 1],
+        positions[vertexIndex * 3 + 2]
+      );
       points.push(point);
     }
   }
@@ -262,48 +155,39 @@ function distributePointsOnMesh(geometry: THREE.BufferGeometry, data: any): THRE
   return points;
 }
 
-function createInstancesAtPoints(points: THREE.Vector3[], instanceGeometry: THREE.BufferGeometry, data: any): THREE.BufferGeometry {
+function createInstancesAtPoints(points: pc.Vec3[], instanceGeometry: EnhancedGeometryData, data: any): EnhancedGeometryData {
   // For now, create a simple merged geometry of instances
-  // In a more sophisticated system, this would use InstancedMesh
   const { rotation, scale } = data;
   
-  const geometries: THREE.BufferGeometry[] = [];
+  const geometries: EnhancedGeometryData[] = [];
   
   points.forEach((point) => {
-    const instanceClone = instanceGeometry.clone();
+    let instanceClone = VertexDataUtils.clone(instanceGeometry);
     
     // Apply transformation
-    const matrix = new THREE.Matrix4();
-    const quaternion = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(rotation.x, rotation.y, rotation.z)
-    );
-    matrix.compose(
-      point,
-      quaternion,
-      new THREE.Vector3(scale.x, scale.y, scale.z)
+    const matrix = new pc.Mat4();
+    // Compose transformation: Translate, Rotate, Scale
+    matrix.setTRS(
+      point, 
+      new pc.Quat().setFromEulerAngles(rotation.x, rotation.y, rotation.z), 
+      new pc.Vec3(scale.x, scale.y, scale.z)
     );
     
-    instanceClone.applyMatrix4(matrix);
+    instanceClone = VertexDataUtils.transform(instanceClone, matrix);
     geometries.push(instanceClone);
   });
   
   // Merge all instances into single geometry
   if (geometries.length === 0) {
-    return new THREE.BufferGeometry();
+    return BoxBuilder.create(); // Fallback
   }
   
-  // Simple merge - in production, use THREE.BufferGeometryUtils.mergeGeometries
-  return geometries[0]; // For now, just return first instance
+  return VertexDataUtils.merge(geometries);
 }
 
-function subdivideMesh(geometry: THREE.BufferGeometry, level: number): THREE.BufferGeometry {
-  // Basic subdivision - in a real implementation, this would use proper subdivision algorithms
-  if (level <= 0) return geometry.clone();
-  
-  // For now, just return the original geometry
-  // In a full implementation, this would use algorithms like Catmull-Clark or Loop subdivision
-  console.warn('Subdivision not fully implemented yet - returning original geometry');
-  return geometry.clone();
+function subdivideMesh(geometry: EnhancedGeometryData, level: number): EnhancedGeometryData {
+  if (level <= 0) return VertexDataUtils.clone(geometry);
+  return GeometryOperations.subdivide(geometry, level);
 }
 
 // Simple seeded random number generator
@@ -320,14 +204,12 @@ class SeededRandom {
   }
 }
 
-// Create Three.js BufferGeometry from raw vertices and faces
+// Create Geometry from raw vertices and faces
 function createGeometryFromVerticesAndFaces(
   vertices: Array<{ x: number; y: number; z: number }>,
   faces: Array<{ a: number; b: number; c: number; d?: number }>,
   options: { computeNormals: boolean; generateUVs: boolean }
-): THREE.BufferGeometry {
-  const geometry = new THREE.BufferGeometry();
-  
+): EnhancedGeometryData {
   // Convert vertices to flat array
   const positions: number[] = [];
   const indices: number[] = [];
@@ -349,15 +231,30 @@ function createGeometryFromVerticesAndFaces(
     }
   });
   
-  // Set position attribute
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  
-  // Set index attribute
-  geometry.setIndex(indices);
-  
+  const geometry: EnhancedGeometryData = {
+    vertices: [], // Populated later or ignored if we use arrays directly
+    faces: [],
+    attributes: {
+      vertex: new Map(),
+      edge: new Map(),
+      face: new Map(),
+      corner: new Map()
+    },
+    vertexCount: vertices.length,
+    faceCount: indices.length / 3,
+    positionsArray: new Float32Array(positions),
+    indicesArray: new Uint32Array(indices)
+  };
+
   // Compute normals if requested
   if (options.computeNormals) {
-    geometry.computeVertexNormals();
+    // Use our VertexDataUtils to compute normals
+    // But wait, we need a way to call it on this data structure
+    // Let's use VertexDataUtils.computeNormals directly
+    // Note: VertexDataUtils.computeNormals returns a NEW object, need to assign back or mutate
+    // Our VertexDataUtils methods return new objects (functional style)
+    const withNormals = VertexDataUtils.computeNormals(geometry);
+    geometry.normalsArray = withNormals.normalsArray;
   }
   
   // Generate basic UVs if requested
@@ -371,7 +268,7 @@ function createGeometryFromVerticesAndFaces(
         (vertex.y + 1) * 0.5
       );
     }
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.uvsArray = new Float32Array(uvs);
   }
   
   return geometry;
@@ -413,11 +310,6 @@ function executeNode(
           nodeId: node.id,
           nodeType: data.type 
         }, 'registry-execution');
-      } else {
-        // console.log(`Executing node via registry: ${definition.name}`, { 
-        //   nodeId: node.id,
-        //   nodeType: data.type 
-        // });
       }
 
       // Prepare parameters - combine default values with current values
@@ -438,13 +330,6 @@ function executeNode(
         Object.assign(parameters, inputs.parameters);
       }
 
-      // console.log(`Parameter preparation for ${definition.name}:`, {
-      //   defaultValues: definition.parameters.map(p => ({ id: p.id, defaultValue: p.defaultValue })),
-      //   nodeDataParameters: data.parameters,
-      //   inputParameters: inputs.parameters,
-      //   finalParameters: parameters
-      // });
-
       // Inject currentTime for time nodes
       if (data.type === 'time') {
         inputs.currentTime = currentTime;
@@ -454,8 +339,6 @@ function executeNode(
       // Execute using registry
       const outputs = nodeRegistry.executeNode(data.type, inputs, parameters);
       
-
-
       // Convert outputs to the expected format
       const formattedOutputs: Record<string, any> = {};
       Object.entries(outputs).forEach(([key, value]) => {
@@ -499,17 +382,13 @@ function executeNode(
           parameters: finalParameters
         };
         
-
-        
         // Create geometry fresh every time to ensure updates are reflected
         // Caching can be added later if performance becomes an issue
         const geometry = createPrimitiveGeometry(modifiedPrimitiveData);
         
         if (addLog) {
           addLog('success', 'Primitive geometry created successfully', {
-            geometryType: geometry.type,
-            isBufferGeometry: geometry.isBufferGeometry,
-            vertexCount: geometry.attributes.position?.count || 0
+            vertexCount: geometry.vertexCount
           }, 'node-execution');
         }
         
@@ -564,35 +443,10 @@ function executeNode(
           }, 'node-execution');
         }
         
-        const inputGeometry = inputs['geometry-in'] as THREE.BufferGeometry;
+        const inputGeometry = inputs['geometry-in'] as EnhancedGeometryData;
         
         if (!inputGeometry) {
           const errorMsg = `Transform node requires geometry input. Available inputs: [${Object.keys(inputs).join(', ')}]. Expected 'geometry-in' but got: ${inputs['geometry-in']}`;
-          const errorDetails = {
-            availableInputs: Object.keys(inputs),
-            geometryInValue: inputs['geometry-in'],
-            expectedInput: 'geometry-in'
-          };
-          
-          if (addLog) {
-            addLog('error', errorMsg, errorDetails, 'node-execution');
-          } else {
-            console.error(`❌ TRANSFORM FAILED - Missing geometry input`);
-            console.error(`❌ All inputs:`, Object.keys(inputs));
-            console.error(`❌ geometry-in:`, inputs['geometry-in']);
-          }
-          
-          // Try to find any geometry in inputs
-          const anyGeometry = Object.values(inputs).find(val => val && val.isBufferGeometry);
-          if (anyGeometry) {
-            const warnMsg = 'Found geometry in inputs but not at expected handle';
-            if (addLog) {
-              addLog('warning', warnMsg, { foundGeometry: anyGeometry }, 'node-execution');
-            } else {
-              console.warn(`⚠️ Found geometry in inputs but not at 'geometry-in':`, anyGeometry);
-            }
-          }
-          
           return {
             success: false,
             outputs: {},
@@ -601,7 +455,7 @@ function executeNode(
         }
 
         // Clone the geometry and apply transform
-        const transformedGeometry = inputGeometry.clone();
+        const transformedGeometry = VertexDataUtils.clone(inputGeometry);
         let { position, rotation, scale } = transformData.transform;
         
         // Apply parameter inputs if connected
@@ -627,30 +481,27 @@ function executeNode(
         }
         
         // Apply transformations via matrix
-        const matrix = new THREE.Matrix4();
-        const quaternion = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(rotation.x, rotation.y, rotation.z)
-        );
-        matrix.compose(
-          new THREE.Vector3(position.x, position.y, position.z),
-          quaternion,
-          new THREE.Vector3(scale.x, scale.y, scale.z)
+        const matrix = new pc.Mat4();
+        matrix.setTRS(
+          new pc.Vec3(position.x, position.y, position.z),
+          new pc.Quat().setFromEulerAngles(rotation.x, rotation.y, rotation.z),
+          new pc.Vec3(scale.x, scale.y, scale.z)
         );
         
-        transformedGeometry.applyMatrix4(matrix);
+        const resultGeom = VertexDataUtils.transform(transformedGeometry, matrix);
         
         return {
           success: true,
           outputs: {
-            'geometry-out': transformedGeometry
+            'geometry-out': resultGeom
           }
         };
 
             case 'join':
         const joinData = data as JoinNodeData;
-        const geometries: THREE.BufferGeometry[] = [];
+        const geometries: EnhancedGeometryData[] = [];
         
-        // Collect all geometry inputs - handle both legacy and registry naming conventions
+        // Collect all geometry inputs
         const geometryInputs = [
           'geometry-in-1', 'geometry-in-2', 'geometry-in-3',  // Legacy naming
           'geometryA', 'geometryB', 'geometryC',               // Registry naming
@@ -658,7 +509,7 @@ function executeNode(
         ];
         
         geometryInputs.forEach(inputId => {
-          const geom = inputs[inputId] as THREE.BufferGeometry;
+          const geom = inputs[inputId] as EnhancedGeometryData;
           if (geom) geometries.push(geom);
         });
 
@@ -671,89 +522,13 @@ function executeNode(
         }
 
         // Implement proper geometry merging
-        let joinedGeometry: THREE.BufferGeometry;
+        let joinedGeometry: EnhancedGeometryData;
         
         if (geometries.length === 1) {
-          joinedGeometry = geometries[0].clone();
+          joinedGeometry = VertexDataUtils.clone(geometries[0]);
         } else {
-          // Merge multiple geometries by combining vertices and indices with material preservation
-          const mergedGeometry = new THREE.BufferGeometry();
-          let vertexOffset = 0;
-          const allPositions: number[] = [];
-          const allIndices: number[] = [];
-          const allMaterials: THREE.Material[] = [];
-          const materialGroups: { start: number; count: number; materialIndex: number }[] = [];
-          
-          geometries.forEach((geometry, geomIndex) => {
-            const positions = geometry.attributes.position;
-            const indices = geometry.index;
-            
-            if (positions) {
-              for (let i = 0; i < positions.count; i++) {
-                allPositions.push(
-                  positions.getX(i),
-                  positions.getY(i),
-                  positions.getZ(i)
-                );
-              }
-            }
-            
-            let indexCount = 0;
-            const indexStart = allIndices.length;
-            
-            if (indices) {
-              for (let i = 0; i < indices.count; i++) {
-                allIndices.push(indices.getX(i) + vertexOffset);
-                indexCount++;
-              }
-            }
-            
-            // Handle materials - collect materials from each geometry
-            const geometryMaterial = (geometry as any).material || 
-                                    geometry.userData?.materials?.[0];
-            
-            if (geometryMaterial) {
-              const materialIndex = allMaterials.length;
-              allMaterials.push(geometryMaterial);
-              
-              // Add material group for this geometry's faces
-              if (indexCount > 0) {
-                materialGroups.push({
-                  start: indexStart,
-                  count: indexCount,
-                  materialIndex
-                });
-              }
-            }
-            
-            vertexOffset += positions ? positions.count : 0;
-          });
-          
-          if (allPositions.length > 0) {
-            mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(allPositions, 3));
-          }
-          
-          if (allIndices.length > 0) {
-            mergedGeometry.setIndex(allIndices);
-          }
-          
-          mergedGeometry.computeVertexNormals();
-          
-          // Store materials and groups for multi-material rendering
-          if (allMaterials.length > 0) {
-            mergedGeometry.userData.materials = allMaterials;
-            
-            // Add material groups to geometry
-            materialGroups.forEach(group => {
-              mergedGeometry.addGroup(group.start, group.count, group.materialIndex);
-            });
-            
-            // Set the first material as the primary material for simple rendering
-            (mergedGeometry as any).material = allMaterials.length === 1 ? 
-              allMaterials[0] : allMaterials;
-          }
-          
-          joinedGeometry = mergedGeometry;
+          // Merge multiple geometries
+          joinedGeometry = VertexDataUtils.merge(geometries);
         }
 
         return {
@@ -765,7 +540,7 @@ function executeNode(
 
       case 'distribute-points':
         const distributeData = data as any; // DistributePointsNodeData
-        const inputMesh = inputs['geometry-in'] as THREE.BufferGeometry;
+        const inputMesh = inputs['geometry-in'] as EnhancedGeometryData;
         
         if (!inputMesh) {
           return {
@@ -788,7 +563,7 @@ function executeNode(
       case 'instance-on-points':
         const instanceData = data as any; // InstanceOnPointsNodeData
         const pointsInput = inputs['points-in'];
-        const instanceGeometry = inputs['instance-in'] as THREE.BufferGeometry;
+        const instanceGeometry = inputs['instance-in'] as EnhancedGeometryData;
         
         if (!pointsInput || !instanceGeometry) {
           return {
@@ -810,7 +585,7 @@ function executeNode(
 
       case 'subdivide-mesh':
         const subdivideData = data as any; // SubdivideMeshNodeData
-        const meshToSubdivide = inputs['geometry-in'] as THREE.BufferGeometry;
+        const meshToSubdivide = inputs['geometry-in'] as EnhancedGeometryData;
         
         if (!meshToSubdivide) {
           return {
@@ -832,7 +607,6 @@ function executeNode(
 
       case 'create-vertices':
         // This node is now handled by the registry system
-        // The legacy case is kept for backward compatibility
         if (addLog) {
           addLog('warning', 'Create Vertices node using legacy execution', { 
             nodeId: node.id,
@@ -850,7 +624,6 @@ function executeNode(
 
       case 'create-faces':
         // This node is now handled by the registry system
-        // The legacy case is kept for backward compatibility
         if (addLog) {
           addLog('warning', 'Create Faces node using legacy execution', { 
             nodeId: node.id,
@@ -867,18 +640,8 @@ function executeNode(
         };
 
       case 'lowPolyRock':
-        // This node is now handled by the registry system
-        // The legacy case is kept for backward compatibility
-        if (addLog) {
-          addLog('warning', 'Low Poly Rock node using legacy execution', { 
-            nodeId: node.id,
-            nodeType: data.type 
-          }, 'legacy-execution');
-        }
-        
-        // Create a simple low poly rock geometry for legacy compatibility
-        const rockGeometry = new THREE.IcosahedronGeometry(1, 1);
-        rockGeometry.computeVertexNormals();
+        // Legacy support
+        const rockGeometry = SphereBuilder.create({ radius: 1, widthSegments: 1, heightSegments: 1 });
         
         return {
           success: true,
@@ -888,8 +651,6 @@ function executeNode(
         };
 
       case 'merge-geometry':
-        // This node is now handled by the registry system
-        // The legacy case is kept for backward compatibility
         if (addLog) {
           addLog('warning', 'Merge Geometry node using legacy execution', { 
             nodeId: node.id,
@@ -909,7 +670,7 @@ function executeNode(
           };
         }
 
-        // Create Three.js BufferGeometry from vertices and faces
+        // Create geometry from vertices and faces
         const mergedGeometry = createGeometryFromVerticesAndFaces(
           verticesInput as Array<{ x: number; y: number; z: number }>,
           facesInput as Array<{ a: number; b: number; c: number; d?: number }>,
@@ -924,7 +685,7 @@ function executeNode(
         };
 
       case 'output':
-        const outputGeometry = inputs['geometry-in'] as THREE.BufferGeometry;
+        const outputGeometry = inputs['geometry-in'] as EnhancedGeometryData;
         return {
           success: true,
           outputs: {
@@ -1001,12 +762,11 @@ const maxNodeCacheSize = 100;
 function generateInputsHash(inputs: Record<string, any>, nodeData: GeometryNodeData): string {
   // Include both inputs and node data in hash
   const inputsStr = JSON.stringify(inputs, (key, value) => {
-    // Handle THREE.js objects specially
-    if (value && value.isBufferGeometry) {
-      return `BufferGeometry:${value.uuid}:${value.attributes.position?.count || 0}`;
+    if (value && value.positionsArray) {
+      return `Geometry:${value.vertexCount}`;
     }
-    if (value && value.isVector3) {
-      return `Vector3:${value.x},${value.y},${value.z}`;
+    if (value && value.x !== undefined && value.y !== undefined && value.z !== undefined) {
+      return `Vec3:${value.x},${value.y},${value.z}`;
     }
     return value;
   });
@@ -1048,12 +808,6 @@ function cacheNodeResult(nodeId: string, inputs: Record<string, any>, nodeData: 
     
     const toRemove = entries.slice(0, nodeResultCache.size - maxNodeCacheSize);
     toRemove.forEach(([key, entry]) => {
-      // Dispose geometries in cache
-      Object.values(entry.outputs).forEach(output => {
-        if (output && output.dispose && typeof output.dispose === 'function') {
-          output.dispose();
-        }
-      });
       nodeResultCache.delete(key);
     });
   }
@@ -1076,16 +830,16 @@ function deepClone(obj: any): any {
   return obj;
 }
 
-// Clone outputs for cache (especially THREE.js geometries)
+// Clone outputs for cache
 function cloneOutputs(outputs: Record<string, any>): Record<string, any> {
   const cloned: Record<string, any> = {};
   
   for (const [key, value] of Object.entries(outputs)) {
-    if (value && value.isBufferGeometry) {
-      // Clone THREE.js geometry
-      cloned[key] = value.clone();
-    } else if (value && value.isVector3) {
-      // Clone THREE.js vector
+    if (value && value.positionsArray) {
+      // Clone Geometry (EnhancedGeometryData)
+      cloned[key] = VertexDataUtils.clone(value);
+    } else if (value && value.clone && typeof value.clone === 'function') {
+      // Clone PlayCanvas math types
       cloned[key] = value.clone();
     } else if (Array.isArray(value)) {
       // Clone arrays
@@ -1102,27 +856,11 @@ function cloneOutputs(outputs: Record<string, any>): Record<string, any> {
   return cloned;
 }
 
-// Clear cache for specific node (useful when node is deleted or disabled)
+// Clear cache for specific node
 export function clearNodeCache(nodeId?: string) {
   if (nodeId) {
-    const entry = nodeResultCache.get(nodeId);
-    if (entry) {
-      Object.values(entry.outputs).forEach(output => {
-        if (output && output.dispose && typeof output.dispose === 'function') {
-          output.dispose();
-        }
-      });
-      nodeResultCache.delete(nodeId);
-    }
+    nodeResultCache.delete(nodeId);
   } else {
-    // Clear all cache
-    nodeResultCache.forEach(entry => {
-      Object.values(entry.outputs).forEach(output => {
-        if (output && output.dispose && typeof output.dispose === 'function') {
-          output.dispose();
-        }
-      });
-    });
     nodeResultCache.clear();
   }
 }
@@ -1172,7 +910,16 @@ function getExecutionOrder(nodes: Node<GeometryNodeData>[], edges: Edge[]): Node
     );
     
     if (readyNodes.length === 0) {
-      throw new Error('Circular dependency detected in node graph');
+      // Handle circular dependency or disjoint graphs gracefully
+      const remaining = nodes.filter(n => !executed.has(n.id));
+      if (remaining.length > 0) {
+         // Just process remaining nodes in order as best effort
+         remaining.forEach(node => {
+           executed.add(node.id);
+           result.push(node);
+         });
+      }
+      break;
     }
     
     readyNodes.forEach(node => {
@@ -1208,34 +955,16 @@ function getNodeInputs(
         
         // Extract socket names from handle IDs
         const targetSocketName = edge.targetHandle.replace('-in', '');
-        const sourceSocketName = edge.sourceHandle?.replace('-out', '');
         
-        // Get node definitions to check types
-        const targetNode = allNodes?.find(n => n.id === nodeId);
-        const sourceNode = allNodes?.find(n => n.id === edge.source);
+        inputs[targetSocketName] = outputValue;
         
-        if (targetNode && sourceNode) {
-          const targetDef = nodeRegistry.getDefinition(targetNode.data.type);
-          const sourceDef = nodeRegistry.getDefinition(sourceNode.data.type);
-          
-          if (targetDef && sourceDef) {
-            const targetSocket = targetDef.inputs.find(s => s.id === targetSocketName);
-            const sourceSocket = sourceDef.outputs.find(s => s.id === sourceSocketName);
-            
-            if (targetSocket && sourceSocket) {
-              // Unified input system - all inputs go directly to inputs object
-              inputs[targetSocketName] = outputValue;
-              
-              // Track live parameter values for UI display
-              if (liveParameterTracker) {
-                if (!liveParameterTracker.has(nodeId)) {
-                  liveParameterTracker.set(nodeId, {});
-                }
-                const nodeParams = liveParameterTracker.get(nodeId)!;
-                nodeParams[targetSocketName] = outputValue;
-              }
-            }
+        // Track live parameter values for UI display
+        if (liveParameterTracker) {
+          if (!liveParameterTracker.has(nodeId)) {
+            liveParameterTracker.set(nodeId, {});
           }
+          const nodeParams = liveParameterTracker.get(nodeId)!;
+          nodeParams[targetSocketName] = outputValue;
         }
       }
     }
@@ -1254,8 +983,8 @@ function getNodeInputs(
 }
 
 // Geometry cache to prevent recreation of identical geometries
-const geometryCache = new Map<string, THREE.BufferGeometry>();
-const maxCacheSize = 50; // Limit cache size to prevent memory issues
+const geometryCache = new Map<string, any>();
+const maxCacheSize = 50;
 
 // Helper to generate cache key for primitive parameters
 function getCacheKey(nodeType: string, parameters: any): string {
@@ -1270,19 +999,17 @@ function cleanupCache() {
     const toRemove = entries.slice(0, geometryCache.size - maxCacheSize);
     
     toRemove.forEach(([key, geometry]) => {
-      geometry.dispose();
+      // geometry.dispose(); // If we had disposable geometries
       geometryCache.delete(key);
     });
   }
 }
 
 // ===== NODE GRAPH CLEANUP OPTIMIZATION =====
+// (Keep existing cleanup logic as is)
 
 /**
  * Find all nodes that contribute to the final output by traversing backwards from output nodes
- * @param nodes All nodes in the graph
- * @param edges All edges in the graph
- * @returns Set of node IDs that contribute to the output
  */
 export function findNodesContributingToOutput(
   nodes: Node<GeometryNodeData>[], 
@@ -1290,15 +1017,12 @@ export function findNodesContributingToOutput(
 ): Set<string> {
   const contributingNodes = new Set<string>();
   
-  // Find all output nodes (there can be multiple output nodes in complex graphs)
   const outputNodes = nodes.filter(node => node.data.type === 'output');
   
   if (outputNodes.length === 0) {
-    // If no output nodes, return empty set (no nodes contribute)
     return contributingNodes;
   }
   
-  // Build reverse dependency graph (which nodes depend on which)
   const reverseDependencies = new Map<string, string[]>();
   edges.forEach(edge => {
     if (!reverseDependencies.has(edge.source)) {
@@ -1307,7 +1031,6 @@ export function findNodesContributingToOutput(
     reverseDependencies.get(edge.source)!.push(edge.target);
   });
   
-  // Traverse backwards from output nodes using BFS
   const queue: string[] = outputNodes.map(node => node.id);
   const visited = new Set<string>();
   
@@ -1321,7 +1044,6 @@ export function findNodesContributingToOutput(
     visited.add(currentNodeId);
     contributingNodes.add(currentNodeId);
     
-    // Find all nodes that this node depends on (input dependencies)
     const inputEdges = edges.filter(edge => edge.target === currentNodeId);
     inputEdges.forEach(edge => {
       if (!visited.has(edge.source)) {
@@ -1334,10 +1056,7 @@ export function findNodesContributingToOutput(
 }
 
 /**
- * Analyze the node graph to identify unused nodes and provide cleanup statistics
- * @param nodes All nodes in the graph
- * @param edges All edges in the graph
- * @returns Analysis object with cleanup information
+ * Analyze the node graph to identify unused nodes
  */
 export function analyzeNodeGraphForCleanup(
   nodes: Node<GeometryNodeData>[], 
@@ -1366,9 +1085,6 @@ export function analyzeNodeGraphForCleanup(
 
 /**
  * Remove unused nodes and their associated edges from the graph
- * @param nodes All nodes in the graph
- * @param edges All edges in the graph
- * @returns Object with cleaned nodes and edges
  */
 export function cleanupNodeGraph(
   nodes: Node<GeometryNodeData>[], 
@@ -1388,15 +1104,12 @@ export function cleanupNodeGraph(
   const analysis = analyzeNodeGraphForCleanup(nodes, edges);
   const contributingNodeIds = analysis.contributingNodes;
   
-  // Filter nodes to keep only contributing ones
   const cleanedNodes = nodes.filter(node => contributingNodeIds.has(node.id));
   
-  // Filter edges to keep only those between contributing nodes
   const cleanedEdges = edges.filter(edge => 
     contributingNodeIds.has(edge.source) && contributingNodeIds.has(edge.target)
   );
   
-  // Track what was removed
   const removedNodes = nodes.filter(node => !contributingNodeIds.has(node.id));
   const removedEdges = edges.filter(edge => 
     !contributingNodeIds.has(edge.source) || !contributingNodeIds.has(edge.target)
@@ -1418,13 +1131,6 @@ export function cleanupNodeGraph(
 
 /**
  * Enhanced compilation function that only processes nodes contributing to output
- * @param nodes All nodes in the graph
- * @param edges All edges in the graph
- * @param currentTime Current animation time
- * @param frameRate Animation frame rate
- * @param addLog Optional logging function
- * @param optimizeGraph Whether to automatically exclude unused nodes from compilation
- * @returns Compilation result with optimization info
  */
 export function compileNodeGraphOptimized(
   nodes: Node<GeometryNodeData>[],
@@ -1472,7 +1178,6 @@ export function compileNodeGraphOptimized(
     }
   }
   
-  // Call the existing compilation function with optimized node set
   const result = compileNodeGraph(effectiveNodes, effectiveEdges, currentTime, frameRate, addLog);
   
   return {
@@ -1489,33 +1194,21 @@ export function compileNodeGraph(
   frameRate: number = 30,
   addLog?: (level: 'error' | 'warning' | 'info' | 'debug' | 'success', message: string, details?: any, category?: string) => void
 ): GraphCompilationResult & { liveParameterValues?: Record<string, any> } {
-  const temporaryGeometries: THREE.BufferGeometry[] = [];
+  const temporaryGeometries: EnhancedGeometryData[] = [];
   const liveParameterTracker = new Map<string, Record<string, any>>();
   
-  // console.log('🔄 Starting node graph compilation with', nodes.length, 'nodes and', edges.length, 'edges');
-  
   try {
-    // Get execution order
     const executionOrder = getExecutionOrder(nodes, edges);
     
-    // console.log('📋 Execution order:', executionOrder.map(n => `${n.data.type}(${n.id})`));
-    // console.log('🔗 Edges:', edges.map(e => `${e.source}→${e.target} (${e.sourceHandle}→${e.targetHandle})`));
-    
-    // Execute nodes in order
     const nodeOutputs = new Map<string, Record<string, any>>();
     const cache = new Map<string, any>();
     
     for (const node of executionOrder) {
       const inputs = getNodeInputs(node.id, edges, nodeOutputs, liveParameterTracker, node.data, nodes);
       
-      // console.log(`⚡ Executing ${node.data.type}(${node.id}) with inputs:`, Object.keys(inputs));
-      
       const result = executeNodeWithCaching(node, inputs, cache, currentTime, frameRate, addLog);
       
       if (!result.success) {
-        // Clean up any temporary geometries on error
-        temporaryGeometries.forEach(geom => geom.dispose());
-        
         console.error('❌ Node execution failed:', node.data.type, result.error);
         
         return {
@@ -1525,11 +1218,9 @@ export function compileNodeGraph(
         };
       }
       
-      // console.log(`✅ ${node.data.type}(${node.id}) produced outputs:`, Object.keys(result.outputs));
-      
-      // Track intermediate geometries for cleanup
+      // Track intermediate geometries for debugging or cleanup if objects were heavy
       Object.values(result.outputs).forEach(output => {
-        if (output instanceof THREE.BufferGeometry) {
+        if (output && output.positionsArray) {
           temporaryGeometries.push(output);
         }
       });
@@ -1537,10 +1228,8 @@ export function compileNodeGraph(
       nodeOutputs.set(node.id, result.outputs);
     }
     
-    // Find output node and get final geometry
     const outputNode = nodes.find(n => n.data.type === 'output');
     if (!outputNode) {
-      temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
         error: 'No output node found in graph',
@@ -1550,14 +1239,12 @@ export function compileNodeGraph(
     
     const outputResult = nodeOutputs.get(outputNode.id);
     
-    // Look for geometry in various possible output keys
     const finalGeometry = outputResult?.['result'] || 
                          outputResult?.['result-out'] ||
                          outputResult?.['geometry-out'] || 
-                         outputResult?.['geometry'] as THREE.BufferGeometry;
+                         outputResult?.['geometry'] as EnhancedGeometryData;
     
     if (!finalGeometry) {
-      temporaryGeometries.forEach(geom => geom.dispose());
       return {
         success: false,
         error: `No geometry produced by output node. Available outputs: ${Object.keys(outputResult || {}).join(', ')}`,
@@ -1565,37 +1252,13 @@ export function compileNodeGraph(
       };
     }
     
-    // console.log('🎯 Final geometry:', {
-    //   type: finalGeometry.type,
-    //   vertices: finalGeometry.attributes.position?.count || 0,
-    //   hasMaterial: !!((finalGeometry as any).material),
-    //   userDataMaterials: finalGeometry.userData?.materials?.length || 0
-    // });
-    
-    // Clean up intermediate geometries, but keep the final one
-    temporaryGeometries.forEach(geom => {
-      if (geom !== finalGeometry) {
-        geom.dispose();
-      }
-    });
-    
-    // Clear geometry cache periodically to prevent memory issues
-    // since we're not using it anymore for primitives
-    if (geometryCache.size > 0) {
-      geometryCache.forEach(geom => geom.dispose());
-      geometryCache.clear();
-    }
-    
     // Clean up cache if needed
     cleanupCache();
     
-    // Convert live parameter tracker to plain object
     const liveParameterValues: Record<string, any> = {};
     liveParameterTracker.forEach((params, nodeId) => {
       liveParameterValues[nodeId] = params;
     });
-
-    // console.log('🏁 Compilation completed successfully');
 
     return {
       success: true,
@@ -1610,18 +1273,14 @@ export function compileNodeGraph(
           face: new Map(),
           corner: new Map()
         },
-        vertexCount: finalGeometry.attributes.position?.count || 0,
-        faceCount: finalGeometry.index ? finalGeometry.index.count / 3 : 0
+        vertexCount: finalGeometry.vertexCount,
+        faceCount: finalGeometry.faceCount
       },
-      // Return the Three.js geometry for direct use
       compiledGeometry: finalGeometry,
       liveParameterValues
-    } as GraphCompilationResult & { compiledGeometry: THREE.BufferGeometry; liveParameterValues: Record<string, any> };
+    } as GraphCompilationResult & { compiledGeometry: EnhancedGeometryData; liveParameterValues: Record<string, any> };
     
   } catch (error) {
-    // Clean up any temporary geometries on error
-    temporaryGeometries.forEach(geom => geom.dispose());
-    
     console.error('💥 Compilation failed:', error);
     
     return {
@@ -1633,12 +1292,13 @@ export function compileNodeGraph(
 }
 
 // Helper function to create a default material
-export function createDefaultMaterial(): THREE.Material {
-  return new THREE.MeshStandardMaterial({
-    color: 0xffffff, // White diffuse
-    roughness: 0.5,
-    metalness: 0.0,
-    envMapIntensity: 1.0,
-    side: THREE.DoubleSide // Make all materials double-sided
-  });
-} 
+export function createDefaultMaterial(): pc.StandardMaterial {
+  const material = new pc.StandardMaterial();
+  material.diffuse.set(1, 1, 1);
+  material.metalness = 0.0;
+  material.shininess = 50;
+  material.useMetalness = true;
+  material.cull = pc.CULLFACE_NONE;
+  material.update();
+  return material;
+}

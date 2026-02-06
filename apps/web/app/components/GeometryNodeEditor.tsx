@@ -24,6 +24,9 @@ import { nodeRegistry } from '../registry/NodeRegistry';
 import GenericNode from './GenericNode';
 import SystematicNodeLayout from './SystematicNodeLayout';
 
+// Import PlayCanvasViewport instead of ThreeViewport (dynamically imported to avoid SSR issues if needed, but static for now)
+import PlayCanvasViewport from './PlayCanvasViewport';
+
 import { useGeometry } from './GeometryContext';
 import { useTime } from './TimeContext';
 import { NodeProvider } from './NodeContext';

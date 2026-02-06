@@ -1,142 +1,74 @@
-import { NodeDefinition } from '../../types/nodeSystem';
-import { Triangle } from 'lucide-react';
-import * as THREE from 'three';
+import { NodeDefinition } from '../../types/nodes';
+import { BoxSelect } from 'lucide-react';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
+// import { createGeometryFromVerticesAndFaces } from '../../utils/nodeCompiler'; // Circular dep, assuming simplified logic here
 
-// CREATE FACES NODE - was 150+ lines, now 40 lines of data
 export const createFacesNodeDefinition: NodeDefinition = {
   type: 'create-faces',
   name: 'Create Faces',
-  description: 'Create faces from vertices',
+  description: 'Create faces from vertex indices',
   category: 'geometry',
   color: {
-    primary: '#f59e42',
-    secondary: '#b45309'
+    primary: '#6366f1',
+    secondary: '#4f46e5',
   },
+
   inputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
+      id: 'vertices-in', // Using hyphenated ID to match legacy connection logic if needed
+      name: 'Vertices',
+      type: 'vertices', // Custom type for array of vertices
       required: true,
-      description: 'Input geometry to extract faces from'
-    }
+      description: 'Array of vertices',
+    },
   ],
+
   outputs: [
     {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Generated geometry from faces'
-    }
+      id: 'faces-out',
+      name: 'Faces',
+      type: 'faces', // Custom type for array of faces
+      description: 'Array of face definitions',
+    },
   ],
+
   parameters: [
     {
-      id: 'faceCount',
-      name: 'Count',
-      type: 'integer',
-      defaultValue: 1,
-      min: 1,
-      max: 100,
-      step: 1,
-      description: 'Number of faces to create'
+      id: 'indices',
+      name: 'Indices (comma separated)',
+      type: 'string',
+      defaultValue: '0,1,2',
+      description: 'Indices of vertices to form faces',
     },
-    {
-      id: 'pattern',
-      name: 'Pattern',
-      type: 'select',
-      defaultValue: 'triangle',
-      options: ['triangle', 'quad', 'trianglePair', 'strip'],
-      description: 'Face pattern preset'
-    },
-    {
-      id: 'faces',
-      name: 'Faces',
-      type: 'faces',
-      defaultValue: [{ a: 0, b: 1, c: 2 }],
-      description: 'Custom face definitions'
-    }
   ],
+
   ui: {
-    width: 250,
-    icon: Triangle,
-    advanced: ['faces']
+    icon: BoxSelect,
+    width: 240,
   },
+
   execute: (inputs, parameters) => {
-    const { geometry } = inputs;
-    const { faceCount, pattern, faces } = parameters;
+    const vertices = inputs['vertices-in'] || [];
+    const indicesStr = parameters.indices || '0,1,2';
     
-    if (!geometry) {
-      return { geometry: new THREE.BufferGeometry() };
-    }
-    
-    // Extract vertices from input geometry
-    const positionAttr = geometry.getAttribute('position');
-    const vertices = [];
-    for (let i = 0; i < positionAttr.count; i++) {
-      vertices.push({
-        x: positionAttr.getX(i),
-        y: positionAttr.getY(i),
-        z: positionAttr.getZ(i)
-      });
-    }
-    
-    // Generate pattern if specified
-    let finalFaces = faces;
-    if (pattern && pattern !== 'custom') {
-      switch (pattern) {
-        case 'triangle':
-          finalFaces = [{ a: 0, b: 1, c: 2 }];
-          break;
-        case 'quad':
-          finalFaces = [{ a: 0, b: 1, c: 2, d: 3 }];
-          break;
-        case 'trianglePair':
-          finalFaces = [
-            { a: 0, b: 1, c: 2 },
-            { a: 0, b: 2, c: 3 }
-          ];
-          break;
-        case 'strip':
-          finalFaces = [
-            { a: 0, b: 1, c: 2 },
-            { a: 1, b: 3, c: 2 },
-            { a: 2, b: 3, c: 4 },
-            { a: 3, b: 5, c: 4 }
-          ];
-          break;
+    // Parse indices string "0,1,2, 2,3,0"
+    const indices = indicesStr.split(',')
+      .map((s: string) => parseInt(s.trim(), 10))
+      .filter((n: number) => !isNaN(n));
+
+    const faces = [];
+    for (let i = 0; i < indices.length; i += 3) {
+      if (i + 2 < indices.length) {
+        faces.push({
+          a: indices[i],
+          b: indices[i+1],
+          c: indices[i+2]
+        });
       }
     }
-    
-    // Limit to faceCount
-    finalFaces = finalFaces.slice(0, faceCount);
-    
-    // Create Three.js geometry from vertices and faces
-    const outputGeometry = new THREE.BufferGeometry();
-    
-    // Convert vertices to Three.js format
-    const positions = new Float32Array(vertices.length * 3);
-    vertices.forEach((vertex: { x: number; y: number; z: number }, i: number) => {
-      positions[i * 3] = vertex.x;
-      positions[i * 3 + 1] = vertex.y;
-      positions[i * 3 + 2] = vertex.z;
-    });
-    outputGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    
-    // Convert faces to indices
-    const indices: number[] = [];
-    finalFaces.forEach((face: { a: number; b: number; c: number; d?: number }) => {
-      indices.push(face.a, face.b, face.c);
-      if (face.d !== undefined) {
-        indices.push(face.a, face.c, face.d);
-      }
-    });
-    
-    if (indices.length > 0) {
-      outputGeometry.setIndex(indices);
-    }
-    
-    outputGeometry.computeVertexNormals();
-    
-    return { geometry: outputGeometry };
-  }
-}; 
+
+    return {
+      'faces-out': faces
+    };
+  },
+};

@@ -1,8 +1,7 @@
-import { NodeDefinition } from '../../types/nodeSystem';
+import * as pc from 'playcanvas';
+import { NodeDefinition } from '../../types/nodes';
 import { GitBranch } from 'lucide-react';
-import * as THREE from 'three';
 
-// VECTOR MATH NODE - was 468+ lines, now 45 lines of data
 export const vectorMathNodeDefinition: NodeDefinition = {
   type: 'vector-math',
   name: 'Vector Math',
@@ -67,41 +66,44 @@ export const vectorMathNodeDefinition: NodeDefinition = {
     const { vectorA = { x: 0, y: 0, z: 0 }, vectorB = { x: 0, y: 0, z: 0 }, scale = 1 } = inputs;
     const { operation } = parameters;
     
-    const vA = new THREE.Vector3(vectorA.x, vectorA.y, vectorA.z);
-    const vB = new THREE.Vector3(vectorB.x, vectorB.y, vectorB.z);
+    const vA = new pc.Vec3(vectorA.x, vectorA.y, vectorA.z);
+    const vB = new pc.Vec3(vectorB.x, vectorB.y, vectorB.z);
     
-    let result = new THREE.Vector3();
+    let result = new pc.Vec3();
     let value = 0;
     
     switch (operation) {
       case 'add':
-        result = vA.clone().add(vB);
+        result.add2(vA, vB);
         break;
       case 'subtract':
-        result = vA.clone().sub(vB);
+        result.sub2(vA, vB);
         break;
       case 'multiply':
-        result = vA.clone().multiply(vB);
+        result.mul2(vA, vB);
         break;
       case 'divide':
-        result = vA.clone().divide(vB);
+        // PlayCanvas doesn't have element-wise divide for Vec3, implementing manually
+        if (vB.x !== 0 && vB.y !== 0 && vB.z !== 0) {
+            result.set(vA.x / vB.x, vA.y / vB.y, vA.z / vB.z);
+        }
         break;
       case 'cross':
-        result = vA.clone().cross(vB);
+        result.cross(vA, vB);
         break;
       case 'dot':
         value = vA.dot(vB);
-        result = vA.clone();
+        result.copy(vA);
         break;
       case 'normalize':
-        result = vA.clone().normalize();
+        result.copy(vA).normalize();
         break;
       case 'length':
         value = vA.length();
-        result = vA.clone();
+        result.copy(vA);
         break;
       default:
-        result = vA.clone();
+        result.copy(vA);
     }
     
     return {
@@ -109,4 +111,4 @@ export const vectorMathNodeDefinition: NodeDefinition = {
       value
     };
   }
-}; 
+};

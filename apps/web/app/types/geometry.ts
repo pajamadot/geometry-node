@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as pc from 'playcanvas';
 
 // Blender-inspired unified geometry data structure
 export interface GeometryData {
@@ -20,7 +20,7 @@ export interface GeometryData {
   };
   
   // Metadata
-  bounds?: { min: THREE.Vector3; max: THREE.Vector3 };
+  bounds?: { min: pc.Vec3; max: pc.Vec3 };
   vertexCount: number;
   faceCount: number;
 }
@@ -141,10 +141,10 @@ export interface MaterialData {
   emissiveIntensity?: number;
 }
 
-// Compiled geometry for Three.js rendering
+// Compiled geometry for PlayCanvas rendering
 export interface CompiledGeometry {
-  geometry: THREE.BufferGeometry;
-  material: THREE.Material;
+  mesh: pc.Mesh;
+  material: pc.StandardMaterial;
 }
 
 // Utility functions for attribute management

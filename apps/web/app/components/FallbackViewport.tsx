@@ -10,14 +10,14 @@ export default function FallbackViewport() {
   const getGeometryInfo = () => {
     if (!compiledGeometry) return null;
     
-    const position = compiledGeometry.attributes.position;
-    const vertexCount = position ? position.count : 0;
-    const hasNormals = !!compiledGeometry.attributes.normal;
-    const hasUVs = !!compiledGeometry.attributes.uv;
+    const vertexCount = compiledGeometry.vertexCount || 0;
+    // Access vertex attributes from the map in the new structure
+    const hasNormals = !!compiledGeometry.attributes.vertex.get('normal') || !!compiledGeometry.normalsArray;
+    const hasUVs = !!compiledGeometry.attributes.vertex.get('uv') || !!compiledGeometry.uvsArray;
     
     return {
       vertices: vertexCount,
-      triangles: Math.floor(vertexCount / 3),
+      triangles: Math.floor(vertexCount / 3), // Assuming triangles
       hasNormals,
       hasUVs
     };
@@ -78,4 +78,4 @@ export default function FallbackViewport() {
       </div>
     </div>
   );
-} 
+}

@@ -1,136 +1,33 @@
-import { NodeDefinition } from '../../types/nodeSystem';
-import { Move3d } from 'lucide-react';
-import * as THREE from 'three';
+import { NodeDefinition } from '../../types/nodes';
 
-// TRANSFORM NODE - Blender-style layout
 export const transformNodeDefinition: NodeDefinition = {
   type: 'transform',
   name: 'Transform',
-  description: 'Apply transformations to geometry',
+  description: 'Transforms geometry (translate, rotate, scale)',
   category: 'geometry',
   color: {
-    primary: '#dc2626',
-    secondary: '#b91c1c'
+    primary: '#3b82f6',
+    secondary: '#2563eb'
   },
-
   inputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Input geometry to transform'
-    },
-    {
-      id: 'translation',
-      name: 'Translation',
-      type: 'vector',
-      defaultValue: { x: 0, y: 0, z: 0 },
-      description: 'Translation vector (in meters)'
-    },
-    {
-      id: 'rotation',
-      name: 'Rotation',
-      type: 'vector',
-      defaultValue: { x: 0, y: 0, z: 0 },
-      description: 'Rotation in degrees'
-    },
-    {
-      id: 'scale',
-      name: 'Scale',
-      type: 'vector',
-      defaultValue: { x: 1, y: 1, z: 1 },
-      description: 'Scale factors'
-    }
+      { id: 'geometry-in', name: 'Geometry', type: 'geometry' },
+      { id: 'translation', name: 'Translation', type: 'vector' },
+      { id: 'rotation', name: 'Rotation', type: 'vector' },
+      { id: 'scale', name: 'Scale', type: 'vector' },
   ],
   outputs: [
-    {
-      id: 'geometry',
-      name: 'Geometry',
-      type: 'geometry',
-      description: 'Transformed geometry'
-    }
+    { id: 'geometry-out', name: 'Geometry', type: 'geometry' }
   ],
-  parameters: [],
-  ui: {
-    icon: Move3d
-  },
-  execute: (inputs, parameters) => {
-    // Handle both 'geometry' and 'geometry-in' input keys
-    const geometry = inputs.geometry || inputs['geometry-in'];
-    const translation = inputs.translation || inputs['translation-in'] || { x: 0, y: 0, z: 0 };
-    const rotation = inputs.rotation || inputs['rotation-in'] || { x: 0, y: 0, z: 0 };
-    const scale = inputs.scale || inputs['scale-in'] || { x: 1, y: 1, z: 1 };
-    
-    // Transform node now properly receives real-time updates (caching disabled)
-    
-    if (!geometry) {
-      return { geometry: null };
-    }
-
-    // console.log('Transform node input:', {
-    //   hasGeometry: !!geometry,
-    //   hasInputMaterial: !!((geometry as any).material),
-    //   inputUserDataMaterials: geometry.userData?.materials?.length || 0,
-    //   geometryVertices: geometry.attributes?.position?.count || 0
-    // });
-
-    // Clone the geometry and apply transform
-    const transformedGeometry = geometry.clone();
-    
-    // Preserve materials when cloning
-    const originalMaterial = (geometry as any).material;
-    const originalMaterials = geometry.userData?.materials;
-    
-    if (originalMaterial) {
-      (transformedGeometry as any).material = originalMaterial;
-      // console.log('Transform: Preserved direct material:', originalMaterial.type);
-    }
-    
-    if (originalMaterials) {
-      if (!transformedGeometry.userData) {
-        transformedGeometry.userData = {};
-      }
-      transformedGeometry.userData.materials = [...originalMaterials];
-      
-      // console.log('Transform: Preserved userData materials:', originalMaterials.length);
-      
-      // Preserve material groups if they exist
-      if (geometry.groups && geometry.groups.length > 0) {
-        transformedGeometry.clearGroups();
-        geometry.groups.forEach((group: { start: number; count: number; materialIndex?: number }) => {
-          transformedGeometry.addGroup(group.start, group.count, group.materialIndex);
-        });
-        // console.log('Transform: Preserved material groups:', geometry.groups.length);
-      }
-    }
-    
-    // Apply transformations via matrix
-    const matrix = new THREE.Matrix4();
-    
-    // Convert rotation from degrees to radians (transform node expects degrees input)
-    const rotationRadians = new THREE.Euler(
-      (rotation.x || 0) * Math.PI / 180,
-      (rotation.y || 0) * Math.PI / 180, 
-      (rotation.z || 0) * Math.PI / 180
-    );
-    
-    const quaternion = new THREE.Quaternion().setFromEuler(rotationRadians);
-    
-    matrix.compose(
-      new THREE.Vector3(translation.x || 0, translation.y || 0, translation.z || 0),
-      quaternion,
-      new THREE.Vector3(scale.x || 1, scale.y || 1, scale.z || 1)
-    );
-    
-    transformedGeometry.applyMatrix4(matrix);
-    
-    // console.log('Transform node output:', {
-    //   hasOutputGeometry: !!transformedGeometry,
-    //   hasOutputMaterial: !!((transformedGeometry as any).material),
-    //   outputUserDataMaterials: transformedGeometry.userData?.materials?.length || 0,
-    //   outputVertices: transformedGeometry.attributes?.position?.count || 0
-    // });
-    
-    return { geometry: transformedGeometry };
-  }
-}; 
+  parameters: [
+      { id: 'position-x', name: 'Pos X', type: 'number', defaultValue: 0 },
+      { id: 'position-y', name: 'Pos Y', type: 'number', defaultValue: 0 },
+      { id: 'position-z', name: 'Pos Z', type: 'number', defaultValue: 0 },
+      { id: 'rotation-x', name: 'Rot X', type: 'number', defaultValue: 0 },
+      { id: 'rotation-y', name: 'Rot Y', type: 'number', defaultValue: 0 },
+      { id: 'rotation-z', name: 'Rot Z', type: 'number', defaultValue: 0 },
+      { id: 'scale-x', name: 'Scale X', type: 'number', defaultValue: 1 },
+      { id: 'scale-y', name: 'Scale Y', type: 'number', defaultValue: 1 },
+      { id: 'scale-z', name: 'Scale Z', type: 'number', defaultValue: 1 },
+  ],
+  execute: (inputs, parameters) => { return {}; }
+};

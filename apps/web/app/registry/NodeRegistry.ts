@@ -1,7 +1,7 @@
 // Central Node Registry - the brain of the data-driven system
-import { NodeDefinition, NodeCategory, SOCKET_METADATA } from '../types/nodeSystem';
+import { NodeDefinition, NodeCategory, SOCKET_METADATA } from '../types/nodes';
 import { JsonNodeDefinition, JsonNodeCollection } from '../types/jsonNodes';
-import { jsonToNodeDefinition, loadJsonNodes, parseJsonNodeCollection } from '../utils/jsonNodeLoader';
+import { jsonToNodeDefinition, parseJsonNodeCollection } from '../utils/jsonNodeLoader';
 import { templateSystem } from './TemplateSystem';
 import { 
   timeNodeDefinition, 
@@ -39,7 +39,18 @@ import {
   setMaterialNodeDefinition,
   materialMixerNodeDefinition,
   waterMaterialNodeDefinition,
-  hologramMaterialNodeDefinition
+  hologramMaterialNodeDefinition,
+  noiseDisplaceNodeDefinition,
+  twistNodeDefinition,
+  bendNodeDefinition,
+  taperNodeDefinition,
+  colorByHeightNodeDefinition,
+  colorByNormalNodeDefinition,
+  selectByPositionNodeDefinition,
+  enhancedSubdivideNodeDefinition,
+  instanceOnFacesNodeDefinition,
+  instanceGridNodeDefinition,
+  extrudeNodeDefinition
 } from './nodes';
 
 export class NodeRegistry {
@@ -145,6 +156,19 @@ export class NodeRegistry {
     this.register(waterMaterialNodeDefinition);
     this.register(hologramMaterialNodeDefinition);
     // Note: lava-material is now provided by server nodes only
+
+    // Register modifier nodes
+    this.register(noiseDisplaceNodeDefinition);
+    this.register(twistNodeDefinition);
+    this.register(bendNodeDefinition);
+    this.register(taperNodeDefinition);
+    this.register(colorByHeightNodeDefinition);
+    this.register(colorByNormalNodeDefinition);
+    this.register(selectByPositionNodeDefinition);
+    this.register(enhancedSubdivideNodeDefinition);
+    this.register(instanceOnFacesNodeDefinition);
+    this.register(instanceGridNodeDefinition);
+    this.register(extrudeNodeDefinition);
     
     // Register template-generated nodes
     const templateNodes = templateSystem.generateAllNodes();
@@ -201,14 +225,15 @@ export class NodeRegistry {
   // Get all categories with their nodes
   getNodesByCategories(): Record<NodeCategory, NodeDefinition[]> {
     const result: Partial<Record<NodeCategory, NodeDefinition[]>> = {};
-    
+
     this.getAllDefinitions().forEach(def => {
-      if (!result[def.category]) {
-        result[def.category] = [];
+      const category = def.category as NodeCategory;
+      if (!result[category]) {
+        result[category] = [];
       }
-      result[def.category]!.push(def);
+      result[category]!.push(def);
     });
-    
+
     return result as Record<NodeCategory, NodeDefinition[]>;
   }
 
@@ -377,19 +402,24 @@ export class NodeRegistry {
   registerJsonNode(jsonNode: JsonNodeDefinition): { success: boolean; error?: string } {
     try {
       const nodeDefinition = jsonToNodeDefinition(jsonNode);
-      
+
+      // Check for valid conversion
+      if (!nodeDefinition) {
+        return { success: false, error: `Failed to convert JSON node '${jsonNode.type}' to definition` };
+      }
+
       // Check for conflicts with existing nodes
       if (this.definitions.has(jsonNode.type)) {
         return { success: false, error: `Node type '${jsonNode.type}' already exists` };
       }
-      
+
       // Register the node
       this.register(nodeDefinition);
       this.customNodes.set(jsonNode.type, jsonNode);
-      
+
       // Save to localStorage
       this.saveCustomNodesToLocalStorage();
-      
+
       console.log(`Registered custom node: ${jsonNode.type}`);
       return { success: true };
     } catch (error) {
@@ -402,38 +432,20 @@ export class NodeRegistry {
     success: number;
     failed: { node: JsonNodeDefinition; error: string }[];
   } {
-    const result = loadJsonNodes(collection.nodes);
     let successCount = 0;
     const failed: { node: JsonNodeDefinition; error: string }[] = [];
 
-    // Register valid nodes
-    result.valid.forEach(nodeDefinition => {
-      try {
-        this.register(nodeDefinition);
-        const jsonNode = collection.nodes.find(n => n.type === nodeDefinition.type);
-        if (jsonNode) {
-          this.customNodes.set(nodeDefinition.type, jsonNode);
-          successCount++;
-        }
-      } catch (error) {
-        const jsonNode = collection.nodes.find(n => n.type === nodeDefinition.type);
-        if (jsonNode) {
-          failed.push({ node: jsonNode, error: `Registration failed: ${error}` });
-        }
+    // Process each node in the collection
+    for (const jsonNode of collection.nodes) {
+      const result = this.registerJsonNode(jsonNode);
+      if (result.success) {
+        successCount++;
+      } else {
+        failed.push({ node: jsonNode, error: result.error || 'Unknown error' });
       }
-    });
-
-    // Add invalid nodes to failed list
-    result.invalid.forEach(({ node, validation }) => {
-      failed.push({ 
-        node, 
-        error: validation.errors.join(', ') 
-      });
-    });
+    }
 
     if (successCount > 0) {
-      // Save to localStorage
-      this.saveCustomNodesToLocalStorage();
       this.notifyUpdate();
     }
 
@@ -546,14 +558,19 @@ export class NodeRegistry {
 
     try {
       const nodeDefinition = jsonToNodeDefinition(jsonNode);
-      
+
+      // Check for valid conversion
+      if (!nodeDefinition) {
+        return { success: false, error: `Failed to convert JSON node '${jsonNode.type}' to definition` };
+      }
+
       // Update registration
       this.register(nodeDefinition);
       this.customNodes.set(nodeType, jsonNode);
-      
+
       // Save to localStorage
       this.saveCustomNodesToLocalStorage();
-      
+
       console.log(`Updated custom node: ${nodeType}`);
       return { success: true };
     } catch (error) {
@@ -645,6 +662,330 @@ export class NodeRegistry {
       success: this.hasServerNodes() ? Array.from(this.customNodes.keys()).filter(type => this.isServerNode(type)).length : 0,
       failed: []
     };
+  }
+
+  // =============================================
+  // Community Features (Backend Integration)
+  // =============================================
+
+  // Track community node metadata (id, likes, downloads, etc.)
+  private nodeMetadata = new Map<string, {
+    _id: string;
+    _isPublic: boolean;
+    _isVerified: boolean;
+    _downloads: number;
+    _likes: number;
+    _forkedFrom?: string;
+  }>();
+
+  // Get node metadata (community info)
+  getNodeMetadata(nodeType: string) {
+    return this.nodeMetadata.get(nodeType);
+  }
+
+  // Save a node to the server (create or update)
+  async saveNodeToServer(nodeType: string): Promise<{ success: boolean; error?: string }> {
+    const jsonNode = this.customNodes.get(nodeType);
+    if (!jsonNode) {
+      return { success: false, error: 'Node not found' };
+    }
+
+    try {
+      const metadata = this.nodeMetadata.get(nodeType);
+
+      if (metadata?._id) {
+        // Update existing node
+        const response = await fetch(`/api/nodes/${metadata._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(jsonNode),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, error: data.error || 'Failed to update node' };
+        }
+
+        return { success: true };
+      } else {
+        // Create new node
+        const response = await fetch('/api/nodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(jsonNode),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          return { success: false, error: data.error || 'Failed to create node' };
+        }
+
+        // Store the returned ID
+        if (data.node?._id) {
+          this.nodeMetadata.set(nodeType, {
+            _id: data.node._id,
+            _isPublic: false,
+            _isVerified: false,
+            _downloads: 0,
+            _likes: 0,
+          });
+        }
+
+        return { success: true };
+      }
+    } catch (error) {
+      return { success: false, error: `Failed to save node: ${error}` };
+    }
+  }
+
+  // Publish a node (make it public in the community)
+  async publishNode(nodeType: string): Promise<{ success: boolean; error?: string }> {
+    const metadata = this.nodeMetadata.get(nodeType);
+    if (!metadata?._id) {
+      // Need to save first
+      const saveResult = await this.saveNodeToServer(nodeType);
+      if (!saveResult.success) {
+        return saveResult;
+      }
+    }
+
+    const id = this.nodeMetadata.get(nodeType)?._id;
+    if (!id) {
+      return { success: false, error: 'Node ID not found' };
+    }
+
+    try {
+      const response = await fetch(`/api/nodes/${id}/publish`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to publish node' };
+      }
+
+      // Update metadata
+      const meta = this.nodeMetadata.get(nodeType);
+      if (meta) {
+        meta._isPublic = true;
+        this.nodeMetadata.set(nodeType, meta);
+      }
+
+      console.log(`📢 Published node: ${nodeType}`);
+      this.notifyUpdate();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: `Failed to publish node: ${error}` };
+    }
+  }
+
+  // Unpublish a node (make it private)
+  async unpublishNode(nodeType: string): Promise<{ success: boolean; error?: string }> {
+    const metadata = this.nodeMetadata.get(nodeType);
+    if (!metadata?._id) {
+      return { success: false, error: 'Node not saved to server' };
+    }
+
+    try {
+      const response = await fetch(`/api/nodes/${metadata._id}/publish`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to unpublish node' };
+      }
+
+      // Update metadata
+      metadata._isPublic = false;
+      this.nodeMetadata.set(nodeType, metadata);
+
+      console.log(`🔒 Unpublished node: ${nodeType}`);
+      this.notifyUpdate();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: `Failed to unpublish node: ${error}` };
+    }
+  }
+
+  // Like a community node
+  async likeNode(nodeId: string): Promise<{ success: boolean; likes?: number; error?: string }> {
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/like`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to like node' };
+      }
+
+      return { success: true, likes: data.likes };
+    } catch (error) {
+      return { success: false, error: `Failed to like node: ${error}` };
+    }
+  }
+
+  // Unlike a community node
+  async unlikeNode(nodeId: string): Promise<{ success: boolean; likes?: number; error?: string }> {
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/like`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to unlike node' };
+      }
+
+      return { success: true, likes: data.likes };
+    } catch (error) {
+      return { success: false, error: `Failed to unlike node: ${error}` };
+    }
+  }
+
+  // Fork a community node to create your own copy
+  async forkNode(nodeId: string, newType?: string): Promise<{
+    success: boolean;
+    node?: JsonNodeDefinition;
+    error?: string
+  }> {
+    try {
+      const response = await fetch(`/api/nodes/${nodeId}/fork`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newType ? { newType } : {}),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to fork node' };
+      }
+
+      // Register the forked node
+      if (data.node) {
+        const result = this.registerJsonNode(data.node);
+        if (result.success) {
+          // Store metadata
+          this.nodeMetadata.set(data.node.type, {
+            _id: data.node._id,
+            _isPublic: false,
+            _isVerified: false,
+            _downloads: 0,
+            _likes: 0,
+            _forkedFrom: data.node._forkedFrom,
+          });
+        }
+        return { success: true, node: data.node };
+      }
+
+      return { success: false, error: 'No node returned from fork' };
+    } catch (error) {
+      return { success: false, error: `Failed to fork node: ${error}` };
+    }
+  }
+
+  // Discover community nodes
+  async discoverNodes(options?: {
+    query?: string;
+    category?: string;
+    sort?: 'downloads' | 'likes' | 'newest';
+    limit?: number;
+  }): Promise<{
+    nodes: Array<JsonNodeDefinition & {
+      _id: string;
+      _likes: number;
+      _downloads: number;
+      _isVerified: boolean;
+      _isFeatured: boolean;
+    }>;
+    total: number;
+  }> {
+    try {
+      const params = new URLSearchParams();
+      if (options?.query) params.append('query', options.query);
+      if (options?.category) params.append('category', options.category);
+      if (options?.sort) params.append('sort', options.sort);
+      if (options?.limit) params.append('limit', options.limit.toString());
+
+      const query = params.toString();
+      const response = await fetch(`/api/nodes/discover${query ? `?${query}` : ''}`);
+
+      if (!response.ok) {
+        return { nodes: [], total: 0 };
+      }
+
+      const data = await response.json();
+      return {
+        nodes: data.nodes || [],
+        total: data.total || 0,
+      };
+    } catch (error) {
+      console.error('Failed to discover nodes:', error);
+      return { nodes: [], total: 0 };
+    }
+  }
+
+  // Install a community node (add it to your local registry)
+  async installCommunityNode(node: JsonNodeDefinition & { _id?: string }): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      const result = this.registerJsonNode(node);
+
+      if (result.success && node._id) {
+        // Store metadata
+        this.nodeMetadata.set(node.type, {
+          _id: node._id,
+          _isPublic: true,
+          _isVerified: (node as any)._isVerified || false,
+          _downloads: (node as any)._downloads || 0,
+          _likes: (node as any)._likes || 0,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      return { success: false, error: `Failed to install node: ${error}` };
+    }
+  }
+
+  // Check if a node is published
+  isNodePublished(nodeType: string): boolean {
+    return this.nodeMetadata.get(nodeType)?._isPublic || false;
+  }
+
+  // Check if a node is saved to server
+  isNodeSavedToServer(nodeType: string): boolean {
+    return !!this.nodeMetadata.get(nodeType)?._id;
+  }
+
+  // Delete a node from server
+  async deleteNodeFromServer(nodeType: string): Promise<{ success: boolean; error?: string }> {
+    const metadata = this.nodeMetadata.get(nodeType);
+    if (!metadata?._id) {
+      return { success: false, error: 'Node not saved to server' };
+    }
+
+    try {
+      const response = await fetch(`/api/nodes/${metadata._id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        return { success: false, error: data.error || 'Failed to delete node' };
+      }
+
+      // Remove metadata
+      this.nodeMetadata.delete(nodeType);
+
+      console.log(`🗑️ Deleted node from server: ${nodeType}`);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: `Failed to delete node: ${error}` };
+    }
   }
 }
 

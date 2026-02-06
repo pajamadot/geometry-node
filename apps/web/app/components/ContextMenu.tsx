@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NodeType } from '../types/nodes';
 import { nodeRegistry } from '../registry/NodeRegistry';
-import { CATEGORY_METADATA } from '../types/nodeSystem';
+import { CATEGORY_METADATA } from '../types/nodes';
 import { Search, Settings, RefreshCw } from 'lucide-react';
 
 interface ContextMenuProps {

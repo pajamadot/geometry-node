@@ -49,10 +49,23 @@ export {
   waterMaterialNodeDefinition
 } from './WaterMaterialNode';
 
-export { 
+export {
   hologramMaterialNodeDefinition
 } from './HologramMaterialNode';
 
-export { 
+export {
   lavaMaterialNodeDefinition
-} from './LavaMaterialNode'; 
+} from './LavaMaterialNode';
+
+// Modifier nodes
+export { noiseDisplaceNodeDefinition } from './NoiseDisplaceNode';
+export { twistNodeDefinition } from './TwistNode';
+export { bendNodeDefinition } from './BendNode';
+export { taperNodeDefinition } from './TaperNode';
+export { colorByHeightNodeDefinition } from './ColorByHeightNode';
+export { colorByNormalNodeDefinition } from './ColorByNormalNode';
+export { selectByPositionNodeDefinition } from './SelectByPositionNode';
+export { enhancedSubdivideNodeDefinition } from './EnhancedSubdivideNode';
+export { instanceOnFacesNodeDefinition } from './InstanceOnFacesNode';
+export { instanceGridNodeDefinition } from './InstanceGridNode';
+export { extrudeNodeDefinition } from './ExtrudeNode'; 

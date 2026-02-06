@@ -1,12 +1,14 @@
-import { NodeDefinition } from '../../types/nodeSystem';
+import * as pc from 'playcanvas';
+import { NodeDefinition } from '../../types/nodes';
 import { Combine } from 'lucide-react';
-import * as THREE from 'three';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
+import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
 
-// MESH BOOLEAN NODE - Performs boolean operations between geometries
+// MESH BOOLEAN NODE
 export const meshBooleanNodeDefinition: NodeDefinition = {
   type: 'meshBoolean',
   name: 'Mesh Boolean',
-  description: 'Perform boolean operations (union, difference, intersection) between two geometries',
+  description: 'Perform boolean operations (union, difference, intersection)',
   category: 'modifiers',
   color: {
     primary: '#8b5cf6',
@@ -19,14 +21,14 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
       name: 'Geometry A',
       type: 'geometry',
       required: true,
-      description: 'First geometry for boolean operation'
+      description: 'First geometry'
     },
     {
       id: 'geometryB',
       name: 'Geometry B',
       type: 'geometry',
       required: true,
-      description: 'Second geometry for boolean operation'
+      description: 'Second geometry'
     },
     {
       id: 'operation',
@@ -35,23 +37,6 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
       defaultValue: 'union',
       options: ['union', 'difference', 'intersection'],
       description: 'Boolean operation type'
-    },
-    {
-      id: 'useWebAssembly',
-      name: 'Use WebAssembly',
-      type: 'boolean',
-      defaultValue: false,
-      description: 'Use WebAssembly for faster processing'
-    },
-    {
-      id: 'precision',
-      name: 'Precision',
-      type: 'number',
-      defaultValue: 1e-6,
-      min: 1e-10,
-      max: 1e-3,
-      step: 1e-7,
-      description: 'Numerical precision for boolean operations'
     }
   ],
   outputs: [
@@ -66,241 +51,27 @@ export const meshBooleanNodeDefinition: NodeDefinition = {
   ui: {
     width: 240,
     height: 280,
-    icon: Combine,
-    advanced: ['precision', 'useWebAssembly']
+    icon: Combine
   },
   execute: (inputs, parameters) => {
-    const geometryA = inputs.geometryA;
-    const geometryB = inputs.geometryB;
+    const geometryA = inputs.geometryA as EnhancedGeometryData;
+    const geometryB = inputs.geometryB as EnhancedGeometryData;
     const operation = inputs.operation || 'union';
-    const useWebAssembly = inputs.useWebAssembly || false;
-    const precision = inputs.precision || 1e-6;
 
     if (!geometryA || !geometryB) {
-      console.warn('Mesh Boolean: Missing required geometries');
       return { geometry: geometryA || geometryB || null };
     }
 
-    // console.log('Mesh Boolean operation:', {
-    //   operation,
-    //   useWebAssembly,
-    //   geometryAVertices: geometryA.attributes.position?.count || 0,
-    //   geometryBVertices: geometryB.attributes.position?.count || 0
-    // });
-
-    try {
-      const result = performBooleanOperation(geometryA, geometryB, operation, useWebAssembly, precision);
-      
-      // Preserve material from geometry A (primary geometry) since boolean operations
-      // create new topology and we can't easily track which faces come from which geometry
-      const materialA = (geometryA as any).material || geometryA.userData?.materials?.[0];
-      
-      if (materialA && result) {
-        (result as any).material = materialA;
-        
-        if (!result.userData) {
-          result.userData = {};
-        }
-        result.userData.materials = [materialA];
-      }
-      
-      return { geometry: result };
-    } catch (error) {
-      console.error('Boolean operation failed:', error);
-      // Fallback to simple merge with material preservation
-      const fallback = geometryA.clone();
-      
-      // Preserve materials in fallback
-      const materialA = (geometryA as any).material || geometryA.userData?.materials?.[0];
-      if (materialA) {
-        (fallback as any).material = materialA;
-        if (!fallback.userData) {
-          fallback.userData = {};
-        }
-        fallback.userData.materials = [materialA];
-      }
-      
-      return { geometry: fallback };
+    // Placeholder implementation:
+    // CSG is hard. We'll just return geometryA for now or a simple merge for union.
+    // Ideally we'd use a library like csg.js or manifold tailored for our data structure.
+    
+    if (operation === 'union') {
+        return { geometry: VertexDataUtils.merge([geometryA, geometryB]) };
     }
+
+    // For difference/intersection, fallback to A for now to prevent crash
+    console.warn('Mesh Boolean (Difference/Intersection) not implemented yet - returning Geometry A');
+    return { geometry: VertexDataUtils.clone(geometryA) };
   }
 };
-
-// Boolean operation implementation
-function performBooleanOperation(
-  geometryA: THREE.BufferGeometry,
-  geometryB: THREE.BufferGeometry,
-  operation: string,
-  useWebAssembly: boolean,
-  precision: number
-): THREE.BufferGeometry {
-  
-  if (useWebAssembly) {
-    // Try WebAssembly implementation first
-    try {
-      return performWebAssemblyBoolean(geometryA, geometryB, operation, precision);
-    } catch (error) {
-      // console.log('WebAssembly boolean operations not yet implemented, using JavaScript fallback');
-    }
-  }
-
-  // JavaScript fallback implementation
-  return performJavaScriptBoolean(geometryA, geometryB, operation, precision);
-}
-
-// WebAssembly boolean operations (placeholder for future implementation)
-function performWebAssemblyBoolean(
-  geometryA: THREE.BufferGeometry,
-  geometryB: THREE.BufferGeometry,
-  operation: string,
-  precision: number
-): THREE.BufferGeometry {
-  // console.log('WebAssembly boolean engine would be loaded here');
-  // This would integrate with a real boolean geometry library like:
-  // - Manifold: https://github.com/elalish/manifold
-  // - OpenCASCADE: https://www.opencascade.com/
-  
-  // console.log('WebAssembly boolean operations not yet implemented, using JavaScript fallback');
-  throw new Error('WebAssembly implementation not available');
-}
-
-// JavaScript boolean operations implementation
-function performJavaScriptBoolean(
-  geometryA: THREE.BufferGeometry,
-  geometryB: THREE.BufferGeometry,
-  operation: string,
-  precision: number
-): THREE.BufferGeometry {
-  
-  // Ensure geometries are indexed
-  if (!geometryA.index) geometryA = geometryA.toNonIndexed();
-  if (!geometryB.index) geometryB = geometryB.toNonIndexed();
-
-  const positionsA = geometryA.attributes.position.array;
-  const positionsB = geometryB.attributes.position.array;
-  
-  // Simple boolean implementation using BSP-like approach
-  switch (operation) {
-    case 'union':
-      return performUnion(geometryA, geometryB, precision);
-    case 'difference':
-      return performDifference(geometryA, geometryB, precision);
-    case 'intersection':
-      return performIntersection(geometryA, geometryB, precision);
-    default:
-      return geometryA;
-  }
-}
-
-// Union operation: Combine both geometries
-function performUnion(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGeometry, precision: number): THREE.BufferGeometry {
-  // For now, implement as a smart merge that removes internal faces
-  const result = new THREE.BufferGeometry();
-  
-  const posA = geometryA.attributes.position.array;
-  const posB = geometryB.attributes.position.array;
-  
-  const allPositions = new Float32Array(posA.length + posB.length);
-  allPositions.set(posA, 0);
-  allPositions.set(posB, posA.length);
-  
-  result.setAttribute('position', new THREE.BufferAttribute(allPositions, 3));
-  
-  // Generate indices for the combined geometry
-  const indexCount = (posA.length + posB.length) / 3;
-  const indices = new Array(indexCount);
-  for (let i = 0; i < indexCount; i++) {
-    indices[i] = i;
-  }
-  result.setIndex(indices);
-  
-  result.computeVertexNormals();
-  return result;
-}
-
-// Difference operation: A - B
-function performDifference(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGeometry, precision: number): THREE.BufferGeometry {
-  // Simplified implementation: return A with slight modification to show difference
-  // console.log('Difference operation: Using simplified implementation');
-  
-  // In a full implementation, this would:
-  // 1. Find intersections between A and B
-  // 2. Remove intersecting parts from A
-  // 3. Repair the resulting mesh
-  
-  return geometryA.clone();
-}
-
-// Intersection operation: A ∩ B
-function performIntersection(geometryA: THREE.BufferGeometry, geometryB: THREE.BufferGeometry, precision: number): THREE.BufferGeometry {
-  // Simplified implementation: return the overlapping volume
-  // console.log('Intersection operation: Using simplified implementation');
-  
-  // For now, return a scaled version of A (placeholder)
-  // In a full implementation, this would:
-  // 1. Find the overlapping volume between A and B
-  // 2. Generate new mesh representing the intersection
-  
-  const result = geometryA.clone();
-  const positions = result.attributes.position;
-  
-  // Scale down as a simple intersection approximation
-  for (let i = 0; i < positions.count; i++) {
-    positions.setXYZ(
-      i,
-      positions.getX(i) * 0.8,
-      positions.getY(i) * 0.8,
-      positions.getZ(i) * 0.8
-    );
-  }
-  
-  positions.needsUpdate = true;
-  result.computeVertexNormals();
-  
-  return result;
-}
-
-// Future WebAssembly integration utilities
-export class WebAssemblyBooleanEngine {
-  private static instance: WebAssemblyBooleanEngine;
-  private wasmModule: any = null;
-  private isLoaded = false;
-
-  static getInstance(): WebAssemblyBooleanEngine {
-    if (!WebAssemblyBooleanEngine.instance) {
-      WebAssemblyBooleanEngine.instance = new WebAssemblyBooleanEngine();
-    }
-    return WebAssemblyBooleanEngine.instance;
-  }
-
-  async loadWasmModule(): Promise<boolean> {
-    if (this.isLoaded) return true;
-
-    try {
-      // TODO: Load actual WASM module
-      // const wasmUrl = '/path/to/geometry-boolean.wasm';
-      // this.wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmUrl));
-      
-      // console.log('WebAssembly boolean engine would be loaded here');
-      this.isLoaded = false; // Set to true when actual WASM is loaded
-      return this.isLoaded;
-    } catch (error) {
-      console.error('Failed to load WebAssembly boolean engine:', error);
-      return false;
-    }
-  }
-
-  performBoolean(
-    meshA: Float32Array,
-    meshB: Float32Array,
-    operation: 'union' | 'difference' | 'intersection'
-  ): Float32Array | null {
-    if (!this.isLoaded || !this.wasmModule) {
-      throw new Error('WebAssembly module not loaded');
-    }
-
-    // TODO: Call WASM functions
-    // return this.wasmModule.instance.exports.boolean_operation(meshA, meshB, operation);
-    
-    throw new Error('WebAssembly implementation not yet available');
-  }
-} 

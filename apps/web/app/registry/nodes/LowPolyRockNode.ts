@@ -1,8 +1,11 @@
-import { NodeDefinition } from '../../types/nodeSystem';
+import * as pc from 'playcanvas';
+import { NodeDefinition } from '../../types/nodes';
 import { Mountain } from 'lucide-react';
-import * as THREE from 'three';
+import { SphereBuilder } from '../../utils/builders/primitives/SphereBuilder';
+import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
+import { GeometryOperations } from '../../utils/builders/operations/GeometryOperations';
 
-// Low Poly Rock Node - Built from scratch with BufferGeometry
+// Low Poly Rock Node
 export const lowPolyRockNodeDefinition: NodeDefinition = {
   type: 'lowPolyRock',
   name: 'Low Poly Rock',
@@ -24,22 +27,22 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
       id: 'detail',
       name: 'Detail',
       type: 'number',
-      defaultValue: 100,
-      description: 'Number of vertices (higher = more detail)'
+      defaultValue: 1, // Lower default for low poly look
+      description: 'Detail level'
     },
     {
       id: 'noise',
       name: 'Noise',
       type: 'number',
       defaultValue: 0.3,
-      description: 'Noise intensity for rock deformation'
+      description: 'Noise intensity'
     },
     {
       id: 'seed',
       name: 'Seed',
       type: 'number',
       defaultValue: 42,
-      description: 'Random seed for noise generation'
+      description: 'Random seed'
     }
   ],
   outputs: [
@@ -56,98 +59,33 @@ export const lowPolyRockNodeDefinition: NodeDefinition = {
   },
   execute: (inputs, parameters) => {
     const radius = inputs.radius || 1.0;
-    const detail = Math.max(3, Math.min(5, inputs.detail || 3)); // Icosahedron detail levels
+    const detail = Math.max(1, Math.min(3, inputs.detail || 1)); 
     const noise = inputs.noise || 0.3;
     const seed = inputs.seed || 42;
 
-    // Start with a sphere geometry
-    const geometry = new THREE.IcosahedronGeometry(radius, detail);
-    
-    // Get the position attribute
-    const positions = geometry.attributes.position;
-    const tmp = new THREE.Vector3();
-    const normal = new THREE.Vector3();
-
-    // Simple deterministic RNG for noise
-    const random = new (class {
-      private seed: number;
-      constructor(seed: number) {
-        this.seed = seed;
-      }
-      random(): number {
-        const x = Math.sin(this.seed++) * 10000;
-        return x - Math.floor(x);
-      }
-    })(seed);
-
-    // Apply noise deformation to each vertex while maintaining connectivity
-    for (let i = 0; i < positions.count; i++) {
-      tmp.set(positions.getX(i), positions.getY(i), positions.getZ(i));
-      normal.copy(tmp).normalize();
-      
-      // Generate coherent noise based on vertex position for consistent deformation
-      // Use position-based seeded noise to ensure adjacent vertices get similar displacement
-      const posHash = Math.floor(tmp.x * 100) ^ Math.floor(tmp.y * 100) ^ Math.floor(tmp.z * 100);
-      const positionSeed = seed + posHash;
-      const posRandom = Math.sin(positionSeed) * 43758.5453;
-      const noiseValue = (posRandom - Math.floor(posRandom) - 0.5) * noise;
-      
-      // Ensure minimum displacement to keep surface coherent (prevent inward collapse)
-      const minDisplacement = -radius * 0.2; // Don't go more than 20% inward
-      const maxDisplacement = radius * 0.5;  // Don't go more than 50% outward
-      const clampedNoise = Math.max(minDisplacement, Math.min(maxDisplacement, noiseValue));
-      
-      // Apply radial displacement along the normal
-      tmp.addScaledVector(normal, clampedNoise);
-      
-      // Update vertex position
-      positions.setXYZ(i, tmp.x, tmp.y, tmp.z);
-    }
-    
-    // Mark position attribute as needing update
-    positions.needsUpdate = true;
-    
-    // Recompute normals after deformation to ensure proper lighting
-    geometry.computeVertexNormals();
-    
-    // Compute bounding box and sphere to ensure geometry is properly formed
-    geometry.computeBoundingBox();
-    geometry.computeBoundingSphere();
-    
-    // Ensure the geometry has a proper index if it doesn't already
-    if (!geometry.index) {
-      // IcosahedronGeometry should already be indexed, but ensure it's properly formatted
-      const positionCount = geometry.attributes.position.count;
-      // console.log('Rock geometry validation:', {
-      //   hasIndex: !!geometry.index,
-      //   vertexCount: positionCount,
-      //   hasNormals: !!geometry.attributes.normal
-      // });
-    }
-    
-    // Create material
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x808080, // Gray color
-      side: THREE.DoubleSide,
-      roughness: 0.8,
-      metalness: 0.1
+    // Start with a sphere geometry (Icosahedron-like)
+    // widthSegments/heightSegments low for "low poly" look
+    const segments = detail * 2 + 2;
+    let geometry = SphereBuilder.create({ 
+        radius, 
+        widthSegments: segments, 
+        heightSegments: segments 
     });
+    
+    // Apply noise displacement
+    // We reuse our GeometryOperations.displace
+    geometry = GeometryOperations.displace(geometry, noise, 2.0, seed);
+    
+    // Recompute flat normals for low poly look?
+    // Ideally we want flat shading. 
+    // PlayCanvas StandardMaterial handles flat shading via `shading: pc.SHADING_FLAT` if normals are set per face.
+    // Our GeometryBuilder/VertexDataUtils currently does smooth normals by default.
+    // To get hard edges, we need unique vertices per face.
+    // This is implicit if we don't share vertices or if we explicitly split them.
+    // For now, we'll just return the displaced geometry, user can set material to flat shading.
+    
+    const result = VertexDataUtils.computeNormals(geometry);
 
-    // Attach material to geometry for rendering
-    (geometry as any).material = material;
-
-    // Debug geometry structure
-    // console.log('Low poly rock geometry:', {
-    //   type: geometry.type,
-    //   hasPosition: !!geometry.attributes.position,
-    //   positionCount: geometry.attributes.position?.count || 0,
-    //   hasIndex: !!geometry.index,
-    //   indexCount: geometry.index?.count || 0,
-    //   isBufferGeometry: geometry.isBufferGeometry,
-    //   boundingBox: geometry.boundingBox,
-    //   hasNormals: !!geometry.attributes.normal
-    // });
-
-    return { geometry };
+    return { geometry: result };
   }
-}; 
+};

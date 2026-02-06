@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { NodeDefinition, LayoutRow, InputComponent, ParameterType, SOCKET_METADATA, CATEGORY_METADATA, RowType, generateSmartLayout } from '../types/nodeSystem';
+import { NodeDefinition, LayoutRow, InputComponent, ParameterType, SOCKET_METADATA, CATEGORY_METADATA, RowType, generateSmartLayout } from '../types/nodes';
 import { createOutputHandleClickHandler } from '../utils/handleUtils';
 import { TypeRenderer } from './type-renderers';
 import ParameterInput from './ParameterInput';
@@ -20,12 +20,6 @@ interface SystematicNodeLayoutProps {
   onSocketValueChange?: (socketId: string, value: any) => void;
 }
 
-
-
-
-
-
-
 // Main systematic node layout component
 export default function SystematicNodeLayout({
   id,
@@ -39,7 +33,7 @@ export default function SystematicNodeLayout({
   onParameterChange,
   onSocketValueChange
 }: SystematicNodeLayoutProps) {
-  const categoryMeta = CATEGORY_METADATA[definition.category];
+  const categoryMeta = CATEGORY_METADATA[definition.category] || { color: 'gray', icon: '', description: 'Unknown' };
   
   // Auto-generate layout if not provided
   const effectiveLayout = definition.layout || generateSmartLayout(definition.inputs, definition.outputs, definition.parameters);
@@ -440,4 +434,4 @@ export default function SystematicNodeLayout({
       })}
     </div>
   );
-} 
+}
