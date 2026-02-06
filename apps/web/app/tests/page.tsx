@@ -602,6 +602,175 @@ function registerTests(runner: TestRunner) {
     });
   });
 
+  // ---- CubeNode Tests ----
+  runner.describe('CubeNode', () => {
+
+    runner.it('should generate cube geometry with correct structure', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cube', {}, { width: 2, height: 2, depth: 2 });
+      assertDefined(result.geometry, 'Cube should return geometry');
+      assertInstanceOf(result.geometry.vertices, Float32Array, 'Vertices should be Float32Array');
+      assertInstanceOf(result.geometry.indices, Uint32Array, 'Indices should be Uint32Array');
+      assertInstanceOf(result.geometry.normals, Float32Array, 'Normals should be Float32Array');
+    });
+
+    runner.it('should have 24 vertices (4 per face x 6 faces)', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      assertEqual(result.geometry.vertices.length / 3, 24);
+    });
+
+    runner.it('should have 36 indices (6 per face x 6 faces)', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      assertEqual(result.geometry.indices.length, 36);
+    });
+
+    runner.it('should respect width/height/depth parameters', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cube', {}, { width: 4, height: 6, depth: 2 });
+      const verts = result.geometry.vertices;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (let i = 0; i < verts.length; i += 3) {
+        maxX = Math.max(maxX, Math.abs(verts[i]));
+        maxY = Math.max(maxY, Math.abs(verts[i+1]));
+        maxZ = Math.max(maxZ, Math.abs(verts[i+2]));
+      }
+      assertEqual(maxX, 2); // half of width=4
+      assertEqual(maxY, 3); // half of height=6
+      assertEqual(maxZ, 1); // half of depth=2
+    });
+  });
+
+  // ---- CylinderNode Tests ----
+  runner.describe('CylinderNode', () => {
+
+    runner.it('should generate cylinder geometry', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cylinder', {}, { radiusTop: 1, radiusBottom: 1, height: 2, radialSegments: 8 });
+      assertDefined(result.geometry, 'Cylinder should return geometry');
+      assertInstanceOf(result.geometry.vertices, Float32Array, 'Vertices should be Float32Array');
+      assertInstanceOf(result.geometry.indices, Uint32Array, 'Indices should be Uint32Array');
+    });
+
+    runner.it('should produce more vertices with more segments', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const r8 = registry.executeNode('cylinder', {}, { radiusTop: 1, radiusBottom: 1, height: 2, radialSegments: 8 });
+      const r16 = registry.executeNode('cylinder', {}, { radiusTop: 1, radiusBottom: 1, height: 2, radialSegments: 16 });
+      assertGreaterThan(r16.geometry.vertices.length, r8.geometry.vertices.length, 'More segments = more vertices');
+    });
+
+    runner.it('should respect height parameter', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('cylinder', {}, { radiusTop: 1, radiusBottom: 1, height: 6, radialSegments: 8 });
+      const verts = result.geometry.vertices;
+      let maxY = -Infinity, minY = Infinity;
+      for (let i = 1; i < verts.length; i += 3) {
+        maxY = Math.max(maxY, verts[i]);
+        minY = Math.min(minY, verts[i]);
+      }
+      assertEqual(maxY, 3); // half of height=6
+      assertEqual(minY, -3);
+    });
+  });
+
+  // ---- TransformNode Tests ----
+  runner.describe('TransformNode', () => {
+
+    runner.it('should translate geometry', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      const result = registry.executeNode('transform',
+        { 'geometry-in': cube.geometry },
+        { 'position-x': 5, 'position-y': 0, 'position-z': 0, 'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0, 'scale-x': 1, 'scale-y': 1, 'scale-z': 1 }
+      );
+      assertDefined(result['geometry-out'], 'Transform should output geometry-out');
+      const verts = result['geometry-out'].vertices;
+      // All vertices should be shifted by 5 in X
+      let minX = Infinity;
+      for (let i = 0; i < verts.length; i += 3) {
+        minX = Math.min(minX, verts[i]);
+      }
+      assertGreaterThan(minX, 4, 'Minimum X should be > 4 after translating +5');
+    });
+
+    runner.it('should scale geometry', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 2, height: 2, depth: 2 });
+      const result = registry.executeNode('transform',
+        { 'geometry-in': cube.geometry },
+        { 'position-x': 0, 'position-y': 0, 'position-z': 0, 'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0, 'scale-x': 3, 'scale-y': 1, 'scale-z': 1 }
+      );
+      const verts = result['geometry-out'].vertices;
+      let maxX = -Infinity;
+      for (let i = 0; i < verts.length; i += 3) {
+        maxX = Math.max(maxX, Math.abs(verts[i]));
+      }
+      assertEqual(maxX, 3); // original half-width 1 * scale 3
+    });
+
+    runner.it('should pass through null geometry gracefully', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('transform', {}, {
+        'position-x': 0, 'position-y': 0, 'position-z': 0,
+        'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0,
+        'scale-x': 1, 'scale-y': 1, 'scale-z': 1,
+      });
+      // Should not crash
+      assertDefined(result, 'Transform should return something');
+    });
+  });
+
+  // ---- Material Node Tests ----
+  runner.describe('MaterialNodes', () => {
+
+    runner.it('should create standard material with properties', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('standard-material', {}, { color: '#ff0000', metalness: 0.8, roughness: 0.2 });
+      assertDefined(result.material, 'Should return material');
+      assertEqual(result.material.type, 'standard');
+      assertEqual(result.material.metalness, 0.8);
+    });
+
+    runner.it('should create basic material', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('basic-material', {}, { color: '#00ff00' });
+      assertDefined(result.material, 'Should return material');
+      assertEqual(result.material.type, 'basic');
+      assertEqual(result.material.unlit, true);
+    });
+
+    runner.it('should create physical material with clearcoat', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('physical-material', {}, { color: '#0000ff', metalness: 1, roughness: 0, clearcoat: 0.5 });
+      assertDefined(result.material, 'Should return material');
+      assertEqual(result.material.type, 'physical');
+      assertEqual(result.material.clearcoat, 0.5);
+    });
+
+    runner.it('should create emissive material with intensity', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('emissive-material', {}, { color: '#ff6600', intensity: 3.0 });
+      assertDefined(result.material, 'Should return material');
+      assertEqual(result.material.type, 'emissive');
+      assertEqual(result.material.emissiveIntensity, 3.0);
+    });
+  });
+
   // ---- Node Execution Stress Tests ----
   runner.describe('Node Execution Stress', () => {
 
