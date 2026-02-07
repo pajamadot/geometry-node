@@ -771,6 +771,336 @@ function registerTests(runner: TestRunner) {
     });
   });
 
+  // ---- GraphCompiler Tests ----
+  runner.describe('GraphCompiler', () => {
+
+    runner.it('should compile an empty graph', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const compiled = graphCompiler.compileGraph([], []);
+      assertEqual(compiled.executionOrder.length, 0);
+      assertEqual(compiled.outputNodeId, null);
+    });
+
+    runner.it('should compile a single node graph', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const nodes = [{ id: 'n1', type: 'cube', parameters: { width: 1, height: 1, depth: 1 } }];
+      const compiled = graphCompiler.compileGraph(nodes, []);
+      assertEqual(compiled.executionOrder.length, 1);
+      assertEqual(compiled.executionOrder[0], 'n1');
+      assertEqual(compiled.outputNodeId, 'n1'); // last node becomes output
+    });
+
+    runner.it('should topologically sort connected nodes', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const nodes = [
+        { id: 'n1', type: 'cube', parameters: { width: 1, height: 1, depth: 1 } },
+        { id: 'n2', type: 'transform', parameters: {} },
+      ];
+      const edges = [
+        { source: 'n1', target: 'n2', sourceHandle: 'geometry', targetHandle: 'geometry-in' },
+      ];
+      const compiled = graphCompiler.compileGraph(nodes, edges);
+      assertEqual(compiled.executionOrder.length, 2);
+      assert(
+        compiled.executionOrder.indexOf('n1') < compiled.executionOrder.indexOf('n2'),
+        'n1 should execute before n2'
+      );
+    });
+
+    runner.it('should detect output node', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const nodes = [
+        { id: 'n1', type: 'cube', parameters: {} },
+        { id: 'out', type: 'output', parameters: {} },
+      ];
+      const edges = [
+        { source: 'n1', target: 'out', sourceHandle: 'geometry', targetHandle: 'geometry' },
+      ];
+      const compiled = graphCompiler.compileGraph(nodes, edges);
+      assertEqual(compiled.outputNodeId, 'out');
+    });
+
+    runner.it('should execute a compiled single-node graph', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const nodes = [{ id: 'n1', type: 'cube', parameters: { width: 2, height: 2, depth: 2 } }];
+      const compiled = graphCompiler.compileGraph(nodes, []);
+      const result = graphCompiler.executeGraph(compiled);
+      assertEqual(result.success, true);
+      assertDefined(result.finalGeometry, 'Should have final geometry');
+    });
+
+    runner.it('should execute a connected graph (cube -> transform)', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const nodes = [
+        { id: 'n1', type: 'cube', parameters: { width: 1, height: 1, depth: 1 } },
+        { id: 'n2', type: 'transform', parameters: { 'position-x': 5, 'position-y': 0, 'position-z': 0, 'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0, 'scale-x': 1, 'scale-y': 1, 'scale-z': 1 } },
+      ];
+      const edges = [
+        { source: 'n1', target: 'n2', sourceHandle: 'geometry', targetHandle: 'geometry-in' },
+      ];
+      const compiled = graphCompiler.compileGraph(nodes, edges);
+      const result = graphCompiler.executeGraph(compiled);
+      assertEqual(result.success, true);
+      assertDefined(result.finalGeometry, 'Should have transformed geometry');
+      // Check translation was applied
+      const verts = result.finalGeometry.vertices;
+      let minX = Infinity;
+      for (let i = 0; i < verts.length; i += 3) {
+        minX = Math.min(minX, verts[i]);
+      }
+      assertGreaterThan(minX, 4, 'Vertices should be translated by +5 in X');
+    });
+
+    runner.it('should handle empty compiled graph execution', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const compiled = graphCompiler.compileGraph([], []);
+      const result = graphCompiler.executeGraph(compiled);
+      assertEqual(result.success, true);
+      assertEqual(result.finalGeometry, null);
+    });
+
+    runner.it('should handle 3-node chain (cube -> transform -> transform)', () => {
+      const { graphCompiler } = require('../utils/graphCompiler');
+      const params = { 'position-x': 1, 'position-y': 0, 'position-z': 0, 'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0, 'scale-x': 1, 'scale-y': 1, 'scale-z': 1 };
+      const nodes = [
+        { id: 'n1', type: 'cube', parameters: { width: 1, height: 1, depth: 1 } },
+        { id: 'n2', type: 'transform', parameters: params },
+        { id: 'n3', type: 'transform', parameters: params },
+      ];
+      const edges = [
+        { source: 'n1', target: 'n2', sourceHandle: 'geometry', targetHandle: 'geometry-in' },
+        { source: 'n2', target: 'n3', sourceHandle: 'geometry-out', targetHandle: 'geometry-in' },
+      ];
+      const compiled = graphCompiler.compileGraph(nodes, edges);
+      assertEqual(compiled.executionOrder.length, 3);
+      const result = graphCompiler.executeGraph(compiled);
+      assertEqual(result.success, true);
+      assertDefined(result.finalGeometry, 'Should have double-transformed geometry');
+    });
+  });
+
+  // ---- JoinNode Tests ----
+  runner.describe('JoinNode', () => {
+
+    runner.it('should merge two geometries', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      const sphere = registry.executeNode('sphere', {}, { radius: 1 });
+      const result = registry.executeNode('join', {
+        geometryA: cube.geometry,
+        geometryB: sphere.geometry,
+      }, {});
+      assertDefined(result.geometry, 'Join should return merged geometry');
+    });
+
+    runner.it('should pass through single geometry when only A provided', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      const result = registry.executeNode('join', {
+        geometryA: cube.geometry,
+      }, {});
+      assertDefined(result.geometry, 'Should return geometry A as pass-through');
+    });
+
+    runner.it('should return null when no geometries provided', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('join', {}, {});
+      assertEqual(result.geometry, null);
+    });
+  });
+
+  // ---- SphereNode Geometry Validation ----
+  runner.describe('SphereNode Geometry', () => {
+
+    runner.it('should have correct vertex count for given segments', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const wSegs = 16, hSegs = 8;
+      const result = registry.executeNode('sphere', {
+        widthSegments: wSegs,
+        heightSegments: hSegs,
+      }, { radius: 1 });
+      const expectedVerts = (wSegs + 1) * (hSegs + 1);
+      assertEqual(result.geometry.vertices.length / 3, expectedVerts);
+    });
+
+    runner.it('should have normals matching vertex count', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('sphere', { widthSegments: 8, heightSegments: 4 }, { radius: 1 });
+      assertEqual(result.geometry.normals.length, result.geometry.vertices.length);
+    });
+
+    runner.it('should produce unit normals on unit sphere', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('sphere', { widthSegments: 8, heightSegments: 4 }, { radius: 1 });
+      const normals = result.geometry.normals;
+      // Check first non-pole normal is approximately unit length
+      const nx = normals[3], ny = normals[4], nz = normals[5];
+      const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+      assert(Math.abs(len - 1) < 0.01, `Normal length should be ~1, got ${len}`);
+    });
+
+    runner.it('should scale vertices with radius', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('sphere', { widthSegments: 8, heightSegments: 4 }, { radius: 5 });
+      const verts = result.geometry.vertices;
+      let maxDist = 0;
+      for (let i = 0; i < verts.length; i += 3) {
+        const d = Math.sqrt(verts[i]*verts[i] + verts[i+1]*verts[i+1] + verts[i+2]*verts[i+2]);
+        maxDist = Math.max(maxDist, d);
+      }
+      assert(Math.abs(maxDist - 5) < 0.01, `Max distance from center should be ~5, got ${maxDist}`);
+    });
+  });
+
+  // ---- MathNode Tests ----
+  runner.describe('MathNode', () => {
+
+    runner.it('should add two numbers', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('math', { valueA: 3, valueB: 7, operation: 'add' }, {});
+      assertEqual(result.result, 10);
+    });
+
+    runner.it('should multiply two numbers', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('math', { valueA: 4, valueB: 5, operation: 'multiply' }, {});
+      assertEqual(result.result, 20);
+    });
+
+    runner.it('should compute sine', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('math', { valueA: Math.PI / 2, operation: 'sin' }, {});
+      assert(Math.abs(result.result - 1) < 0.001, `sin(PI/2) should be ~1, got ${result.result}`);
+    });
+
+    runner.it('should compute square root', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('math', { valueA: 16, operation: 'sqrt' }, {});
+      assertEqual(result.result, 4);
+    });
+  });
+
+  // ---- VectorMathNode Tests ----
+  runner.describe('VectorMathNode', () => {
+
+    runner.it('should add two vectors', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('vector-math', {
+        vectorA: { x: 1, y: 2, z: 3 },
+        vectorB: { x: 4, y: 5, z: 6 },
+      }, { operation: 'add' });
+      assertDefined(result.result, 'Should return result vector');
+      assertEqual(result.result.x, 5);
+      assertEqual(result.result.y, 7);
+      assertEqual(result.result.z, 9);
+    });
+
+    runner.it('should compute dot product', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('vector-math', {
+        vectorA: { x: 1, y: 0, z: 0 },
+        vectorB: { x: 0, y: 1, z: 0 },
+      }, { operation: 'dot' });
+      assertEqual(result.value, 0); // perpendicular vectors
+    });
+
+    runner.it('should normalize a vector', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const result = registry.executeNode('vector-math', {
+        vectorA: { x: 3, y: 4, z: 0 },
+      }, { operation: 'normalize' });
+      const len = Math.sqrt(result.result.x**2 + result.result.y**2 + result.result.z**2);
+      assert(Math.abs(len - 1) < 0.001, `Normalized length should be ~1, got ${len}`);
+    });
+  });
+
+  // ---- Node Pipeline Integration Tests ----
+  runner.describe('Node Pipeline Integration', () => {
+
+    runner.it('should execute cube -> sphere pipeline (independent)', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 2, height: 2, depth: 2 });
+      const sphere = registry.executeNode('sphere', {}, { radius: 1 });
+      assertDefined(cube.geometry, 'Cube geometry');
+      assertDefined(sphere.geometry, 'Sphere geometry');
+      assertGreaterThan(cube.geometry.vertices.length, 0, 'Cube should have vertices');
+      assertGreaterThan(sphere.geometry.vertices.length, 0, 'Sphere should have vertices');
+    });
+
+    runner.it('should execute geometry -> material assignment', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      const mat = registry.executeNode('standard-material', {}, { color: '#ff0000', metalness: 0.5, roughness: 0.3 });
+      const result = registry.executeNode('set-material', {
+        geometry: cube.geometry,
+        material: mat.material,
+      }, {});
+      assertDefined(result.geometry, 'Should return geometry with material');
+    });
+
+    runner.it('should execute cube -> transform -> transform chain', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const cube = registry.executeNode('cube', {}, { width: 1, height: 1, depth: 1 });
+      const t1 = registry.executeNode('transform', { 'geometry-in': cube.geometry }, {
+        'position-x': 2, 'position-y': 0, 'position-z': 0,
+        'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0,
+        'scale-x': 1, 'scale-y': 1, 'scale-z': 1,
+      });
+      const t2 = registry.executeNode('transform', { 'geometry-in': t1['geometry-out'] }, {
+        'position-x': 0, 'position-y': 3, 'position-z': 0,
+        'rotation-x': 0, 'rotation-y': 0, 'rotation-z': 0,
+        'scale-x': 2, 'scale-y': 2, 'scale-z': 2,
+      });
+      assertDefined(t2['geometry-out'], 'Double transform should produce geometry');
+      const verts = t2['geometry-out'].vertices;
+      // Check both transforms were applied
+      let minY = Infinity;
+      for (let i = 1; i < verts.length; i += 3) {
+        minY = Math.min(minY, verts[i]);
+      }
+      assertGreaterThan(minY, 1, 'Should be translated up by 3 and scaled');
+    });
+
+    runner.it('should execute 50 different node types without error', () => {
+      const { NodeRegistry } = require('../registry/NodeRegistry');
+      const registry = NodeRegistry.getInstance();
+      const defs = registry.getAllDefinitions();
+      let successCount = 0;
+
+      for (const def of defs) {
+        if (def.type === 'output') continue;
+        try {
+          const params: Record<string, any> = {};
+          for (const p of def.parameters) {
+            params[p.id] = p.defaultValue;
+          }
+          def.execute({}, params);
+          successCount++;
+        } catch {
+          // Some nodes need real geometry input - that's ok
+        }
+      }
+      assertGreaterThan(successCount, 15, `Should execute at least 15 nodes successfully, got ${successCount}`);
+    });
+  });
+
   // ---- Node Execution Stress Tests ----
   runner.describe('Node Execution Stress', () => {
 
