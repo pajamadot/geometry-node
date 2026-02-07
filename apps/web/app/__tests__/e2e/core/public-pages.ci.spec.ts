@@ -211,6 +211,40 @@ test.describe('Performance', () => {
   });
 });
 
+test.describe('Editor Page', () => {
+
+  test('should load editor page', async ({ page }) => {
+    const response = await page.goto('/editor');
+    // Editor may redirect to sign-in (Clerk) or render directly
+    const status = response?.status();
+    expect(status).toBeLessThan(500); // Should not be a server error
+  });
+
+  test('editor page should not crash with 500', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => {
+      errors.push(error.message);
+    });
+
+    await page.goto('/editor');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // Filter out expected errors (Clerk auth, hydration, etc.)
+    const criticalErrors = errors.filter(e =>
+      !e.includes('Clerk') &&
+      !e.includes('hydrat') &&
+      !e.includes('ResizeObserver') &&
+      !e.includes('Failed to fetch') &&
+      !e.includes('ChunkLoadError') &&
+      !e.includes('auth') &&
+      !e.includes('sign-in')
+    );
+
+    expect(criticalErrors).toHaveLength(0);
+  });
+});
+
 test.describe('HTTP Headers & Security', () => {
 
   test('should return proper content type', async ({ page }) => {

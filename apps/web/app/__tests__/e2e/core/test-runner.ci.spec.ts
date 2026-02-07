@@ -97,6 +97,16 @@ test.describe('In-Browser Test Runner', () => {
       'CylinderNode',
       'TransformNode',
       'MaterialNodes',
+      'GraphCompiler',
+      'MathNode',
+      'VectorMathNode',
+      'SeagullNode',
+      'Modifier Nodes',
+      'Instance & Color Nodes',
+      'EnhancedGeometryData Pipeline',
+      'Special Material Nodes',
+      'Complex Generator Nodes',
+      'Registry Comprehensive',
     ];
 
     const bodyText = await page.locator('body').innerText();
