@@ -1,6 +1,8 @@
 import { NodeDefinition } from '../../types/nodeSystem';
 import { Waves } from 'lucide-react';
 import { GeometryOperations } from '../../utils/builders';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
+import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
 
 export const noiseDisplaceNodeDefinition: NodeDefinition = {
   type: 'noise-displace',
@@ -69,7 +71,7 @@ export const noiseDisplaceNodeDefinition: NodeDefinition = {
   },
 
   execute: (inputs, parameters) => {
-    const geometry = inputs.geometry;
+    const geometry = inputs.geometry as EnhancedGeometryData;
     if (!geometry) {
       return { geometry: null };
     }
@@ -78,36 +80,9 @@ export const noiseDisplaceNodeDefinition: NodeDefinition = {
     const frequency = inputs.frequency ?? 1.0;
     const seed = inputs.seed ?? 0;
 
-    // Convert THREE.js geometry to EnhancedGeometryData
-    const enhancedGeom = {
-      vertices: [],
-      faces: [],
-      attributes: {
-        vertex: new Map(),
-        edge: new Map(),
-        face: new Map(),
-        corner: new Map(),
-      },
-      vertexCount: geometry.attributes.position.count,
-      faceCount: geometry.index ? geometry.index.count / 3 : 0,
-      positionsArray: geometry.attributes.position.array as Float32Array,
-      normalsArray: geometry.attributes.normal?.array as Float32Array,
-      indicesArray: geometry.index?.array as Uint32Array,
-    };
+    const displaced = GeometryOperations.displace(geometry, amplitude, frequency, seed);
+    const result = VertexDataUtils.computeNormals(displaced);
 
-    // Apply displacement
-    const displaced = GeometryOperations.displace(
-      enhancedGeom,
-      amplitude,
-      frequency,
-      seed
-    );
-
-    // Update geometry
-    geometry.attributes.position.array = displaced.positionsArray!;
-    geometry.attributes.position.needsUpdate = true;
-    geometry.computeVertexNormals();
-
-    return { geometry };
+    return { geometry: result };
   },
 };

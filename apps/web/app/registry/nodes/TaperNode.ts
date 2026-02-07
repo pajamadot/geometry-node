@@ -1,6 +1,8 @@
 import { NodeDefinition } from '../../types/nodeSystem';
 import { TrendingUp } from 'lucide-react';
 import { GeometryOperations } from '../../utils/builders';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
+import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
 
 export const taperNodeDefinition: NodeDefinition = {
   type: 'taper',
@@ -57,7 +59,7 @@ export const taperNodeDefinition: NodeDefinition = {
   },
 
   execute: (inputs, parameters) => {
-    const geometry = inputs.geometry;
+    const geometry = inputs.geometry as EnhancedGeometryData;
     if (!geometry) {
       return { geometry: null };
     }
@@ -65,28 +67,9 @@ export const taperNodeDefinition: NodeDefinition = {
     const amount = inputs.amount ?? 1.0;
     const axis = inputs.axis ?? 'y';
 
-    const enhancedGeom = {
-      vertices: [],
-      faces: [],
-      attributes: {
-        vertex: new Map(),
-        edge: new Map(),
-        face: new Map(),
-        corner: new Map(),
-      },
-      vertexCount: geometry.attributes.position.count,
-      faceCount: geometry.index ? geometry.index.count / 3 : 0,
-      positionsArray: geometry.attributes.position.array as Float32Array,
-      normalsArray: geometry.attributes.normal?.array as Float32Array,
-      indicesArray: geometry.index?.array as Uint32Array,
-    };
+    const tapered = GeometryOperations.taper(geometry, axis as 'x' | 'y' | 'z', amount);
+    const result = VertexDataUtils.computeNormals(tapered);
 
-    const tapered = GeometryOperations.taper(enhancedGeom, axis as 'x' | 'y' | 'z', amount);
-
-    geometry.attributes.position.array = tapered.positionsArray!;
-    geometry.attributes.position.needsUpdate = true;
-    geometry.computeVertexNormals();
-
-    return { geometry };
+    return { geometry: result };
   },
 };

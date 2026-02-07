@@ -1,6 +1,8 @@
 import { NodeDefinition } from '../../types/nodeSystem';
 import { Move } from 'lucide-react';
 import { GeometryOperations } from '../../utils/builders';
+import { EnhancedGeometryData } from '../../utils/builders/GeometryBuilder';
+import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
 
 export const bendNodeDefinition: NodeDefinition = {
   type: 'bend',
@@ -67,7 +69,7 @@ export const bendNodeDefinition: NodeDefinition = {
   },
 
   execute: (inputs, parameters) => {
-    const geometry = inputs.geometry;
+    const geometry = inputs.geometry as EnhancedGeometryData;
     if (!geometry) {
       return { geometry: null };
     }
@@ -76,28 +78,9 @@ export const bendNodeDefinition: NodeDefinition = {
     const axis = inputs.axis ?? 'y';
     const radius = inputs.radius ?? 1;
 
-    const enhancedGeom = {
-      vertices: [],
-      faces: [],
-      attributes: {
-        vertex: new Map(),
-        edge: new Map(),
-        face: new Map(),
-        corner: new Map(),
-      },
-      vertexCount: geometry.attributes.position.count,
-      faceCount: geometry.index ? geometry.index.count / 3 : 0,
-      positionsArray: geometry.attributes.position.array as Float32Array,
-      normalsArray: geometry.attributes.normal?.array as Float32Array,
-      indicesArray: geometry.index?.array as Uint32Array,
-    };
+    const bent = GeometryOperations.bend(geometry, axis as 'x' | 'y' | 'z', angle, radius);
+    const result = VertexDataUtils.computeNormals(bent);
 
-    const bent = GeometryOperations.bend(enhancedGeom, axis as 'x' | 'y' | 'z', angle, radius);
-
-    geometry.attributes.position.array = bent.positionsArray!;
-    geometry.attributes.position.needsUpdate = true;
-    geometry.computeVertexNormals();
-
-    return { geometry };
+    return { geometry: result };
   },
 };

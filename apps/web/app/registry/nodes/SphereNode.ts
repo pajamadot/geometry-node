@@ -55,11 +55,22 @@ export const sphereNodeDefinition: NodeDefinition = {
         }
       }
 
+      const positionsArray = new Float32Array(vertices);
+      const indicesArray = new Uint32Array(indices);
+      const normalsArray = new Float32Array(normals);
+
       return {
         geometry: {
-          vertices: new Float32Array(vertices),
-          indices: new Uint32Array(indices),
-          normals: new Float32Array(normals),
+          vertices: positionsArray,
+          indices: indicesArray,
+          normals: normalsArray,
+          positionsArray,
+          normalsArray,
+          indicesArray,
+          vertexCount: positionsArray.length / 3,
+          faceCount: indicesArray.length / 3,
+          faces: [],
+          attributes: { vertex: new Map(), edge: new Map(), face: new Map(), corner: new Map() },
         },
       };
   }
