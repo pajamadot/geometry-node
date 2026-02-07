@@ -1,6 +1,6 @@
 import * as pc from 'playcanvas';
 import { NodeDefinition } from '../../types/nodes';
-import { Move3D } from 'lucide-react';
+import { Move3d } from 'lucide-react';
 import { CylinderBuilder } from '../../utils/builders/primitives/CylinderBuilder';
 import { VertexDataUtils } from '../../utils/builders/VertexDataUtils';
 
@@ -59,7 +59,7 @@ export const spiralStairNodeDefinition: NodeDefinition = {
   ui: {
     width: 280,
     height: 620,
-    icon: Move3D
+    icon: Move3d
   },
   execute: (inputs, parameters) => {
       // Placeholder implementation using a single cylinder for now to pass build
