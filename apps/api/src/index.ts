@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { getAvailableModels } from '@geometry-script/agent-core';
 import { ai } from './routes/ai';
 import { nodes } from './routes/nodes';
+import { requireAuth } from './auth';
 
 export interface Env {
   OPENROUTER_API_KEY: string;
@@ -11,13 +12,16 @@ export interface Env {
   ALLOWED_ORIGIN: string;
 }
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 
 app.use('*', (c, next) =>
   cors({ origin: c.env.ALLOWED_ORIGIN, allowHeaders: ['Authorization', 'Content-Type'] })(c, next),
 );
 
 app.get('/health', (c) => c.json({ ok: true, service: 'geometry-api' }));
+
+app.use('/ai/*', requireAuth);
+app.use('/nodes', requireAuth);
 
 app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
 app.route('/ai', ai);

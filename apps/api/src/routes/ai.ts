@@ -7,7 +7,7 @@ import {
 } from '@geometry-script/agent-core';
 import type { Env } from '../index';
 
-export const ai = new Hono<{ Bindings: Env }>();
+export const ai = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 
 const sseHeaders = {
   'Content-Type': 'text/event-stream',

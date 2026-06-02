@@ -4,11 +4,13 @@ compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
 # Secrets (set via `wrangler secret put`): OPENROUTER_API_KEY, CLERK_SECRET_KEY
-# Public var: the editor-web origin allowed by CORS
+# Public vars: the editor-web origin allowed by CORS, and Clerk publishable key
 [vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
+CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 
 [env.dev]
 name = "geometry-api-dev"
 [env.dev.vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
+CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
