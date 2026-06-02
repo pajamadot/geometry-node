@@ -9,11 +9,23 @@ compatibility_flags = ["nodejs_compat"]
 ALLOWED_ORIGIN = "http://localhost:5173"
 CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 
+[[durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"
+
+[[migrations]]
+tag = "v2-editorroom"
+new_sqlite_classes = ["EditorRoom"]
+
 [env.dev]
 name = "geometry-api-dev"
 [env.dev.vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
 CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
+
+[[env.dev.durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"
 
 # Production. Secrets (OPENROUTER_API_KEY, CLERK_SECRET_KEY) are set via
 # `wrangler secret put <NAME> --env production` (never committed). The publishable key and
@@ -24,3 +36,7 @@ routes = [{ pattern = "api.geometry.pajamadot.com", custom_domain = true }]
 [env.production.vars]
 ALLOWED_ORIGIN = "https://geometry.pajamadot.com"
 CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucGFqYW1hZG90LmNvbSQ"
+
+[[env.production.durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"

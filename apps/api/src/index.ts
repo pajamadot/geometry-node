@@ -1,15 +1,20 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { routeAgentRequest } from 'agents';
 import { getAvailableModels } from '@geometry-script/agent-core';
 import { ai } from './routes/ai';
 import { nodes } from './routes/nodes';
 import { requireAuth } from './auth';
+import { EditorRoom } from './rooms/editor-room';
+
+export { EditorRoom };
 
 export interface Env {
   OPENROUTER_API_KEY: string;
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
   ALLOWED_ORIGIN: string;
+  EditorRoom: DurableObjectNamespace;
 }
 
 const app = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -30,4 +35,10 @@ app.use('/ai/*', requireAuth);
 app.route('/ai', ai);
 app.route('/nodes', nodes);
 
-export default app;
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const agentResponse = await routeAgentRequest(request, env);
+    if (agentResponse) return agentResponse;
+    return app.fetch(request, env, ctx);
+  },
+};
