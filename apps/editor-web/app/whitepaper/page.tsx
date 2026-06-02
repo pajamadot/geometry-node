@@ -1,8 +1,6 @@
-'use client';
-
 import React, { useCallback } from 'react';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   Download,
   Code,
   Sparkles,
@@ -20,7 +18,7 @@ import {
   CheckCircle,
   Activity
 } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 
 // Evolution Cycle Flow Component using Mermaid
@@ -140,7 +138,7 @@ export default function WhitePaper() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <Link to="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
               <ArrowLeft className="size-5" />
               <span>Back to App</span>
             </Link>
@@ -630,16 +628,16 @@ export default function WhitePaper() {
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-4">
-                <Link 
-                  href="/editor" 
+                <Link
+                  to="/editor"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                 >
                   <Box className="size-4" />
                   Try the Platform
                 </Link>
                 
-                <Link 
-                  href="/investors" 
+                <Link
+                  to="/investors"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
                 >
                   <FileText className="size-4" />

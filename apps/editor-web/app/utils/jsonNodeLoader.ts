@@ -33,9 +33,9 @@ export function jsonToNodeDefinition(jsonNode: JsonNodeDefinition): NodeDefiniti
     execute: executeFunction,
     ui: jsonNode.ui ? {
       ...jsonNode.ui,
-      icon: jsonNode.ui.icon && typeof jsonNode.ui.icon === 'string' 
-        ? ICON_MAP[jsonNode.ui.icon] || Code
-        : jsonNode.ui.icon
+      icon: jsonNode.ui.icon && typeof jsonNode.ui.icon === 'string'
+        ? (ICON_MAP[jsonNode.ui.icon] || Code) as (props: any) => any
+        : jsonNode.ui.icon as unknown as (props: any) => any
     } : undefined
   };
   

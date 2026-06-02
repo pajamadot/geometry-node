@@ -1,3 +1,18 @@
-// Temporary stub — replaced in Task 11 with the real routes.
 import { createBrowserRouter } from 'react-router-dom';
-export const router = createBrowserRouter([{ path: '/', element: null }]);
+import RootLayout from './RootLayout';
+import LandingPage from '../app/page';
+import EditorPage from '../app/editor/page';
+import InvestorsPage from '../app/investors/page';
+import WhitepaperPage from '../app/whitepaper/page';
+
+export const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { path: '/', element: <LandingPage /> },
+      { path: '/editor', element: <EditorPage /> },
+      { path: '/investors', element: <InvestorsPage /> },
+      { path: '/whitepaper', element: <WhitepaperPage /> },
+    ],
+  },
+]);

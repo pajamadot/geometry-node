@@ -1,8 +1,6 @@
-'use client';
-
 import React, { useState } from 'react';
-import { SignedIn, SignedOut, SignUpButton } from '@clerk/nextjs';
-import Link from 'next/link';
+import { SignedIn, SignedOut, SignUpButton } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 import { 
   ArrowRight,
   Zap,
@@ -96,7 +94,7 @@ export default function LandingPage() {
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <Link href="/editor">
+              <Link to="/editor">
                 <button className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg text-lg transition-all duration-300 transform hover:scale-105">
                   <Play className="size-5" />
                   Open Editor

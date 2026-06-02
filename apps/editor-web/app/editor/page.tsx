@@ -1,8 +1,6 @@
-'use client';
-
 import React from 'react';
 import { ReactFlowProvider } from 'reactflow';
-import { SignedIn, SignedOut, RedirectToSignIn, SignOutButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, RedirectToSignIn, SignOutButton } from '@clerk/clerk-react';
 import { LogOut } from 'lucide-react';
 import GeometryNodeEditor from '../components/GeometryNodeEditor';
 import ThreeViewport from '../components/ThreeViewport';

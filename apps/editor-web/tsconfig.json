@@ -13,8 +13,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "allowJs": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "paths": { "@/*": ["./app/*"] }
   },
-  "include": ["app", "src", "vite.config.ts"]
+  "include": ["app", "src"],
+  "exclude": ["app/utils/testRobustDiff.ts"]
 }
