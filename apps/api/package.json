@@ -16,6 +16,7 @@
     "@cloudflare/think": "^0.8.0",
     "@geometry-script/agent-core": "*",
     "agents": "^0.14.0",
+    "ai": "^6.0.195",
     "drizzle-orm": "^0.36.0",
     "hono": "^4.6.14"
   },
