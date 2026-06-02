@@ -4,6 +4,7 @@ import { routeAgentRequest } from 'agents';
 import { getAvailableModels } from '@geometry-script/agent-core';
 import { ai } from './routes/ai';
 import { nodes } from './routes/nodes';
+import { projects } from './routes/projects';
 import { requireAuth } from './auth';
 import { EditorRoom } from './rooms/editor-room';
 
@@ -15,6 +16,7 @@ export interface Env {
   CLERK_PUBLISHABLE_KEY: string;
   ALLOWED_ORIGIN: string;
   EditorRoom: DurableObjectNamespace;
+  DB: D1Database;
 }
 
 const app = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -34,6 +36,9 @@ app.use('/ai/*', requireAuth);
 
 app.route('/ai', ai);
 app.route('/nodes', nodes);
+
+app.use('/projects/*', requireAuth);
+app.route('/projects', projects);
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
