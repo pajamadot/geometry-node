@@ -89,7 +89,7 @@ ai.post('/generate-scene', async (c) => {
   if (!validation.success) {
     return createHTTPResponse(validationToResponse(validation, null, 'generate-scene API'), 400);
   }
-  const { prompt, model, catalog = '' } = body;
+  const { prompt, model, mode = 'generate', catalog = '' } = body;
   const geometryAI = agentFor(c, catalog);
 
   const stream = new ReadableStream({
@@ -98,20 +98,28 @@ ai.post('/generate-scene', async (c) => {
       const send = (obj: unknown) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
       try {
-        send({ type: 'progress', content: 'Generating scene...' });
         const req: GenerateSceneRequest = { task: 'generate_scene', scene_description: prompt };
-        // Stream once and accumulate — do NOT also call executeTask (that would invoke the LLM twice).
-        let sceneResult = '';
-        for await (const chunk of geometryAI.streamGenerateScene(req, model)) {
-          sceneResult += chunk;
-          send({ type: 'stream', content: chunk });
-        }
-        const scene = tryParseScene(sceneResult);
-        const validationResult = scene ? validateSceneJSON(scene) : { success: false, errors: ['Not valid JSON'] };
-        if (scene && validationResult.success) {
-          send({ type: 'success', content: 'Scene generated successfully!', scene });
+        if (mode === 'generate') {
+          send({ type: 'progress', content: 'Generating scene...' });
+          // Stream once and accumulate — do NOT also call executeTask (that would invoke the LLM twice).
+          let sceneResult = '';
+          for await (const chunk of geometryAI.streamGenerateScene(req, model)) {
+            sceneResult += chunk;
+          }
+          const scene = tryParseScene(sceneResult);
+          const validationResult = scene ? validateSceneJSON(scene) : { success: false, errors: ['Not valid JSON'] };
+          if (scene && validationResult.success) {
+            send({ type: 'success', content: 'Scene generated successfully!', scene });
+          } else {
+            send({ type: 'error', content: `Scene validation failed: ${validationResult.errors.join(', ')}`, errorType: ErrorType.VALIDATION_ERROR });
+          }
+        } else if (mode === 'explain') {
+          for await (const chunk of geometryAI.streamGenerateScene(req, model)) {
+            send({ type: 'stream', content: chunk });
+          }
+          send({ type: 'done', content: '' });
         } else {
-          send({ type: 'error', content: `Scene validation failed: ${validationResult.errors.join(', ')}`, errorType: ErrorType.VALIDATION_ERROR });
+          send({ type: 'error', content: `Invalid mode: ${mode}`, errorType: ErrorType.VALIDATION_ERROR });
         }
       } catch (error) {
         const e = createError(ErrorType.AI_SERVICE_ERROR, 'Failed to generate scene', error, 'generate-scene');

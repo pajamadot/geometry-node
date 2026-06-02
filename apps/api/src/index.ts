@@ -19,8 +19,8 @@ app.use('*', (c, next) =>
 
 app.get('/health', (c) => c.json({ ok: true, service: 'geometry-api' }));
 
+app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
 app.route('/ai', ai);
 app.route('/nodes', nodes);
-app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
 
 export default app;
