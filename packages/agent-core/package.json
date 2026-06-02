@@ -1,0 +1,26 @@
+{
+  "name": "@geometry-script/agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./jsonNodes": "./src/jsonNodes.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "^0.7.3",
+    "ai": "^4.3.19",
+    "fastest-levenshtein": "^1.0.16"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^2.1.8"
+  }
+}
