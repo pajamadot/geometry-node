@@ -20,8 +20,10 @@ app.use('*', (c, next) =>
 
 app.get('/health', (c) => c.json({ ok: true, service: 'geometry-api' }));
 
+// Only AI generation requires auth (it costs money / uses user context).
+// The node catalog is public, non-sensitive data and is fetched at editor startup
+// before sign-in, so it stays open.
 app.use('/ai/*', requireAuth);
-app.use('/nodes', requireAuth);
 
 app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
 app.route('/ai', ai);
