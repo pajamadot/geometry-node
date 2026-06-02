@@ -97,7 +97,7 @@ export class Orchestrator extends Think<Env> {
       apiKey: this.env.OPENROUTER_API_KEY,
       baseURL: 'https://openrouter.ai/api/v1',
     });
-    return provider('anthropic/claude-3.5-sonnet');
+    return provider('anthropic/claude-sonnet-4.6');
   }
 
   getSystemPrompt(): string {

@@ -4,75 +4,43 @@
  * AgentChatDock — connects to the Orchestrator agent via WebSocket and
  * provides a chat interface for live scene editing.
  *
- * PROTOCOL (agents@0.14, cf_agent_chat_* wire format):
+ * Uses the OFFICIAL chat hook (`useAgentChat` from `@cloudflare/ai-chat/react`)
+ * on top of the raw `useAgent` connection. This replaces the previous
+ * hand-rolled `cf_agent_*` wire protocol (which never produced a reply and
+ * caused a reconnect loop in production).
  *
- *   Send:  { type: "cf_agent_use_chat_request", id, init: { method:"POST",
- *             body: JSON.stringify({ messages, projectId, catalog }) } }
- *           Think destructures: `const { messages, clientTools, trigger, ...customBody } = body`
- *           Everything in customBody → ctx.body in beforeTurn (projectId, catalog).
+ * How the per-turn context reaches the server:
+ *   `useAgentChat({ body })` sends the returned record fields as extra keys in
+ *   the chat request body. @cloudflare/think destructures
+ *   `const { messages, clientTools, trigger, ...customBody } = body` and exposes
+ *   `customBody` as `ctx.body` in `beforeTurn`. So `{ projectId, catalog }`
+ *   below land at `ctx.body.projectId` / `ctx.body.catalog` exactly where
+ *   `Orchestrator.beforeTurn` reads them. (projectId is also re-derived from the
+ *   room token server-side for security; catalog is taken from the body.)
  *
- *   Recv:  { type: "cf_agent_use_chat_response", streamId, done?, chunkData? }
- *           Incremental chunk. chunkData.type is one of:
- *             "text-start" | "text-delta" | "text-end"
- *             "tool-input-start" | "tool-input-available" | "tool-output-available" | "tool-output-error"
- *           Tool parts use type: `tool-${toolName}` (e.g. "tool-add_node").
- *          { type: "cf_agent_chat_messages", messages }
- *           Authoritative history after each turn. Parts follow the same
- *           `tool-<toolName>` shape (agents v6 format, NOT AI SDK v4 "tool-invocation").
+ * Connection auth: `useAgent({ query })` mints a short-lived room token and
+ * attaches it as `?token=` on the WS upgrade, which `Orchestrator.onConnect`
+ * validates. `query` (mintToken) is memoized so the socket does NOT reconnect
+ * on every render.
  *
- * Host/protocol derivation and room-token mint mirror roomClient.ts exactly.
+ * The editor reflects scene edits via C1 Room sync (separate connection); this
+ * dock only handles the conversation.
  */
 
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useAgent } from 'agents/react';
+import { useAgentChat } from '@cloudflare/ai-chat/react';
+import {
+  isTextUIPart,
+  isToolUIPart,
+  getToolName,
+  type UIMessage,
+  type UIMessagePart,
+} from 'ai';
 import { Loader2, Send, X, Sparkles, Bot, User, Wrench } from 'lucide-react';
 import { apiBase } from '../lib/aiApi';
 import { buildCatalog } from '../lib/buildCatalog';
-
-// ---------------------------------------------------------------------------
-// Part shape types (agents v6 / @cloudflare/think wire format)
-// Tool parts use type: `tool-${toolName}` — NOT "tool-invocation".
-// ---------------------------------------------------------------------------
-
-interface TextPart {
-  type: 'text';
-  text: string;
-}
-
-interface ToolPart {
-  type: string; // `tool-${toolName}`, e.g. "tool-add_node"
-  toolCallId: string;
-  toolName: string;
-  state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error' | 'output-denied';
-  input?: unknown;
-  output?: unknown;
-  errorText?: string;
-}
-
-type MessagePart = TextPart | ToolPart | { type: string; [k: string]: unknown };
-
-interface WireMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  parts?: MessagePart[];
-}
-
-interface AgentMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  /** Flattened text from parts, for display fallback. */
-  content: string;
-  parts: MessagePart[];
-  /** True while chunks are still arriving for this message. */
-  streaming?: boolean;
-}
 
 interface AgentChatDockProps {
   projectId: string;
@@ -102,38 +70,60 @@ function deriveAgentEndpoint(): { host: string; protocol: 'ws' | 'wss' } {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Part helpers (AI SDK v6 UIMessage parts)
 // ---------------------------------------------------------------------------
 
-function isToolPart(p: MessagePart): p is ToolPart {
-  // Tool parts have type starting with "tool-" and a toolName field.
-  return p.type.startsWith('tool-') && 'toolName' in p;
-}
+type AnyPart = UIMessagePart<Record<string, unknown>, Record<string, never>>;
 
-function flattenParts(parts: MessagePart[]): string {
+/** Concatenate the visible text from a message's text parts. */
+function flattenText(parts: readonly AnyPart[]): string {
   return parts
-    .filter((p): p is TextPart => p.type === 'text')
+    .filter(isTextUIPart)
     .map((p) => p.text)
     .join('');
 }
 
-function flattenWireMessage(m: WireMessage): string {
-  if (m.parts?.length) return flattenParts(m.parts);
-  return typeof m.content === 'string' ? m.content : '';
+interface ToolChip {
+  key: string;
+  name: string;
+  running: boolean;
+  errored: boolean;
+}
+
+/** Extract tool-call parts (static `tool-<name>` and `dynamic-tool`) as chips. */
+function toolChips(parts: readonly AnyPart[]): ToolChip[] {
+  const chips: ToolChip[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!isToolUIPart(part)) continue;
+    const state = (part as { state?: string }).state ?? '';
+    const callId =
+      (part as { toolCallId?: string }).toolCallId ?? `${part.type}-${i}`;
+    chips.push({
+      key: callId,
+      name: getToolName(part),
+      running: state === 'input-streaming' || state === 'input-available',
+      errored: state === 'output-error' || state === 'output-denied',
+    });
+  }
+  return chips;
 }
 
 // ---------------------------------------------------------------------------
 // ChatMessage sub-component
 // ---------------------------------------------------------------------------
 
-function ChatMessage({ message }: { message: AgentMessage }) {
+function ChatMessage({
+  message,
+  streaming,
+}: {
+  message: UIMessage;
+  streaming: boolean;
+}) {
   const isUser = message.role === 'user';
-
-  const textContent = message.parts.length
-    ? flattenParts(message.parts)
-    : message.content;
-
-  const toolParts = message.parts.filter(isToolPart);
+  const parts = message.parts as readonly AnyPart[];
+  const textContent = flattenText(parts);
+  const chips = isUser ? [] : toolChips(parts);
 
   return (
     <div className={`flex gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -154,34 +144,30 @@ function ChatMessage({ message }: { message: AgentMessage }) {
         className={`flex flex-col gap-1 max-w-[82%] ${isUser ? 'items-end' : 'items-start'}`}
       >
         {/* Tool-activity chips (assistant messages only) */}
-        {!isUser && toolParts.length > 0 && (
+        {!isUser && chips.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {toolParts.map((tp) => {
-              const running =
-                tp.state === 'input-streaming' || tp.state === 'input-available';
-              return (
-                <span
-                  key={tp.toolCallId}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono border ${
-                    running
-                      ? 'bg-amber-900/40 border-amber-500/50 text-amber-300'
-                      : tp.state === 'output-error' || tp.state === 'output-denied'
-                        ? 'bg-red-900/40 border-red-500/50 text-red-300'
-                        : 'bg-green-900/40 border-green-500/50 text-green-300'
-                  }`}
-                  title={tp.toolName}
-                >
-                  <Wrench className="w-2.5 h-2.5" />
-                  {tp.toolName}
-                  {running ? '…' : ''}
-                </span>
-              );
-            })}
+            {chips.map((chip) => (
+              <span
+                key={chip.key}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono border ${
+                  chip.running
+                    ? 'bg-amber-900/40 border-amber-500/50 text-amber-300'
+                    : chip.errored
+                      ? 'bg-red-900/40 border-red-500/50 text-red-300'
+                      : 'bg-green-900/40 border-green-500/50 text-green-300'
+                }`}
+                title={chip.name}
+              >
+                <Wrench className="w-2.5 h-2.5" />
+                {chip.name}
+                {chip.running ? '…' : ''}
+              </span>
+            ))}
           </div>
         )}
 
         {/* Text bubble */}
-        {(textContent || message.streaming) && (
+        {(textContent || streaming) && (
           <div
             className={`px-3 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
               isUser
@@ -190,7 +176,7 @@ function ChatMessage({ message }: { message: AgentMessage }) {
             }`}
           >
             {textContent}
-            {message.streaming && !textContent && (
+            {streaming && !textContent && (
               <span className="inline-flex gap-1 items-center text-gray-400">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 <span className="text-xs">thinking…</span>
@@ -209,18 +195,21 @@ function ChatMessage({ message }: { message: AgentMessage }) {
 
 export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) {
   const { getToken } = useAuth();
-  const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
   const [connected, setConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const { host, protocol } = deriveAgentEndpoint();
+
   /**
-   * Mint a room-token for the orchestrator connection.
-   * Mirrors roomClient.ts mintToken exactly (same endpoint, same format).
+   * Mint a room-token for the orchestrator connection. Mirrors roomClient.ts
+   * exactly (same endpoint, same format). Memoized on [projectId, getToken] so
+   * the WebSocket does NOT reconnect on every render — this stable identity
+   * (plus `queryDeps: [projectId]`) is what stops the reconnect loop.
    */
   const mintToken = useCallback(async (): Promise<Record<string, string | null>> => {
+    if (!projectId) return { token: null };
     try {
       const clerkToken = await getToken();
       const res = await fetch(`${apiBase}/projects/${projectId}/room-token`, {
@@ -242,124 +231,51 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
     }
   }, [projectId, getToken]);
 
-  const { host, protocol } = deriveAgentEndpoint();
-
-  // Track which streaming placeholder message we're accumulating into.
-  const streamingMsgIdRef = useRef<string | null>(null);
-
   /**
-   * Process one inbound WebSocket frame from the orchestrator.
-   *
-   * Two frame types we handle:
-   *   cf_agent_chat_messages   — authoritative history, replaces our messages.
-   *   cf_agent_use_chat_response — streaming chunk, accumulates into placeholder.
+   * Per-turn body fields the server reads via `ctx.body`. Stable callback so the
+   * chat hook does not churn. `buildCatalog()` is evaluated lazily on each send.
    */
-  const handleInboundMessage = useCallback((raw: string) => {
-    let frame: Record<string, unknown>;
-    try {
-      frame = JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      return; // ignore non-JSON frames (pings, etc.)
-    }
-
-    const type = frame.type as string | undefined;
-    if (!type) return;
-
-    // ------------------------------------------------------------------
-    // Full authoritative history — sent on connect + after each turn.
-    // ------------------------------------------------------------------
-    if (type === 'cf_agent_chat_messages') {
-      const rawMsgs = (frame.messages ?? []) as WireMessage[];
-      const converted: AgentMessage[] = rawMsgs
-        .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: flattenWireMessage(m),
-          parts: (m.parts ?? []) as MessagePart[],
-        }));
-      setMessages(converted);
-      setIsStreaming(false);
-      streamingMsgIdRef.current = null;
-      return;
-    }
-
-    // ------------------------------------------------------------------
-    // Streaming chunk — accumulate text/tool deltas into placeholder.
-    // ------------------------------------------------------------------
-    if (type === 'cf_agent_use_chat_response') {
-      const done = frame.done as boolean | undefined;
-      const chunkData = frame.chunkData as Record<string, unknown> | undefined;
-      const streamId = (frame.streamId ?? frame.requestId) as string | undefined;
-
-      // First chunk for this stream — create a streaming placeholder.
-      if (!streamingMsgIdRef.current && streamId) {
-        const placeholderId = `stream-${streamId}`;
-        streamingMsgIdRef.current = placeholderId;
-        setIsStreaming(true);
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === placeholderId)) return prev;
-          return [
-            ...prev,
-            {
-              id: placeholderId,
-              role: 'assistant' as const,
-              content: '',
-              parts: [],
-              streaming: true,
-            },
-          ];
-        });
-      }
-
-      const msgId = streamingMsgIdRef.current;
-      if (!msgId) return;
-
-      if (chunkData) {
-        applyChunk(msgId, chunkData, setMessages);
-      }
-
-      if (done) {
-        // Mark the placeholder as no-longer-streaming.
-        setMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, streaming: false } : m)),
-        );
-        setIsStreaming(false);
-        // The server sends cf_agent_chat_messages next; that will overwrite
-        // the placeholder with the authoritative message.
-        streamingMsgIdRef.current = null;
-      }
-      return;
-    }
-  }, []);
+  const buildBody = useCallback(
+    () => ({ projectId, catalog: buildCatalog() }),
+    [projectId],
+  );
 
   /**
    * useAgent opens a persistent WebSocket to
    *   {protocol}://{host}/agents/orchestrator/{projectId}
    * One orchestrator instance per project (name = projectId).
    */
-  const agentSocket = useAgent({
+  const agent = useAgent({
     agent: 'orchestrator',
-    name: projectId,
+    name: projectId || 'disabled',
     host,
     protocol,
-    enabled: open,
+    enabled: open && Boolean(projectId),
     query: mintToken,
     queryDeps: [projectId],
+    // Refresh well before the server's 120s token TTL.
     cacheTtl: 90_000,
     onOpen: () => setConnected(true),
-    onClose: () => {
-      setConnected(false);
-      setIsStreaming(false);
-    },
-    onError: () => {
-      setConnected(false);
-      setIsStreaming(false);
-    },
-    onMessage: (evt) => {
-      handleInboundMessage(evt.data as string);
-    },
+    onClose: () => setConnected(false),
+    onError: () => setConnected(false),
   });
+
+  /**
+   * Official chat hook. Drives the standard agents chat wire protocol over the
+   * `agent` socket: sends user turns, parses streamed chunks into v6 UIMessages
+   * with `parts`, and exposes `status`/`isStreaming` + `sendMessage`.
+   */
+  const chat = useAgentChat<unknown, UIMessage>({
+    agent,
+    id: projectId || 'disabled',
+    // Don't fetch persisted history over HTTP; this dock is conversation-only.
+    getInitialMessages: null,
+    body: buildBody,
+  });
+
+  const { messages, sendMessage, status } = chat;
+  // True from the moment a turn is submitted until the stream ends.
+  const busy = status === 'submitted' || status === 'streaming' || chat.isStreaming;
 
   // Auto-scroll to bottom when messages change.
   useEffect(() => {
@@ -369,94 +285,27 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
     });
   }, [messages]);
 
-  // Reset state when dock is closed.
-  useEffect(() => {
-    if (!open) {
-      setMessages([]);
-      setIsStreaming(false);
-      setInput('');
-      streamingMsgIdRef.current = null;
-    }
-  }, [open]);
+  // NOTE: no reset-on-close effect here. The parent only mounts this component
+  // while open, so closing unmounts it and clears all state automatically.
+  // (A `useEffect(... setMessages([]) ..., [open, setMessages])` here caused
+  // React error #185 — an infinite setState loop — when `setMessages` was not
+  // referentially stable.)
 
   // -------------------------------------------------------------------------
   // Send a message turn
   // -------------------------------------------------------------------------
 
-  const sendMessage = useCallback(() => {
+  const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text || isStreaming || !connected) return;
-
-    // Build UIMessage for the user turn.
-    const userMsg: WireMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: text,
-      parts: [{ type: 'text', text }],
-    };
-
-    // Optimistically add to UI.
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: userMsg.id,
-        role: 'user',
-        content: text,
-        parts: userMsg.parts as MessagePart[],
-      },
-    ]);
+    if (!text || busy || !connected) return;
     setInput('');
-
-    // Build full history to send (non-streaming messages only).
-    const history: WireMessage[] = [
-      ...messages
-        .filter((m) => !m.streaming)
-        .map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          parts: m.parts,
-        })),
-      userMsg,
-    ];
-
-    /**
-     * Wire protocol: cf_agent_use_chat_request
-     *
-     * Think._handleChatRequest does:
-     *   const { messages, clientTools, trigger, ...customBody } = JSON.parse(init.body);
-     *   // customBody → ctx.body in beforeTurn
-     *
-     * So projectId and catalog end up at ctx.body.projectId / ctx.body.catalog
-     * which is exactly what Orchestrator.beforeTurn reads.
-     */
-    const requestId = crypto.randomUUID();
-    const wireFrame = JSON.stringify({
-      type: 'cf_agent_use_chat_request',
-      id: requestId,
-      init: {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: history,
-          projectId,
-          catalog: buildCatalog(),
-        }),
-      },
-    });
-
-    try {
-      agentSocket.send(wireFrame);
-      setIsStreaming(true);
-    } catch (err) {
-      console.error('[agent-chat] failed to send message', err);
-      setIsStreaming(false);
-    }
-  }, [input, isStreaming, connected, messages, projectId, agentSocket]);
+    void sendMessage({ text });
+  }, [input, busy, connected, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSend();
     }
   };
 
@@ -465,6 +314,14 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
   // -------------------------------------------------------------------------
 
   if (!open) return null;
+
+  // No active project → render nothing meaningful (parent already guards on
+  // projectId, but keep the dock a no-op if it's ever mounted without one).
+  if (!projectId) return null;
+
+  const lastIsAssistant =
+    messages.length > 0 && messages[messages.length - 1].role === 'assistant';
+  const waitingForReply = busy && !lastIsAssistant;
 
   return (
     <div className="fixed right-4 bottom-20 w-96 h-[580px] bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-[70] flex flex-col overflow-hidden">
@@ -477,7 +334,7 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
             className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-gray-600'}`}
             title={connected ? 'Connected' : 'Connecting…'}
           />
-          {isStreaming && <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />}
+          {busy && <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />}
         </div>
         <button
           onClick={onClose}
@@ -493,7 +350,7 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0"
       >
-        {messages.length === 0 && !isStreaming && (
+        {messages.length === 0 && !busy && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-10">
             <div className="w-12 h-12 rounded-full bg-purple-900/40 border border-purple-700/50 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-purple-400" />
@@ -506,11 +363,19 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
             </div>
           </div>
         )}
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
+        {messages.map((msg, idx) => (
+          <ChatMessage
+            key={msg.id}
+            message={msg}
+            streaming={
+              busy &&
+              msg.role === 'assistant' &&
+              idx === messages.length - 1
+            }
+          />
         ))}
-        {/* Spinner while waiting for first chunk */}
-        {isStreaming && !messages.some((m) => m.streaming) && (
+        {/* Spinner while waiting for the first assistant chunk */}
+        {waitingForReply && (
           <div className="flex gap-2">
             <div className="w-7 h-7 rounded-full bg-purple-700 flex items-center justify-center flex-shrink-0">
               <Bot className="w-3.5 h-3.5 text-white" />
@@ -541,17 +406,17 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
                 ? 'Ask the agent to edit your scene…'
                 : 'Waiting for connection…'
             }
-            disabled={!connected || isStreaming}
+            disabled={!connected || busy}
             rows={2}
             className="flex-1 bg-gray-800 text-white text-sm rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none px-3 py-2 resize-none placeholder-gray-500 disabled:opacity-50 transition-colors"
           />
           <button
-            onClick={sendMessage}
-            disabled={!input.trim() || !connected || isStreaming}
+            onClick={handleSend}
+            disabled={!input.trim() || !connected || busy}
             className="flex-shrink-0 w-9 h-9 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             aria-label="Send message"
           >
-            {isStreaming ? (
+            {busy ? (
               <Loader2 className="w-4 h-4 text-white animate-spin" />
             ) : (
               <Send className="w-4 h-4 text-white" />
@@ -560,160 +425,5 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
         </div>
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// applyChunk — update a streaming message's parts in response to one chunk.
-//
-// agents@0.14 chunk types (from agent-tools-BAdX1vdI.js):
-//   text-start, text-delta, text-end
-//   tool-input-start, tool-input-delta, tool-input-available, tool-input-error
-//   tool-output-available, tool-output-error
-//   step-start | start-step
-// ---------------------------------------------------------------------------
-
-function applyChunk(
-  msgId: string,
-  chunk: Record<string, unknown>,
-  setMessages: React.Dispatch<React.SetStateAction<AgentMessage[]>>,
-): void {
-  const chunkType = chunk.type as string | undefined;
-  if (!chunkType) return;
-
-  setMessages((prev) =>
-    prev.map((m) => {
-      if (m.id !== msgId) return m;
-
-      // Clone parts array shallowly for immutability.
-      const parts: MessagePart[] = m.parts.map((p) => ({ ...p }));
-
-      switch (chunkType) {
-        case 'text-start':
-          parts.push({ type: 'text', text: '' } as TextPart);
-          break;
-
-        case 'text-delta': {
-          const delta = chunk.delta as string | undefined;
-          if (!delta) break;
-          const lastIdx = parts.length - 1;
-          if (lastIdx >= 0 && parts[lastIdx].type === 'text') {
-            parts[lastIdx] = {
-              ...parts[lastIdx],
-              text: (parts[lastIdx] as TextPart).text + delta,
-            } as TextPart;
-          } else {
-            parts.push({ type: 'text', text: delta } as TextPart);
-          }
-          break;
-        }
-
-        case 'text-end':
-          // Nothing to do; text is already accumulated.
-          break;
-
-        case 'tool-input-start': {
-          const toolName = chunk.toolName as string;
-          const toolCallId = chunk.toolCallId as string;
-          if (!toolName || !toolCallId) break;
-          const existing = parts.find(
-            (p) => isToolPart(p) && p.toolCallId === toolCallId,
-          );
-          if (!existing) {
-            parts.push({
-              type: `tool-${toolName}`,
-              toolCallId,
-              toolName,
-              state: 'input-streaming',
-              input: undefined,
-            } as ToolPart);
-          }
-          break;
-        }
-
-        case 'tool-input-delta': {
-          const toolCallId = chunk.toolCallId as string;
-          const idx = parts.findIndex(
-            (p) => isToolPart(p) && p.toolCallId === toolCallId,
-          );
-          if (idx >= 0 && (parts[idx] as ToolPart).state === 'input-streaming') {
-            parts[idx] = {
-              ...parts[idx],
-              input: chunk.input,
-            } as ToolPart;
-          }
-          break;
-        }
-
-        case 'tool-input-available': {
-          const toolName = chunk.toolName as string;
-          const toolCallId = chunk.toolCallId as string;
-          const idx = parts.findIndex(
-            (p) => isToolPart(p) && p.toolCallId === toolCallId,
-          );
-          if (idx >= 0) {
-            parts[idx] = {
-              ...parts[idx],
-              state: 'input-available',
-              input: chunk.input,
-            } as ToolPart;
-          } else if (toolName && toolCallId) {
-            parts.push({
-              type: `tool-${toolName}`,
-              toolCallId,
-              toolName,
-              state: 'input-available',
-              input: chunk.input,
-            } as ToolPart);
-          }
-          break;
-        }
-
-        case 'tool-output-available': {
-          const toolCallId = chunk.toolCallId as string;
-          const idx = parts.findIndex(
-            (p) => isToolPart(p) && p.toolCallId === toolCallId,
-          );
-          if (idx >= 0) {
-            parts[idx] = {
-              ...parts[idx],
-              state: 'output-available',
-              output: chunk.output,
-            } as ToolPart;
-          }
-          break;
-        }
-
-        case 'tool-output-error': {
-          const toolCallId = chunk.toolCallId as string;
-          const idx = parts.findIndex(
-            (p) => isToolPart(p) && p.toolCallId === toolCallId,
-          );
-          if (idx >= 0) {
-            parts[idx] = {
-              ...parts[idx],
-              state: 'output-error',
-              errorText: chunk.errorText as string | undefined,
-            } as ToolPart;
-          }
-          break;
-        }
-
-        case 'step-start':
-        case 'start-step':
-          parts.push({ type: 'step-start' });
-          break;
-
-        default:
-          break;
-      }
-
-      return {
-        ...m,
-        content: flattenParts(parts),
-        parts,
-        streaming: true,
-      };
-    }),
   );
 }
