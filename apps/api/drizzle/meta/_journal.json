@@ -8,6 +8,13 @@
       "when": 1780415883219,
       "tag": "0000_harsh_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780437421416,
+      "tag": "0001_bored_iron_lad",
+      "breakpoints": true
     }
   ]
 }

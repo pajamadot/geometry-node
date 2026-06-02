@@ -5,6 +5,7 @@ import { getAvailableModels } from '@geometry-script/agent-core';
 import { ai } from './routes/ai';
 import { nodes } from './routes/nodes';
 import { projects } from './routes/projects';
+import { chatSessions } from './routes/chat-sessions';
 import { requireAuth } from './auth';
 import { EditorRoom } from './rooms/editor-room';
 import { Orchestrator } from './agents/orchestrator';
@@ -43,6 +44,10 @@ app.route('/nodes', nodes);
 
 app.use('/projects/*', requireAuth);
 app.route('/projects', projects);
+// Chat sessions are nested under /projects/:projectId/sessions.
+// Mounted separately (both under /projects) — Hono resolves sequentially,
+// and /:projectId/sessions does not conflict with the existing /:id routes.
+app.route('/projects', chatSessions);
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
