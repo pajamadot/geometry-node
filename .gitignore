@@ -53,3 +53,5 @@ next-env.d.ts
 **/.turbo
 
 .idea
+# Cloudflare deploy credentials
+.cloudflare.env
