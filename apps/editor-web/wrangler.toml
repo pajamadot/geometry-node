@@ -10,3 +10,11 @@ name = "geometry-editor-web-dev"
 [env.dev.assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
+
+# Production — SPA served at geometry.pajamadot.com (custom domain created on deploy).
+[env.production]
+name = "geometry-editor-web"
+routes = [{ pattern = "geometry.pajamadot.com", custom_domain = true }]
+[env.production.assets]
+directory = "./dist"
+not_found_handling = "single-page-application"

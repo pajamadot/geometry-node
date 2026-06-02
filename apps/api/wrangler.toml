@@ -15,12 +15,12 @@ name = "geometry-api-dev"
 ALLOWED_ORIGIN = "http://localhost:5173"
 CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 
-# Production: BEFORE the first `wrangler deploy --env production`, set ALLOWED_ORIGIN to the
-# real editor-web origin (or `wrangler secret put ALLOWED_ORIGIN`) and the real Clerk
-# publishable key, or browser CORS preflight will fail. Secrets (OPENROUTER_API_KEY,
-# CLERK_SECRET_KEY) are set via `wrangler secret put --env production`.
+# Production. Secrets (OPENROUTER_API_KEY, CLERK_SECRET_KEY) are set via
+# `wrangler secret put <NAME> --env production` (never committed). The publishable key and
+# allowed origin are non-secret. Custom domain api.geometry.pajamadot.com is created on deploy.
 [env.production]
 name = "geometry-api"
+routes = [{ pattern = "api.geometry.pajamadot.com", custom_domain = true }]
 [env.production.vars]
-ALLOWED_ORIGIN = "https://CHANGE_ME.example.com"
-CLERK_PUBLISHABLE_KEY = "pk_live_CHANGE_ME"
+ALLOWED_ORIGIN = "https://geometry.pajamadot.com"
+CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucGFqYW1hZG90LmNvbSQ"
