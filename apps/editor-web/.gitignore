@@ -1,0 +1,19 @@
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# build output
+dist/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# wrangler state
+.wrangler/
+
+# playwright
+test-results/
+playwright-report/
+.playwright/

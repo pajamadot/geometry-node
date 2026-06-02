@@ -1,0 +1,26 @@
+name = "geometry-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets (set via `wrangler secret put`): OPENROUTER_API_KEY, CLERK_SECRET_KEY
+# Public vars: the editor-web origin allowed by CORS, and Clerk publishable key
+[vars]
+ALLOWED_ORIGIN = "http://localhost:5173"
+CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
+
+[env.dev]
+name = "geometry-api-dev"
+[env.dev.vars]
+ALLOWED_ORIGIN = "http://localhost:5173"
+CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
+
+# Production: BEFORE the first `wrangler deploy --env production`, set ALLOWED_ORIGIN to the
+# real editor-web origin (or `wrangler secret put ALLOWED_ORIGIN`) and the real Clerk
+# publishable key, or browser CORS preflight will fail. Secrets (OPENROUTER_API_KEY,
+# CLERK_SECRET_KEY) are set via `wrangler secret put --env production`.
+[env.production]
+name = "geometry-api"
+[env.production.vars]
+ALLOWED_ORIGIN = "https://CHANGE_ME.example.com"
+CLERK_PUBLISHABLE_KEY = "pk_live_CHANGE_ME"

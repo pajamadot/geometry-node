@@ -1,6 +1,6 @@
 # Geometry Nodes On The Web! - A Procedural Geometry System
 
-![Demo GIF](apps/web/assets/demo.gif)
+![Demo GIF](apps/editor-web/assets/demo.gif)
 
 A comprehensive web-based procedural geometry system for creating and managing complex 3D geometry with advanced node-based editing and real-time visualization.
 
@@ -53,47 +53,35 @@ This project is organized as a monorepo with the following structure:
 
 ```
 geometry-script/
-├── apps/web/          # Next.js web application
+├── apps/editor-web/   # Vite SPA (React editor)
+├── apps/api/          # Hono API worker (Cloudflare Workers)
+├── packages/agent-core/ # Shared AI agent logic
 ├── docs/              # Documentation files
 ├── examples/          # Example projects and prompts
 └── README.md          # This file
 ```
 
-## Installation
+## Development
 
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn package manager
-- OpenRouter API key (for AI features)
-
-### Setup
-1. Clone this repository:
-```bash
-git clone <repository-url>
-cd geometry-script
-```
-
-2. Install root dependencies (if any):
 ```bash
 npm install
+# terminal 1 — API worker (needs apps/api/.dev.vars with OPENROUTER_API_KEY + CLERK_SECRET_KEY + CLERK_PUBLISHABLE_KEY)
+npm run dev -w @geometry-script/api
+# terminal 2 — editor SPA (needs apps/editor-web/.env with VITE_CLERK_PUBLISHABLE_KEY)
+npm run dev -w @geometry-script/editor-web   # http://localhost:5173
 ```
 
-3. Install and start the web application:
+The SPA dev server proxies `/api/*` to the local worker on :8787, so no CORS setup is needed locally.
+
+## Deploy (Cloudflare)
+
 ```bash
-cd apps/web
-npm install
-npm run dev
+npm run deploy:dev -w @geometry-script/api
+npm run deploy:dev -w @geometry-script/editor-web
 ```
 
-4. Set up AI features (optional):
-   - Get an API key from [OpenRouter](https://openrouter.ai/keys)
-   - Create a `.env.local` file in the `apps/web` directory:
-   ```bash
-   cd apps/web
-   echo "OPENROUTER_API_KEY=your_openrouter_api_key_here" > .env.local
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+Set worker secrets once:
+`cd apps/api && npx wrangler secret put OPENROUTER_API_KEY && npx wrangler secret put CLERK_SECRET_KEY`
 
 ## Usage Guide
 
@@ -410,30 +398,33 @@ return { value: generatedValue };
 "tags": ["math", "utility"]
 ```
 
-## Development
+## Project Structure
 
-### Project Structure
 ```
-apps/web/
-├── app/                # Next.js App Router
+apps/editor-web/
+├── app/                # React SPA (Vite)
 │   ├── components/     # React components
 │   ├── registry/       # Node definitions
 │   ├── types/          # TypeScript type definitions
 │   └── utils/          # Utility functions
-├── assets/             # Static assets
 ├── public/             # Public assets
-└── package.json        # Web app dependencies
+└── package.json        # Editor app dependencies
+
+apps/api/
+├── src/                # Hono worker source
+│   ├── data/           # Server-side node data
+│   └── index.ts        # Worker entry point
+└── wrangler.toml       # Cloudflare Workers config
+
+packages/agent-core/
+└── src/                # Shared AI agent logic
 ```
 
-For detailed development setup, see [`apps/web/README.md`](apps/web/README.md).
-
 ### Adding New Nodes
-1. Create a new node definition in `apps/web/app/registry/nodes/`
+1. Create a new node definition in `apps/editor-web/app/registry/nodes/`
 2. Define inputs, outputs, and parameters
 3. Implement the execute function
-4. Register the node in `apps/web/app/registry/nodes/index.ts`
-
-For complete development setup, see [`apps/web/README.md`](apps/web/README.md).
+4. Register the node in `apps/editor-web/app/registry/nodes/index.ts`
 
 ### Node Definition Example
 ```typescript
@@ -508,7 +499,9 @@ export const myNodeDefinition: NodeDefinition = {
 ## Technical Details
 
 ### Architecture
-- **Frontend**: Next.js 15 with React 19
+- **Frontend**: Vite + React SPA (`apps/editor-web`)
+- **Backend**: Hono on Cloudflare Workers (`apps/api`)
+- **Shared Logic**: `packages/agent-core` (AI agent, diff strategies)
 - **3D Rendering**: Three.js with React Three Fiber
 - **Node Editor**: ReactFlow for visual programming
 - **Type System**: TypeScript for type safety

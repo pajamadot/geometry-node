@@ -3,17 +3,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".vite/**"]
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
-    "dev": {
-      "persistent": true,
-      "cache": false
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    }
+    "check-types": { "dependsOn": ["^check-types"] },
+    "dev": { "persistent": true, "cache": false },
+    "lint": { "dependsOn": ["^lint"] },
+    "test": { "dependsOn": ["^build"] }
   }
 }

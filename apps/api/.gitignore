@@ -1,0 +1,13 @@
+# cloudflare secrets
+.dev.vars
+
+# cloudflare build state
+.wrangler/
+
+# build output
+dist/
+
+# env files
+.env
+.env.*
+!.env.example

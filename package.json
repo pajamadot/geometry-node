@@ -4,12 +4,15 @@
   "private": true,
   "description": "A monorepo for geometry scripting with AI-powered node-based editor",
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test"
   },
   "keywords": [
     "geometry",
