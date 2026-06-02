@@ -2,9 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Wand2, Sparkles, Loader2, Download, Upload, Copy, Settings, RefreshCw } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
 import Button from './ui/Button';
 import Dropdown from './ui/Dropdown';
 import Tooltip from './ui/Tooltip';
+import { postAi, type AiEndpoint } from '../lib/aiApi';
 
 export interface AIMessage {
   id: string;
@@ -31,15 +33,16 @@ interface AIPanelProps {
   currentScene?: { nodes: any[], edges: any[] };
 }
 
-export function AIPanel({ 
-  onNodeGenerated, 
-  onSceneGenerated, 
-  onNodeModified, 
-  onSceneModified, 
-  currentNodes = [], 
+export function AIPanel({
+  onNodeGenerated,
+  onSceneGenerated,
+  onNodeModified,
+  onSceneModified,
+  currentNodes = [],
   currentScene,
-  className = '' 
+  className = ''
 }: AIPanelProps) {
+  const { getToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'nodes' | 'scenes'>('nodes');
   const [prompt, setPrompt] = useState('');
@@ -101,20 +104,10 @@ export function AIPanel({
       status: 'pending'
     });
 
-    const endpoint = activeTab === 'nodes' ? '/api/ai/generate-node' : '/api/ai/generate-scene';
-    
+    const endpoint: AiEndpoint = activeTab === 'nodes' ? 'generate-node' : 'generate-scene';
+
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          model: selectedModel,
-          mode: generationMode
-        }),
-      });
+      const response = await postAi(endpoint, { prompt, model: selectedModel, mode: generationMode }, getToken);
 
       if (!response.body) {
         throw new Error('No response body');

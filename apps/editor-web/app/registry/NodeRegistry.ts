@@ -566,14 +566,18 @@ export class NodeRegistry {
     success: number;
     failed: { node: JsonNodeDefinition; error: string }[];
   }> {
+    // Inline API_BASE to avoid circular import (buildCatalog → NodeRegistry → aiApi → buildCatalog)
+    const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || '/api';
     try {
-      const response = await fetch('/api/nodes');
+      const response = await fetch(`${API_BASE}/nodes`);
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
-      
-      const collection = await response.json() as JsonNodeCollection;
-      return this.loadJsonNodeCollection(collection);
+
+      const json = await response.json();
+      // Worker returns { success: true, data: <serverNodeDefinitions> }; be defensive
+      const payload: JsonNodeCollection = (json && json.success && 'data' in json) ? json.data : json;
+      return this.loadJsonNodeCollection(payload);
     } catch (error) {
       return {
         success: 0,

@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Wand2, 
-  Sparkles, 
-  Loader2, 
-  Command, 
-  Search, 
-  Edit3, 
-  Plus, 
+import {
+  Wand2,
+  Sparkles,
+  Loader2,
+  Command,
+  Search,
+  Edit3,
+  Plus,
   Zap,
   ChevronRight,
   X,
@@ -20,6 +20,8 @@ import {
   Activity,
   Terminal
 } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { postAi, type AiEndpoint } from '../lib/aiApi';
 
 interface CommandSystemProps {
   onNodeGenerated?: (node: any) => void;
@@ -70,6 +72,7 @@ export function CommandSystem({
   currentNodes = [],
   currentScene
 }: CommandSystemProps) {
+  const { getToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -277,23 +280,23 @@ export function CommandSystem({
     setResults(prev => [result, ...prev]);
     setShowResults(true);
 
-    let endpoint = '';
-    let requestBody: any = {
+    let endpoint: AiEndpoint = 'generate-node';
+    let requestBody: Record<string, unknown> = {
       prompt,
       model: 'anthropic/claude-sonnet-4'
     };
 
     switch (command.type) {
       case 'generate-node':
-        endpoint = '/api/ai/generate-node';
+        endpoint = 'generate-node';
         setGenerationProgress(prev => prev ? { ...prev, stage: 'Analyzing Node Requirements', content: 'Understanding your node specifications...' } : null);
         break;
       case 'generate-scene':
-        endpoint = '/api/ai/generate-scene';
+        endpoint = 'generate-scene';
         setGenerationProgress(prev => prev ? { ...prev, stage: 'Planning Scene Structure', content: 'Designing your scene layout...' } : null);
         break;
-      case 'modify-node':
-        endpoint = '/api/ai/modify-node';
+      case 'modify-node': {
+        endpoint = 'modify-node';
         setGenerationProgress(prev => prev ? { ...prev, stage: 'Analyzing Existing Node', content: 'Understanding current node structure...' } : null);
         const firstNode = currentNodes[0];
         if (!firstNode) {
@@ -302,10 +305,11 @@ export function CommandSystem({
           setGenerationProgress(null);
           return;
         }
-        requestBody.nodeData = firstNode;
+        requestBody = { ...requestBody, nodeData: firstNode, modification_description: prompt };
         break;
-      case 'modify-scene':
-        endpoint = '/api/ai/modify-scene';
+      }
+      case 'modify-scene': {
+        endpoint = 'modify-scene';
         setGenerationProgress(prev => prev ? { ...prev, stage: 'Analyzing Current Scene', content: 'Understanding your scene configuration...' } : null);
         if (!currentScene) {
           updateResult(result.id, { status: 'error', content: 'No scene available to modify' });
@@ -313,21 +317,18 @@ export function CommandSystem({
           setGenerationProgress(null);
           return;
         }
-        requestBody.sceneData = currentScene;
+        requestBody = { ...requestBody, sceneData: currentScene, modification_description: prompt };
         break;
+      }
       case 'explain':
-        endpoint = '/api/ai/generate-node';
+        endpoint = 'generate-node';
         setGenerationProgress(prev => prev ? { ...prev, stage: 'Gathering Information', content: 'Analyzing concepts to explain...' } : null);
-        requestBody.mode = 'explain';
+        requestBody = { ...requestBody, mode: 'explain' };
         break;
     }
 
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await postAi(endpoint, requestBody, getToken);
 
       if (!response.body) {
         throw new Error('No response body');

@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { Edit3, Loader2, Sparkles } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
 import Button from './ui/Button';
 import Dropdown from './ui/Dropdown';
+import { postAi, type AiEndpoint } from '../lib/aiApi';
 
 interface ModificationPanelProps {
   onNodeModified?: (node: any) => void;
@@ -20,6 +22,7 @@ export function ModificationPanel({
   currentScene,
   className = ''
 }: ModificationPanelProps) {
+  const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<'nodes' | 'scenes'>('nodes');
   const [prompt, setPrompt] = useState('');
   const [selectedModel] = useState('anthropic/claude-sonnet-4');
@@ -43,28 +46,22 @@ export function ModificationPanel({
     setIsModifying(true);
     setResult('Generating modifications...');
 
-    const endpoint = activeTab === 'nodes' ? '/api/ai/modify-node' : '/api/ai/modify-scene';
-    
+    const endpoint: AiEndpoint = activeTab === 'nodes' ? 'modify-node' : 'modify-scene';
+
     try {
-      const requestBody = activeTab === 'nodes' 
+      const requestBody = activeTab === 'nodes'
         ? {
             nodeData: selectedNodeForModification,
-            prompt: prompt,
+            modification_description: prompt,
             model: selectedModel
           }
         : {
             sceneData: currentScene,
-            prompt: prompt,
+            modification_description: prompt,
             model: selectedModel
           };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await postAi(endpoint, requestBody, getToken);
 
       if (!response.body) {
         throw new Error('No response body');
