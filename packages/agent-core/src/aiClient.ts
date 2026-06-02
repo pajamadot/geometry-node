@@ -19,7 +19,7 @@ Follow these rules at all times:
 export async function createStreamingSession(
   prompt: string,
   apiKey: string,
-  modelName: string = 'anthropic/claude-3.5-sonnet'
+  modelName: string = 'anthropic/claude-sonnet-4.6'
 ) {
   const openrouter = createOpenRouter({ apiKey });
   return await streamText({
@@ -31,12 +31,13 @@ export async function createStreamingSession(
 
 /** Gets list of available models */
 export function getAvailableModels(): string[] {
+  // Current OpenRouter slugs (verified against https://openrouter.ai/api/v1/models).
   return [
-    'anthropic/claude-3.5-sonnet',
+    'anthropic/claude-sonnet-4.6',
+    'anthropic/claude-opus-4.8',
+    'anthropic/claude-haiku-4.5',
+    'openai/gpt-5.4',
     'openai/gpt-4o',
-    'openai/gpt-4o-mini',
-    'google/gemini-pro-1.5',
-    'meta-llama/llama-3.1-70b-instruct',
-    'mistralai/mixtral-8x7b-instruct',
+    'google/gemini-2.5-pro',
   ];
 }
