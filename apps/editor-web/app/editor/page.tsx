@@ -13,10 +13,16 @@ import { LoggingProvider } from '../components/LoggingContext';
 import LogPanel from '../components/LogPanel';
 import { ModalProvider } from '../components/ModalContext';
 import { LogsVisibilityProvider, useLogsVisibility } from '../components/LogsVisibilityContext';
+import { useActiveProject } from '../lib/useActiveProject';
 
 function EditorContent() {
   const [showShortcuts, setShowShortcuts] = React.useState(true);
   const { showLogs, setShowLogs } = useLogsVisibility();
+  // Resolve (or auto-create) the user's default project so /editor is
+  // Room-backed. While resolving, projectId is null and the editor runs in
+  // pure-local mode — identical to the pre-Room behavior — so the UI never
+  // blocks on the network.
+  const { projectId } = useActiveProject();
 
   // Auto-hide shortcuts after 5 seconds
   React.useEffect(() => {
@@ -71,7 +77,7 @@ function EditorContent() {
         </div> */}
         <div className="h-full">
           <ReactFlowProvider>
-            <GeometryNodeEditor />
+            <GeometryNodeEditor projectId={projectId} />
           </ReactFlowProvider>
         </div>
       </div>

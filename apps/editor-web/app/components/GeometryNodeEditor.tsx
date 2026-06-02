@@ -41,6 +41,8 @@ import { getDefaultScene, getLighthouseScene } from '../data/scenes';
 import { useNotifications, NotificationPanel } from './hooks/useNotifications';
 import SystemMonitor from './SystemMonitor';
 import { CommandSystem } from './CommandSystem';
+import { useEditorRoom } from '../lib/roomClient';
+import type { EditorOp, RoomNode, RoomEdge } from '@geometry-script/agent-core';
 
 
 // Define default edge options outside component
@@ -251,7 +253,17 @@ const initialSceneData = getInitialScene();
 const initialNodes: Node<GeometryNodeData>[] = initialSceneData.nodes as Node<GeometryNodeData>[];
 const initialEdges: Edge[] = initialSceneData.edges;
 
-export default function GeometryNodeEditor() {
+interface GeometryNodeEditorProps {
+  /**
+   * When present, the graph is mirrored to a server-side Room (Cloudflare
+   * Agents SDK). When absent/null, the editor behaves exactly as before:
+   * purely local state + localStorage. The live editor's no-project path is
+   * therefore unchanged.
+   */
+  projectId?: string | null;
+}
+
+export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEditorProps = {}) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { compileNodes, isCompiling, error, liveParameterValues } = useGeometry();
@@ -793,6 +805,151 @@ export default function GeometryNodeEditor() {
       };
     });
   }, []);
+
+  // ==========================================================================
+  // REALTIME ROOM SYNC (additive, guarded by projectId)
+  // --------------------------------------------------------------------------
+  // When `projectId` is set, the React Flow graph is mirrored to a server-side
+  // Room (Cloudflare Agents SDK). When it is null, NONE of this runs and the
+  // editor stays on the pure-local/localStorage path (the live editor today).
+  //
+  // The compile pipeline (GeometryContext) is untouched: Room sync only changes
+  // WHERE nodes/edges come from on hydrate, and mirrors local edits outbound.
+  // Inbound server state is reconciled with setNodes/setEdges, which the
+  // existing compile effects already react to.
+  // ==========================================================================
+  const room = useEditorRoom({ projectId });
+
+  // Suppress outbound op emission while we are applying inbound server state,
+  // so inbound → setNodes/setEdges does NOT echo back out as a new op.
+  const suppressEmitRef = useRef(false);
+  // Whether we've performed the one-time hydrate-from-Room on connect.
+  const hydratedRef = useRef(false);
+  // Versions this client has already reflected (produced or applied), so the
+  // echoed onStateUpdate for them is ignored.
+  const appliedVersionRef = useRef(0);
+  // Debounce timer for outbound graph mirroring.
+  const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Convert React Flow nodes/edges <-> Room snapshot shapes.
+  const toRoomNodes = useCallback((ns: Node<GeometryNodeData>[]): RoomNode[] =>
+    ns.map(n => ({
+      id: n.id,
+      type: (n.type || (n.data as any)?.type || 'unknown') as string,
+      position: n.position,
+      data: (n.data ?? {}) as unknown as Record<string, unknown>,
+    })), []);
+
+  const toRoomEdges = useCallback((es: Edge[]): RoomEdge[] =>
+    es.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle ?? undefined,
+      targetHandle: e.targetHandle ?? undefined,
+    })), []);
+
+  // Apply an authoritative Room snapshot into React Flow without re-emitting.
+  const applyInboundSnapshot = useCallback((snapNodes: RoomNode[], snapEdges: RoomEdge[]) => {
+    suppressEmitRef.current = true;
+    const rfNodes = snapNodes.map(n => ({
+      id: n.id,
+      type: n.type,
+      position: n.position,
+      data: n.data,
+    })) as unknown as Node<GeometryNodeData>[];
+    const rfEdges = enhanceEdgesWithMetadata(
+      snapEdges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+      })) as Edge[],
+      rfNodes,
+    );
+    setNodes(rfNodes);
+    setEdges(rfEdges);
+    // Release the suppression after React has flushed the state updates and the
+    // resulting onNodesChange/onEdgesChange have run.
+    setTimeout(() => { suppressEmitRef.current = false; }, 0);
+  }, [setNodes, setEdges, enhanceEdgesWithMetadata]);
+
+  // Hydration + inbound reconciliation. Runs whenever the Room delivers state.
+  useEffect(() => {
+    if (!room.active) {
+      // Reset hydration state when sync turns off so reconnects re-hydrate.
+      hydratedRef.current = false;
+      appliedVersionRef.current = 0;
+      return;
+    }
+    const inbound = room.inbound;
+    if (!inbound) return;
+    const snap = inbound.snapshot;
+
+    // ONE-TIME HYDRATE: first server snapshot after connecting.
+    if (!hydratedRef.current && inbound.source === 'server') {
+      hydratedRef.current = true;
+      const roomIsEmpty = snap.version === 0 && snap.nodes.length === 0;
+      if (roomIsEmpty && nodes.length > 0) {
+        // Empty Room + existing local/default scene → seed the Room with it so
+        // a fresh project starts from the current scene rather than blank.
+        const seedOp: EditorOp = {
+          op: 'replace-graph',
+          opId: crypto.randomUUID(),
+          payload: { nodes: toRoomNodes(nodes), edges: toRoomEdges(edges) },
+        };
+        void room.applyOps([seedOp]).then(v => {
+          if (typeof v === 'number') appliedVersionRef.current = v;
+        });
+      } else {
+        // Room has content → it is authoritative; replace local graph with it.
+        applyInboundSnapshot(snap.nodes, snap.edges);
+        appliedVersionRef.current = snap.version;
+        setTimeout(() => fitView({ duration: 400 }), 100);
+      }
+      return;
+    }
+
+    // ECHO GUARD: ignore versions we already produced/applied.
+    if (snap.version <= appliedVersionRef.current) return;
+    // ECHO GUARD: ignore our own client-origin optimistic updates.
+    if (inbound.source === 'client') {
+      appliedVersionRef.current = Math.max(appliedVersionRef.current, snap.version);
+      return;
+    }
+
+    // Authoritative remote update → reconcile into React Flow.
+    appliedVersionRef.current = snap.version;
+    applyInboundSnapshot(snap.nodes, snap.edges);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.inbound, room.active]);
+
+  // OUTBOUND: mirror local graph edits to the Room (debounced). Using a single
+  // replace-graph op keeps every existing change handler (add/remove/connect/
+  // move/param) intact — we just snapshot the authoritative local graph.
+  useEffect(() => {
+    if (!room.active) return;
+    if (!hydratedRef.current) return;      // don't emit before first hydrate
+    if (suppressEmitRef.current) return;    // don't echo inbound applies
+
+    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    emitTimerRef.current = setTimeout(() => {
+      const op: EditorOp = {
+        op: 'replace-graph',
+        opId: crypto.randomUUID(),
+        payload: { nodes: toRoomNodes(nodes), edges: toRoomEdges(edges) },
+      };
+      void room.applyOps([op]).then(v => {
+        if (typeof v === 'number') appliedVersionRef.current = v;
+      });
+    }, 400); // debounce drags / slider scrubs; structural edits coalesce too
+
+    return () => {
+      if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, room.active]);
 
   // Scene switching functions
   const loadDefaultScene = useCallback(() => {
