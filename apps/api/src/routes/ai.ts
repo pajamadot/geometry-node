@@ -105,6 +105,7 @@ ai.post('/generate-scene', async (c) => {
           let sceneResult = '';
           for await (const chunk of geometryAI.streamGenerateScene(req, model)) {
             sceneResult += chunk;
+            send({ type: 'stream', content: chunk }); // live feedback, parity with original
           }
           const scene = tryParseScene(sceneResult);
           const validationResult = scene ? validateSceneJSON(scene) : { success: false, errors: ['Not valid JSON'] };
