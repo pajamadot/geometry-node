@@ -15,6 +15,7 @@ export interface Env {
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
   ALLOWED_ORIGIN: string;
+  ROOM_TOKEN_SECRET: string;
   EditorRoom: DurableObjectNamespace;
   DB: D1Database;
   ASSETS: R2Bucket;

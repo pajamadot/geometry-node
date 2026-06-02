@@ -1,7 +1,9 @@
 import { Agent, callable } from 'agents';
+import type { Connection, ConnectionContext } from 'agents';
 import type { Env } from '../index';
 import { applyOps as coreApplyOps } from '@geometry-script/agent-core';
 import type { EditorSnapshot, EditorOp } from '@geometry-script/agent-core';
+import { verifyRoomToken } from '../lib/room-token';
 
 export type { RoomNode, RoomEdge } from '@geometry-script/agent-core';
 export type { EditorSnapshot as EditorState };
@@ -21,8 +23,45 @@ export class EditorRoom extends Agent<Env, EditorSnapshot> {
   /** In-memory flag to avoid stacking debounce schedules. */
   private backupScheduled = false;
 
-  /** In-memory meta (ownerId from Task 5 auth; not yet wired). */
+  /** In-memory meta (ownerId populated on first authenticated connect). */
   private meta: RoomMeta = {};
+
+  /**
+   * Called by the agents SDK when a WebSocket client connects.
+   * We validate the room token here before allowing the connection.
+   *
+   * Token is passed as ?token=<value> in the WS upgrade URL.
+   * `this.name` is the Durable Object instance name (= projectId).
+   *
+   * Per docs/partyserver types: close(code, reason) to reject;
+   * returning normally allows the connection.
+   */
+  async onConnect(connection: Connection, ctx: ConnectionContext): Promise<void> {
+    const url = new URL(ctx.request.url);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+      connection.close(4001, 'Missing room token');
+      return;
+    }
+
+    let payload;
+    try {
+      payload = await verifyRoomToken(token, this.env.ROOM_TOKEN_SECRET);
+    } catch {
+      connection.close(4001, 'Invalid or expired room token');
+      return;
+    }
+
+    if (payload.projectId !== this.name) {
+      connection.close(4001, 'Token project mismatch');
+      return;
+    }
+
+    // Token is valid — store the owner so R2 backups use the real workspace.
+    // This resolves the Task 4 TODO: ownerId is now populated from auth.
+    this.meta.ownerId = payload.userId;
+  }
 
   @callable()
   applyOps(ops: EditorOp[]) {
