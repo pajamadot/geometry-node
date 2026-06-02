@@ -7,8 +7,9 @@ import { nodes } from './routes/nodes';
 import { projects } from './routes/projects';
 import { requireAuth } from './auth';
 import { EditorRoom } from './rooms/editor-room';
+import { Orchestrator } from './agents/orchestrator';
 
-export { EditorRoom };
+export { EditorRoom, Orchestrator };
 
 export interface Env {
   OPENROUTER_API_KEY: string;
@@ -17,6 +18,7 @@ export interface Env {
   ALLOWED_ORIGIN: string;
   ROOM_TOKEN_SECRET: string;
   EditorRoom: DurableObjectNamespace;
+  Orchestrator: DurableObjectNamespace;
   DB: D1Database;
   ASSETS: R2Bucket;
 }

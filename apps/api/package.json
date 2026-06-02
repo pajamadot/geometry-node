@@ -11,7 +11,9 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.48",
     "@clerk/backend": "^1.21.0",
+    "@cloudflare/think": "^0.8.0",
     "@geometry-script/agent-core": "*",
     "agents": "^0.14.0",
     "drizzle-orm": "^0.36.0",
