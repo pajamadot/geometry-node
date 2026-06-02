@@ -33,3 +33,7 @@ export type { StandardError, StandardResponse } from './errorHandler';
 
 // Diff
 export { DiffApplicator } from './diffApplicator';
+
+// Editor operations
+export { applyOp, applyOps } from './operations';
+export type { EditorSnapshot, EditorOp, RoomNode, RoomEdge } from './operations';

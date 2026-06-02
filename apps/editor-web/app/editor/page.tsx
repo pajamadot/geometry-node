@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { SignedIn, SignedOut, RedirectToSignIn, SignOutButton } from '@clerk/clerk-react';
 import { LogOut } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import GeometryNodeEditor from '../components/GeometryNodeEditor';
 import ThreeViewport from '../components/ThreeViewport';
 import FallbackViewport from '../components/FallbackViewport';
@@ -13,10 +14,17 @@ import { LoggingProvider } from '../components/LoggingContext';
 import LogPanel from '../components/LogPanel';
 import { ModalProvider } from '../components/ModalContext';
 import { LogsVisibilityProvider, useLogsVisibility } from '../components/LogsVisibilityContext';
+import { useActiveProject } from '../lib/useActiveProject';
 
 function EditorContent() {
   const [showShortcuts, setShowShortcuts] = React.useState(true);
   const { showLogs, setShowLogs } = useLogsVisibility();
+
+  // When rendered at /editor/:projectId the param is present and we open that
+  // specific project. When rendered at /editor (no param) we fall back to the
+  // T6 auto-default flow (resolve / create the newest project).
+  const { projectId: routeProjectId } = useParams<{ projectId?: string }>();
+  const { projectId } = useActiveProject(routeProjectId);
 
   // Auto-hide shortcuts after 5 seconds
   React.useEffect(() => {
@@ -71,7 +79,7 @@ function EditorContent() {
         </div> */}
         <div className="h-full">
           <ReactFlowProvider>
-            <GeometryNodeEditor />
+            <GeometryNodeEditor projectId={projectId} />
           </ReactFlowProvider>
         </div>
       </div>

@@ -9,11 +9,43 @@ compatibility_flags = ["nodejs_compat"]
 ALLOWED_ORIGIN = "http://localhost:5173"
 CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 
+[[durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "geometry-db"
+database_id = "91d8a591-8d0d-49d6-9ded-3d1624b704e9"
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "geometry-assets"
+
+[[migrations]]
+tag = "v2-editorroom"
+new_sqlite_classes = ["EditorRoom"]
+
 [env.dev]
 name = "geometry-api-dev"
 [env.dev.vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
 CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
+
+[[env.dev.durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "geometry-db"
+database_id = "91d8a591-8d0d-49d6-9ded-3d1624b704e9"
+migrations_dir = "drizzle"
+
+[[env.dev.r2_buckets]]
+binding = "ASSETS"
+bucket_name = "geometry-assets"
 
 # Production. Secrets (OPENROUTER_API_KEY, CLERK_SECRET_KEY) are set via
 # `wrangler secret put <NAME> --env production` (never committed). The publishable key and
@@ -24,3 +56,17 @@ routes = [{ pattern = "api.geometry.pajamadot.com", custom_domain = true }]
 [env.production.vars]
 ALLOWED_ORIGIN = "https://geometry.pajamadot.com"
 CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucGFqYW1hZG90LmNvbSQ"
+
+[[env.production.durable_objects.bindings]]
+name = "EditorRoom"
+class_name = "EditorRoom"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "geometry-db"
+database_id = "91d8a591-8d0d-49d6-9ded-3d1624b704e9"
+migrations_dir = "drizzle"
+
+[[env.production.r2_buckets]]
+binding = "ASSETS"
+bucket_name = "geometry-assets"
