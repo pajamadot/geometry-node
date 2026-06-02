@@ -38,11 +38,12 @@ const DEFAULT_TARGET_HANDLE = 'geometry-in';
  * Resolve the EditorRoom stub for the current turn's project and assert the
  * turn carries a projectId.
  *
- * SECURITY SEAM (Task 4): projectId currently comes straight from the chat
- * request body. Task 4 will bind projectId to the authenticated user's token
- * and must verify the caller OWNS this project before any room mutation. The
- * single choke point for that check is here — every tool routes through
- * `resolveRoom`, so adding the ownership assertion in one place covers them all.
+ * SECURITY: projectId in TurnContext is sourced from the validated room token
+ * (set in Orchestrator.onConnect → authorizedProjectId → beforeTurn), NOT from
+ * the client-supplied request body. Any body value is discarded by beforeTurn
+ * before it reaches here. Every tool routes through resolveRoom, so this single
+ * choke point enforces that all room mutations target only the token-authorized
+ * project.
  */
 async function resolveRoom(ctx: OrchestratorToolsCtx) {
   const turn = ctx.getContext();
@@ -51,10 +52,9 @@ async function resolveRoom(ctx: OrchestratorToolsCtx) {
     return {
       ok: false as const,
       error:
-        'No projectId in turn context — the chat client must send { projectId } in the request body.',
+        'No authorized projectId — connection was not authenticated with a valid room token.',
     };
   }
-  // TODO(Task 4): assert the authenticated user owns `projectId` before returning a stub.
   const stub = await getAgentByName(ctx.env.EditorRoom, projectId);
   return { ok: true as const, projectId, stub };
 }
