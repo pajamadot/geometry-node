@@ -3,6 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
+# Alias optional peer deps of 'agents' skills module that are not used here
+[alias]
+"@cloudflare/worker-bundler" = "./src/lib/empty-shim.ts"
+"@cloudflare/codemode" = "./src/lib/empty-shim.ts"
+
 # Secrets (set via `wrangler secret put`): OPENROUTER_API_KEY, CLERK_SECRET_KEY
 # Public vars: the editor-web origin allowed by CORS, and Clerk publishable key
 [vars]
@@ -12,6 +17,10 @@ CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 [[durable_objects.bindings]]
 name = "EditorRoom"
 class_name = "EditorRoom"
+
+[[durable_objects.bindings]]
+name = "Orchestrator"
+class_name = "Orchestrator"
 
 [[d1_databases]]
 binding = "DB"
@@ -27,6 +36,10 @@ bucket_name = "geometry-assets"
 tag = "v2-editorroom"
 new_sqlite_classes = ["EditorRoom"]
 
+[[migrations]]
+tag = "v3-orchestrator"
+new_sqlite_classes = ["Orchestrator"]
+
 [env.dev]
 name = "geometry-api-dev"
 [env.dev.vars]
@@ -36,6 +49,10 @@ CLERK_PUBLISHABLE_KEY = "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k"
 [[env.dev.durable_objects.bindings]]
 name = "EditorRoom"
 class_name = "EditorRoom"
+
+[[env.dev.durable_objects.bindings]]
+name = "Orchestrator"
+class_name = "Orchestrator"
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -60,6 +77,10 @@ CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucGFqYW1hZG90LmNvbSQ"
 [[env.production.durable_objects.bindings]]
 name = "EditorRoom"
 class_name = "EditorRoom"
+
+[[env.production.durable_objects.bindings]]
+name = "Orchestrator"
+class_name = "Orchestrator"
 
 [[env.production.d1_databases]]
 binding = "DB"

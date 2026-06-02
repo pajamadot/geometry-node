@@ -85,6 +85,47 @@ export class EditorRoom extends Agent<Env, EditorSnapshot> {
   }
 
   /**
+   * Cross-DO RPC entry points (Task 2).
+   *
+   * `@callable` above is for WebSocket clients only. When ANOTHER Durable
+   * Object (the Orchestrator agent) needs to mutate this room, it holds a
+   * DurableObjectStub and invokes plain public async methods directly —
+   * standard Durable Object RPC. Per the Cloudflare docs, the `@callable`
+   * decorator is "only required for methods called from external runtimes
+   * (browsers, other services). When calling from within the same Worker
+   * [Agent-to-Agent], you can use standard Durable Object RPC directly on
+   * the stub without the decorator."
+   *   - https://developers.cloudflare.com/agents/api-reference/callable-methods/  (#agent-to-agent-calls)
+   *   - https://developers.cloudflare.com/durable-objects/best-practices/create-durable-object-stubs-and-send-requests/  (#invoke-rpc-methods)
+   *
+   * These intentionally mirror the @callable methods but are kept separate
+   * so the WS-facing surface and the internal RPC surface can diverge (e.g.
+   * Task 4 will add ownership enforcement to the RPC path).
+   *
+   * NOTE on broadcast: `setState()` persists AND broadcasts the new state to
+   * every connected WebSocket client (source = "server" when called from
+   * server code — see Agent.onStateChanged in the agents types). So an edit
+   * applied here via RPC is pushed live to the editor SPA, which is the whole
+   * point: the orchestrator only has to mutate the room.
+   */
+  async rpcApplyOps(ops: EditorOp[]): Promise<{ version: number }> {
+    const next = coreApplyOps(this.state, ops);
+    this.setState(next);
+
+    // Same debounced R2 backup as the @callable path.
+    if (!this.backupScheduled) {
+      this.backupScheduled = true;
+      void this.schedule(5, 'backupSnapshot');
+    }
+
+    return { version: next.version };
+  }
+
+  async rpcGetSnapshot(): Promise<EditorSnapshot> {
+    return this.state;
+  }
+
+  /**
    * Write the current snapshot to R2 under two keys:
    *   projects/{ownerId|_}/{projectId}/snapshots/{version}.json  (versioned)
    *   projects/{ownerId|_}/{projectId}/snapshots/latest.json     (latest)
