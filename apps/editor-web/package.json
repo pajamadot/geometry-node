@@ -14,7 +14,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.197",
     "@clerk/clerk-react": "^5.20.0",
+    "@cloudflare/ai-chat": "^0.8.0",
     "@fontsource-variable/geist": "^5.1.0",
     "@fontsource/geist-mono": "^5.1.0",
     "@geometry-script/agent-core": "*",
@@ -23,15 +25,16 @@
     "@react-three/drei": "^10.5.1",
     "@react-three/fiber": "^9.2.0",
     "agents": "^0.14.0",
+    "ai": "^6.0.195",
     "fastest-levenshtein": "^1.0.16",
     "html-to-image": "^1.11.11",
     "lucide-react": "^0.525.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "^19.1.2",
+    "react-dom": "^19.1.2",
     "react-router-dom": "^6.28.0",
     "reactflow": "^11.11.4",
     "three": "^0.178.0",
-    "zod": "^3.25.76"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
