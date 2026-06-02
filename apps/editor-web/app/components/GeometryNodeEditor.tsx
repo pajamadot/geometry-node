@@ -2512,11 +2512,12 @@ export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEdi
         currentScene={{ nodes, edges }}
       />
 
-      {/* Agent Chat Dock — only mounted when a project is active */}
-      {projectId && (
+      {/* Agent Chat Dock — only mounted while open (and a project is active),
+          so its WebSocket/chat hooks don't run on editor load. */}
+      {projectId && agentDockOpen && (
         <AgentChatDock
           projectId={projectId}
-          open={agentDockOpen}
+          open
           onClose={() => setAgentDockOpen(false)}
         />
       )}

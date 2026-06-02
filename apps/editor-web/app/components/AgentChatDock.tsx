@@ -273,7 +273,7 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
     body: buildBody,
   });
 
-  const { messages, sendMessage, setMessages, status } = chat;
+  const { messages, sendMessage, status } = chat;
   // True from the moment a turn is submitted until the stream ends.
   const busy = status === 'submitted' || status === 'streaming' || chat.isStreaming;
 
@@ -285,13 +285,11 @@ export function AgentChatDock({ projectId, open, onClose }: AgentChatDockProps) 
     });
   }, [messages]);
 
-  // Reset transcript + input when the dock is closed.
-  useEffect(() => {
-    if (!open) {
-      setMessages([]);
-      setInput('');
-    }
-  }, [open, setMessages]);
+  // NOTE: no reset-on-close effect here. The parent only mounts this component
+  // while open, so closing unmounts it and clears all state automatically.
+  // (A `useEffect(... setMessages([]) ..., [open, setMessages])` here caused
+  // React error #185 — an infinite setState loop — when `setMessages` was not
+  // referentially stable.)
 
   // -------------------------------------------------------------------------
   // Send a message turn
