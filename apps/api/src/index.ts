@@ -20,12 +20,13 @@ app.use('*', (c, next) =>
 
 app.get('/health', (c) => c.json({ ok: true, service: 'geometry-api' }));
 
+// Public, non-sensitive endpoints (registered BEFORE auth so they stay open):
+// the static model list and the node catalog, both potentially fetched pre-sign-in.
+app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
+
 // Only AI generation requires auth (it costs money / uses user context).
-// The node catalog is public, non-sensitive data and is fetched at editor startup
-// before sign-in, so it stays open.
 app.use('/ai/*', requireAuth);
 
-app.get('/ai/models', (c) => c.json({ success: true, data: { models: getAvailableModels() } }));
 app.route('/ai', ai);
 app.route('/nodes', nodes);
 
