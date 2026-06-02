@@ -1,27 +1,23 @@
-import { Agent } from 'agents';
+import { Agent, callable } from 'agents';
 import type { Env } from '../index';
+import { applyOps as coreApplyOps } from '@geometry-script/agent-core';
+import type { EditorSnapshot, EditorOp } from '@geometry-script/agent-core';
 
-export interface RoomNode {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, unknown>;
-}
+export type { RoomNode, RoomEdge } from '@geometry-script/agent-core';
+export type { EditorSnapshot as EditorState };
 
-export interface RoomEdge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-}
+export class EditorRoom extends Agent<Env, EditorSnapshot> {
+  initialState: EditorSnapshot = { nodes: [], edges: [], version: 0 };
 
-export interface EditorState {
-  nodes: RoomNode[];
-  edges: RoomEdge[];
-  version: number;
-}
+  @callable()
+  applyOps(ops: EditorOp[]) {
+    const next = coreApplyOps(this.state, ops);
+    this.setState(next);
+    return { version: next.version };
+  }
 
-export class EditorRoom extends Agent<Env, EditorState> {
-  initialState: EditorState = { nodes: [], edges: [], version: 0 };
+  @callable()
+  getSnapshot() {
+    return this.state;
+  }
 }
