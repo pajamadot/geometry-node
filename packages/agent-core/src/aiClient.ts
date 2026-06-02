@@ -1,10 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { streamText, generateObject, StreamTextResult } from 'ai';
-
-// Initialize OpenRouter client
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY || '',
-});
+import { streamText } from 'ai';
 
 // Base system prompt for Geometry-Node AI
 export const BASE_SYSTEM_PROMPT = `You are an expert Geometry-Node engineer working in the repository 'geometry-node' (branch 'product').
@@ -18,9 +13,15 @@ Follow these rules at all times:
 5. Output **pure code / JSON only**—no markdown framing, no extra prose.`;
 
 /**
- * Creates a streaming text generation session
+ * Creates a streaming text generation session.
+ * The OpenRouter API key is injected per call (Workers have no module-level env).
  */
-export async function createStreamingSession(prompt: string, modelName: string = 'anthropic/claude-3.5-sonnet') {
+export async function createStreamingSession(
+  prompt: string,
+  apiKey: string,
+  modelName: string = 'anthropic/claude-3.5-sonnet'
+) {
+  const openrouter = createOpenRouter({ apiKey });
   return await streamText({
     model: openrouter(modelName),
     prompt,
@@ -28,9 +29,7 @@ export async function createStreamingSession(prompt: string, modelName: string =
   });
 }
 
-/**
- * Gets list of available models
- */
+/** Gets list of available models */
 export function getAvailableModels(): string[] {
   return [
     'anthropic/claude-3.5-sonnet',
@@ -38,6 +37,6 @@ export function getAvailableModels(): string[] {
     'openai/gpt-4o-mini',
     'google/gemini-pro-1.5',
     'meta-llama/llama-3.1-70b-instruct',
-    'mistralai/mixtral-8x7b-instruct'
+    'mistralai/mixtral-8x7b-instruct',
   ];
-} 
+}
