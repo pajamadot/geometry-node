@@ -30,7 +30,7 @@ import { NodeProvider } from './NodeContext';
 import ContextMenu from './ContextMenu';
 import NodeContextMenu from './NodeContextMenu';
 import CustomNodeManager from './CustomNodeManager';
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2, LayoutGrid, Trash2 } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle2, AlertCircle, Paintbrush, Save, Box, Flashlight, Camera, FileDown, FileUp, Maximize2, LayoutGrid, Trash2, Sparkles } from 'lucide-react';
 import Button from './ui/Button';
 import Dropdown, { DropdownOption } from './ui/Dropdown';
 import Tooltip from './ui/Tooltip';
@@ -43,6 +43,7 @@ import SystemMonitor from './SystemMonitor';
 import { CommandSystem } from './CommandSystem';
 import { useEditorRoom } from '../lib/roomClient';
 import type { EditorOp, RoomNode, RoomEdge } from '@geometry-script/agent-core';
+import { AgentChatDock } from './AgentChatDock';
 
 
 // Define default edge options outside component
@@ -289,6 +290,7 @@ export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEdi
   const [disabledNodes, setDisabledNodes] = useState<Set<string>>(new Set());
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [customNodeManagerOpen, setCustomNodeManagerOpen] = useState(false);
+  const [agentDockOpen, setAgentDockOpen] = useState(false);
   const [isRefreshingNodes, setIsRefreshingNodes] = useState(false);
   const [serverNodesStatus, setServerNodesStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [registryUpdateKey, setRegistryUpdateKey] = useState(0);
@@ -2277,8 +2279,25 @@ export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEdi
         </div>
       </div>
 
-      {/* Status indicator */}
-      <div className="absolute top-3 right-3 z-20">
+      {/* Top-right: Agent toggle + status indicator */}
+      <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-2">
+        {/* ✨ Agent toggle — only shown when a project is active */}
+        {projectId && (
+          <button
+            onClick={() => setAgentDockOpen((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border shadow-lg transition-colors ${
+              agentDockOpen
+                ? 'bg-purple-700 border-purple-500 text-white'
+                : 'bg-black/80 backdrop-blur-sm border-purple-700/50 text-purple-300 hover:bg-purple-900/60 hover:border-purple-500'
+            }`}
+            aria-label="Toggle agent chat"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Agent
+          </button>
+        )}
+
+        {/* Status indicator */}
         {isCompiling && (
           <div className="bg-black/80 backdrop-blur-sm text-cyan-300 px-3 py-2 rounded-lg text-xs border border-cyan-500/30 shadow-lg">
             <div className="flex items-center space-x-2">
@@ -2303,7 +2322,7 @@ export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEdi
             </div>
           </div>
         )}
-      </div>
+      </div>{/* end top-right flex column */}
 
       {/* Selection status and shortcuts */}
       {selectedNodes.size > 0 && (
@@ -2492,6 +2511,15 @@ export default function GeometryNodeEditor({ projectId = null }: GeometryNodeEdi
         currentNodes={nodes}
         currentScene={{ nodes, edges }}
       />
+
+      {/* Agent Chat Dock — only mounted when a project is active */}
+      {projectId && (
+        <AgentChatDock
+          projectId={projectId}
+          open={agentDockOpen}
+          onClose={() => setAgentDockOpen(false)}
+        />
+      )}
     </div>
   );
 } 
