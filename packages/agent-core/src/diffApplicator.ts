@@ -1,5 +1,5 @@
 import { distance } from "fastest-levenshtein"
-import { JsonNodeDefinition } from '../types/jsonNodes';
+import { JsonNodeDefinition } from './jsonNodes';
 import { RobustDiffStrategy, DiffResult as RobustDiffResult } from './robustDiffStrategy';
 
 interface DiffResult {

@@ -113,7 +113,7 @@ export interface NodeDefinition {
   ui?: {
     width?: number;
     height?: number;
-    icon?: string | React.ComponentType<any>;
+    icon?: string | ((props: any) => any);
     advanced?: string[]; // parameter IDs that go in advanced section
   };
 }

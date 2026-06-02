@@ -1,5 +1,5 @@
-import { NodeDefinition } from '../types/nodeSystem';
-import { JsonNodeDefinition } from '../types/jsonNodes';
+import { NodeDefinition } from './nodeSystem';
+import { JsonNodeDefinition } from './jsonNodes';
 
 // Task types and their schemas
 export type AITask = 'create_node' | 'plan_scene' | 'compose_scene' | 'diff_scene' | 'generate_scene' | 'modify_node' | 'modify_scene';
