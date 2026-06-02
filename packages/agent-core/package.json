@@ -7,7 +7,9 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./jsonNodes": "./src/jsonNodes.ts"
+    "./jsonNodes": "./src/jsonNodes.ts",
+    "./nodeSystem": "./src/nodeSystem.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
