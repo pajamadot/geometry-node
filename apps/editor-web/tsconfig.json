@@ -16,6 +16,5 @@
     "types": ["vite/client", "node"],
     "paths": { "@/*": ["./app/*"] }
   },
-  "include": ["app", "src"],
-  "exclude": ["app/utils/testRobustDiff.ts"]
+  "include": ["app", "src"]
 }
