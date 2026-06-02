@@ -10,7 +10,8 @@
     "check-types": "tsc --noEmit",
     "deploy:dev": "npm run build && wrangler deploy --env dev",
     "deploy": "npm run build && wrangler deploy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.20.0",
@@ -32,6 +33,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@cloudflare/workers-types": "^4.20241127.0",
     "vitest": "^2.1.8",
     "@tailwindcss/vite": "^4",

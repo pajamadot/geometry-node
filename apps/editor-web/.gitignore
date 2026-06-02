@@ -12,3 +12,8 @@ dist/
 
 # wrangler state
 .wrangler/
+
+# playwright
+test-results/
+playwright-report/
+.playwright/
