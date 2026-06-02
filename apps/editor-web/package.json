@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check-types": "tsc --noEmit",
     "deploy:dev": "npm run build && wrangler deploy --env dev",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.20.0",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
+    "vitest": "^2.1.8",
     "@tailwindcss/vite": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
