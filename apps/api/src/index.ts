@@ -17,6 +17,7 @@ export interface Env {
   ALLOWED_ORIGIN: string;
   EditorRoom: DurableObjectNamespace;
   DB: D1Database;
+  ASSETS: R2Bucket;
 }
 
 const app = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
