@@ -2,13 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { apiBase } from './aiApi';
-
-interface ProjectRow {
-  id: string;
-  name: string;
-  version: number;
-}
+import { listProjects, createProject, getProject } from './projectsApi';
 
 interface ActiveProjectState {
   /** The active project id, or null while resolving / on failure. */
@@ -22,12 +16,11 @@ interface ActiveProjectState {
  * Ensures the signed-in user has at least one project and returns its id as the
  * active project for the editor.
  *
- *   GET /projects → if empty, POST /projects { name: "Default" }.
- *
- * This is the minimal "auto-default project" needed to make /editor Room-backed
- * end-to-end. The full multi-project picker is a later task.
+ * When `explicitProjectId` is provided the hook verifies/opens that specific
+ * project instead of auto-resolving the default. When absent it falls back to
+ * the T6 auto-default flow (GET /projects → create "Default" if empty).
  */
-export function useActiveProject(): ActiveProjectState {
+export function useActiveProject(explicitProjectId?: string): ActiveProjectState {
   const { getToken, isSignedIn } = useAuth();
   const [state, setState] = useState<ActiveProjectState>({
     projectId: null,
@@ -47,30 +40,21 @@ export function useActiveProject(): ActiveProjectState {
 
     (async () => {
       try {
-        const token = await getToken();
-        const headers = {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        };
-
-        const listRes = await fetch(`${apiBase}/projects`, { headers });
-        if (!listRes.ok) throw new Error(`list projects failed (${listRes.status})`);
-        const listJson = (await listRes.json()) as { data?: ProjectRow[] };
-        const rows = listJson?.data ?? [];
-
         let projectId: string;
-        if (rows.length > 0) {
-          projectId = rows[0].id;
+
+        if (explicitProjectId) {
+          // Explicit id supplied (from /editor/:projectId route): verify it exists.
+          const project = await getProject(explicitProjectId, getToken);
+          projectId = project.id;
         } else {
-          const createRes = await fetch(`${apiBase}/projects`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ name: 'Default' }),
-          });
-          if (!createRes.ok) throw new Error(`create project failed (${createRes.status})`);
-          const createJson = (await createRes.json()) as { data?: ProjectRow };
-          if (!createJson?.data?.id) throw new Error('create project returned no id');
-          projectId = createJson.data.id;
+          // Auto-default: use newest project, or create one.
+          const rows = await listProjects(getToken);
+          if (rows.length > 0) {
+            projectId = rows[0].id;
+          } else {
+            const created = await createProject('Default', getToken);
+            projectId = created.id;
+          }
         }
 
         if (!cancelled) setState({ projectId, loading: false, error: null });
@@ -87,7 +71,7 @@ export function useActiveProject(): ActiveProjectState {
     return () => {
       cancelled = true;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, explicitProjectId]);
 
   return state;
 }

@@ -1,5 +1,5 @@
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/clerk-react";
-import { Github, Menu, X, FileText } from "lucide-react";
+import { Github, Menu, X, FileText, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useLogsVisibility } from "./LogsVisibilityContext";
@@ -78,7 +78,14 @@ export default function Header() {
           </SignedOut>
           
           <SignedIn>
-            <UserButton 
+            <Link
+              to="/projects"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <FolderOpen className="size-4" />
+              <span>Projects</span>
+            </Link>
+            <UserButton
               appearance={{
                 elements: {
                   avatarBox: "w-8 h-8"
@@ -131,9 +138,9 @@ export default function Header() {
               </button>
             )}
             
-            <a 
-              href="https://github.com/pajamadot/geometry-node" 
-              target="_blank" 
+            <a
+              href="https://github.com/pajamadot/geometry-node"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
               onClick={() => setMobileMenuOpen(false)}
@@ -141,7 +148,18 @@ export default function Header() {
               <Github className="size-4" />
               <span>GitHub</span>
             </a>
-            
+
+            <SignedIn>
+              <Link
+                to="/projects"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FolderOpen className="size-4" />
+                <span>Projects</span>
+              </Link>
+            </SignedIn>
+
             <SignedOut>
               <div className="space-y-2">
                 <SignInButton mode="modal">

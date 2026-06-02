@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { SignedIn, SignedOut, RedirectToSignIn, SignOutButton } from '@clerk/clerk-react';
 import { LogOut } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import GeometryNodeEditor from '../components/GeometryNodeEditor';
 import ThreeViewport from '../components/ThreeViewport';
 import FallbackViewport from '../components/FallbackViewport';
@@ -18,11 +19,12 @@ import { useActiveProject } from '../lib/useActiveProject';
 function EditorContent() {
   const [showShortcuts, setShowShortcuts] = React.useState(true);
   const { showLogs, setShowLogs } = useLogsVisibility();
-  // Resolve (or auto-create) the user's default project so /editor is
-  // Room-backed. While resolving, projectId is null and the editor runs in
-  // pure-local mode — identical to the pre-Room behavior — so the UI never
-  // blocks on the network.
-  const { projectId } = useActiveProject();
+
+  // When rendered at /editor/:projectId the param is present and we open that
+  // specific project. When rendered at /editor (no param) we fall back to the
+  // T6 auto-default flow (resolve / create the newest project).
+  const { projectId: routeProjectId } = useParams<{ projectId?: string }>();
+  const { projectId } = useActiveProject(routeProjectId);
 
   // Auto-hide shortcuts after 5 seconds
   React.useEffect(() => {
