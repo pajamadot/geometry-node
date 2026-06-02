@@ -17,8 +17,8 @@ export interface Env {
   CLERK_PUBLISHABLE_KEY: string;
   ALLOWED_ORIGIN: string;
   ROOM_TOKEN_SECRET: string;
-  EditorRoom: DurableObjectNamespace;
-  Orchestrator: DurableObjectNamespace;
+  EditorRoom: DurableObjectNamespace<EditorRoom>;
+  Orchestrator: DurableObjectNamespace<Orchestrator>;
   DB: D1Database;
   ASSETS: R2Bucket;
 }
