@@ -1,20 +1,19 @@
-import { JsonNodeDefinition } from '../types/jsonNodes';
-import { 
-  AIRequest, 
-  CreateNodeRequest, 
-  PlanSceneRequest, 
-  ComposeSceneRequest, 
+import { JsonNodeDefinition } from './jsonNodes';
+import {
+  AIRequest,
+  CreateNodeRequest,
+  PlanSceneRequest,
+  ComposeSceneRequest,
   DiffSceneRequest,
   GenerateSceneRequest,
   ModifyNodeRequest,
   ModifySceneRequest,
-  ValidationResult 
+  ValidationResult
 } from './types';
-import { 
-  buildCatalog, 
-  buildNodeExamples, 
-  buildScenePresets, 
-  buildPromptForTask 
+import {
+  buildNodeExamples,
+  buildScenePresets,
+  buildPromptForTask
 } from './contextBuilders';
 import { validateNodeCode, validateSceneJSON, validateAIRequest } from './validators';
 import { createStreamingSession, getAvailableModels } from './aiClient';
@@ -33,9 +32,13 @@ import {
  */
 export class GeometryAIAgent {
   private model: string;
+  private apiKey: string;
+  private catalog: string;
 
-  constructor(model: string = 'anthropic/claude-3.5-sonnet') {
-    this.model = model;
+  constructor(opts: { apiKey: string; model?: string; catalog?: string } = { apiKey: '' }) {
+    this.apiKey = opts.apiKey;
+    this.model = opts.model ?? 'anthropic/claude-3.5-sonnet';
+    this.catalog = opts.catalog ?? '';
   }
 
   /**
@@ -91,8 +94,8 @@ export class GeometryAIAgent {
     }
 
     try {
-      const prompt = buildPromptForTask(request);
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const prompt = buildPromptForTask(request, this.catalog);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
 
       for await (const chunk of result.textStream) {
         yield chunk;
@@ -121,7 +124,7 @@ ${nodeExamples}`;
 ${request.validator_report}`;
       }
 
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       // Collect full response from stream
       let fullResponse = '';
@@ -142,7 +145,7 @@ ${request.validator_report}`;
    */
   private async planSceneWithErrorHandling(request: PlanSceneRequest, modelName?: string): Promise<StandardResponse<string>> {
     try {
-      const catalog = buildCatalog();
+      const catalog = this.catalog;
       
       const prompt = `TASK: "plan_scene"
 SCENE_IDEA: "${request.scene_idea}"
@@ -150,7 +153,7 @@ SCENE_IDEA: "${request.scene_idea}"
 CATALOG:
 ${catalog}`;
 
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       // Collect full response from stream
       let fullResponse = '';
@@ -178,7 +181,7 @@ SELECTED_NODE_IDS: ${JSON.stringify(request.selected_node_ids)}
 SCENE_PRESETS:
 ${scenePresets}`;
 
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       // Collect full response from stream
       let fullResponse = '';
@@ -226,7 +229,7 @@ ${scenePresets}`;
 OLD_SCENE_JSON: ${JSON.stringify(request.old_scene_json, null, 2)}
 CHANGE_REQUEST: "${request.change_request}"`;
 
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       // Collect full response from stream
       let fullResponse = '';
@@ -246,9 +249,9 @@ CHANGE_REQUEST: "${request.change_request}"`;
    */
   private async generateSceneWithErrorHandling(request: GenerateSceneRequest, modelName?: string): Promise<StandardResponse<string>> {
     try {
-      const prompt = buildPromptForTask(request);
+      const prompt = buildPromptForTask(request, this.catalog);
       
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       // Collect full response from stream
       let fullResponse = '';
@@ -417,9 +420,9 @@ CHANGE_REQUEST: "${request.change_request}"`;
    * Stream a single-step scene generation task
    */
   async *streamGenerateScene(request: GenerateSceneRequest, modelName?: string): AsyncGenerator<string> {
-    const prompt = buildPromptForTask(request);
+    const prompt = buildPromptForTask(request, this.catalog);
     
-    const result = await createStreamingSession(prompt, modelName || this.model);
+    const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
     
     for await (const chunk of result.textStream) {
       yield chunk;
@@ -646,8 +649,8 @@ CHANGE_REQUEST: "${request.change_request}"`;
    */
   private async modifyNodeWithErrorHandling(request: ModifyNodeRequest, modelName?: string): Promise<StandardResponse<string>> {
     try {
-      const prompt = buildPromptForTask(request);
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const prompt = buildPromptForTask(request, this.catalog);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       let diffContent = '';
       for await (const chunk of result.textStream) {
@@ -655,7 +658,7 @@ CHANGE_REQUEST: "${request.change_request}"`;
       }
 
       // Import DiffApplicator
-      const { DiffApplicator } = await import('../utils/diffApplicator');
+      const { DiffApplicator } = await import('./diffApplicator');
       const diffApplicator = new DiffApplicator();
       
       // Apply the generated diff to the node
@@ -683,8 +686,8 @@ CHANGE_REQUEST: "${request.change_request}"`;
    */
   private async modifySceneWithErrorHandling(request: ModifySceneRequest, modelName?: string): Promise<StandardResponse<string>> {
     try {
-      const prompt = buildPromptForTask(request);
-      const result = await createStreamingSession(prompt, modelName || this.model);
+      const prompt = buildPromptForTask(request, this.catalog);
+      const result = await createStreamingSession(prompt, this.apiKey, modelName || this.model);
       
       let fullResponse = '';
       for await (const chunk of result.textStream) {
