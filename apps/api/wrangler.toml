@@ -1,0 +1,14 @@
+name = "geometry-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets (set via `wrangler secret put`): OPENROUTER_API_KEY, CLERK_SECRET_KEY
+# Public var: the editor-web origin allowed by CORS
+[vars]
+ALLOWED_ORIGIN = "http://localhost:5173"
+
+[env.dev]
+name = "geometry-api-dev"
+[env.dev.vars]
+ALLOWED_ORIGIN = "http://localhost:5173"
